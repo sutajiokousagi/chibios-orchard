@@ -1,0 +1,7 @@
+gitversion.c
+build/
+debug/
+.dep/
+*.swp
+*.swo
+*~

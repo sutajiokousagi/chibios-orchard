@@ -72,12 +72,12 @@ endif
 #
 
 # Define project name here
-PROJECT = siglap
+PROJECT = orchard
 
 # Imported source files and paths
 CHIBIOS = ..
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/hal/boards/KOSAGI_KW01_SIGLAP/board.mk
+include $(CHIBIOS)/os/hal/boards/KOSAGI_KW01_ORCHARD/board.mk
 include $(CHIBIOS)/os/hal/ports/KINETIS/KL1x/platform.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
@@ -98,7 +98,7 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       siglap-shell.c \
+       orchard-shell.c \
        cmd-mem.c \
        cmd-threads.c \
        gitversion.c \

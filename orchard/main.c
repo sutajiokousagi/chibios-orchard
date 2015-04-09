@@ -20,8 +20,8 @@
 #include "shell.h"
 #include "chprintf.h"
 
-#include "siglap.h"
-#include "siglap-shell.h"
+#include "orchard.h"
+#include "orchard-shell.h"
 
 static void shell_termination_handler(eventid_t id)
 {
@@ -29,7 +29,7 @@ static void shell_termination_handler(eventid_t id)
   (void)id;
 
   chprintf(stream, "\r\nRespawning shell (shell #%d)\r\n", ++i);
-  siglapShellRestart();
+  orchardShellRestart();
 }
 
 #if 0
@@ -102,7 +102,7 @@ int main(void)
   chSysInit();
 
   /* Start serial, so we can get status output.*/
-  siglapShellInit();
+  orchardShellInit();
   chEvtRegister(&shell_terminated, &event_listeners[0], 0);
 
 
@@ -119,9 +119,9 @@ int main(void)
   extStart(&EXTD1, &extcfg);
 #endif
 
-  siglapShellRestart();
+  orchardShellRestart();
 
-  chprintf(stream, "Siglap shell.  Based on build %s\r\n", gitversion);
+  chprintf(stream, "Orchard shell.  Based on build %s\r\n", gitversion);
   chThdCreateStatic(waToggleThread, sizeof(waToggleThread),
                     LOWPRIO, toggle_thread, NULL);
 

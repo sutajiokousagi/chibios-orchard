@@ -18,14 +18,14 @@
 #define _BOARD_H_
 
 /*
- * Setup for Freescale Freedom KL25Z board.
+ * Setup for Kosagi Orchard board.
  */
 
 /*
  * Board identifier.
  */
-#define BOARD_FREESCALE_FREEDOM_KL25Z
-#define BOARD_NAME                  "Kosagi Siglap"
+#define BOARD_KOSAGI_ORCHARD
+#define BOARD_NAME                  "Kosagi Orchard"
 
 /* External 8 MHz crystal with PLL for 48 MHz core/system clock. */
 #define KINETIS_SYSCLK_FREQUENCY    48000000UL

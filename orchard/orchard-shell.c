@@ -17,8 +17,8 @@
 #include "ch.h"
 #include "hal.h"
 #include "shell.h"
-#include "siglap.h"
-#include "siglap-shell.h"
+#include "orchard.h"
+#include "orchard-shell.h"
 
 /* Global stream variable, lets modules use chprintf().*/
 void *stream;
@@ -44,7 +44,7 @@ static const SerialConfig serialConfig = {
 static thread_t *shell_tp = NULL;
 static THD_WORKING_AREA(waShellThread, 256);
 
-void siglapShellInit(void)
+void orchardShellInit(void)
 {
   sdStart(serialDriver, &serialConfig);
   stream = stream_driver;
@@ -52,7 +52,7 @@ void siglapShellInit(void)
   shellInit();
 }
 
-void siglapShellRestart(void)
+void orchardShellRestart(void)
 {
   /* Recovers memory of the previous shell. */
   if (shell_tp && chThdTerminatedX(shell_tp))

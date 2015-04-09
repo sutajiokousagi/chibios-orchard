@@ -1,7 +1,7 @@
-Siglap
+Orchard
 ======
 
-Siglap is the internal codename for the Freescale KW-01 reference platform.
+Orchard is the internal codename for the Freescale KW-01 reference platform.
 It is a Kinetis chip bonded to a radio.  Despite the name, the status
 registers identify the chip as a KL17 core.
 
@@ -25,7 +25,7 @@ board using gdb.
 Starting OpenOCD
 ----------------
 
-Connect Siglap to the target machine.  Here, we assume that Siglap will be
+Connect Orchard to the target machine.  Here, we assume that Orchard will be
 connected to UART4 on a Novena.  You will need a newer kernel that contains
 properly muxed pins, as UART4's CTS and RTS are muxed as UART pins in earlier
 kernels, and not GPIO pins.  For more information on the pinout, see
@@ -44,7 +44,7 @@ To load code, telnet to the OpenOCD daemon and run the "program" command.  You
 may program ELF files, which obviates the need to specify loading offsets:
 
     telnet localhost 4444
-    program build/siglap.elf
+    program build/orchard.elf
     reset
     exit
 
@@ -63,7 +63,7 @@ and halt the board:
 To connect via GDB, specify the ELF file for the current program and connect
 to localhost:
 
-    gdb build/siglap.elf
+    gdb build/orchard.elf
     target remote localhost:3333
     fg
 
@@ -78,7 +78,7 @@ instruction.
 You can load new code from GDB.  This will load a new program into GDB, and
 will flash a new program onto the board and halt the CPU:
 
-    load build/siglap.elf
+    load build/orchard.elf
 
 
 Licensing

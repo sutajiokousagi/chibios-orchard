@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-#define KL2x_MCUCONF
+#define KL1x_MCUCONF
 
 /*
  * HAL driver system settings.

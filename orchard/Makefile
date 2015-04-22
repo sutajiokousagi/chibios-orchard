@@ -76,20 +76,26 @@ PROJECT = orchard
 
 # Imported source files and paths
 CHIBIOS = ..
+# Startup files.
+include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_kl1x.mk
+# HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/hal/boards/KOSAGI_KW01_ORCHARD/board.mk
 include $(CHIBIOS)/os/hal/ports/KINETIS/KL1x/platform.mk
+include $(CHIBIOS)/os/hal/boards/KOSAGI_KW01_ORCHARD/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
+# RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_kl1x.mk
+include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
+# Other files (optional).
 include $(CHIBIOS)/test/rt/test.mk
 
 # Define linker script file here
-LDSCRIPT= $(PORTLD)/KL17Z128.ld
+LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(PORTSRC) \
+CSRC = $(STARTUPSRC) \
+       $(PORTSRC) \
        $(KERNSRC) \
        $(TESTSRC) \
        $(HALSRC) \
@@ -129,11 +135,12 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC = $(PORTASM)
+ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(OSALINC) $(PLATFORMINC) $(BOARDINC) \
+INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(CHIBIOS)/os/hal/lib/streams $(CHIBIOS)/os/various
+
 
 #
 # Project, sources and paths

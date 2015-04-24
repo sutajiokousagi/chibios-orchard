@@ -97,7 +97,6 @@ LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
 CSRC = $(STARTUPSRC) \
        $(PORTSRC) \
        $(KERNSRC) \
-       $(TESTSRC) \
        $(HALSRC) \
        $(OSALSRC) \
        $(PLATFORMSRC) \
@@ -105,6 +104,8 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        orchard-shell.c \
+       accel.c \
+       cmd-accel.c \
        cmd-mem.c \
        cmd-threads.c \
        gitversion.c \

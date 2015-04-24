@@ -23,10 +23,12 @@
 /* Global stream variable, lets modules use chprintf().*/
 void *stream;
 
+void cmd_accel(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
 
 static const ShellCommand shellCommands[] = {
+  {"accel", cmd_accel},
   {"mem", cmd_mem},
   {"threads", cmd_threads},
   {NULL, NULL}

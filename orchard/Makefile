@@ -104,10 +104,13 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        orchard-shell.c \
-       accel.c \
        cmd-accel.c \
        cmd-mem.c \
+       cmd-radio.c \
        cmd-threads.c \
+       accel.c \
+       lcd.c \
+       radio.c \
        gitversion.c \
        main.c
 

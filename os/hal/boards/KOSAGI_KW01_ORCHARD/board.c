@@ -187,7 +187,7 @@ static void spi_read_status(void)
  *
  * @notapi
  */
-static void spi_xmit_byte_sync(uint8_t byte)
+void spi_xmit_byte_sync(uint8_t byte)
 {
   /* Send the byte */
   SPI0->DL = byte;
@@ -207,7 +207,7 @@ static void spi_xmit_byte_sync(uint8_t byte)
  *
  * @notapi
  */
-static uint8_t spi_recv_byte_sync(void)
+uint8_t spi_recv_byte_sync(void)
 {
   /* Send the byte */
   SPI0->DL = 0;
@@ -338,6 +338,7 @@ void early_init_radio(void)
   /* Mux PTC5 as SCK */
   PORTC->PCR[5] &= PORTx_PCRn_MUX_MASK;
   PORTC->PCR[5] |= PORTx_PCRn_MUX(2);
+
   /* Mux PTC6 as MISO */
   PORTC->PCR[6] &= PORTx_PCRn_MUX_MASK;
   PORTC->PCR[6] |= PORTx_PCRn_MUX(2);

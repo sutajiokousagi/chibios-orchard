@@ -72,13 +72,6 @@
 #define HAL_USE_I2C                 TRUE
 #endif
 
-#if HAL_USE_I2C
-#define KINETIS_I2C_USE_I2C0        TRUE
-#define KINETIS_I2C_I2C0_PRIORITY   2
-#define KINETIS_I2C_USE_I2C1        TRUE
-#define KINETIS_I2C_I2C1_PRIORITY   2
-#endif
-
 /**
  * @brief   Enables the I2S subsystem.
  */
@@ -146,11 +139,7 @@
  * @brief   Enables the SPI subsystem.
  */
 #if !defined(HAL_USE_SPI) || defined(__DOXYGEN__)
-#define HAL_USE_SPI                 FALSE
-#endif
-
-#if HAL_USE_SPI
-#define KINETIS_SPI_USE_SPI0        TRUE
+#define HAL_USE_SPI                 TRUE
 #endif
 
 /**

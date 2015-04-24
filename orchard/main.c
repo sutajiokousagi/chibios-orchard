@@ -24,6 +24,7 @@
 #include "orchard-shell.h"
 
 #include "accel.h"
+#include "radio.h"
 
 static void shell_termination_handler(eventid_t id)
 {
@@ -59,10 +60,11 @@ int main(void)
   orchardShellInit();
   chEvtRegister(&shell_terminated, &event_listeners[0], 0);
 
-  chprintf(stream, "Orchard shell.  Based on build %s\r\n", gitversion);
+  chprintf(stream, "\r\n\r\nOrchard shell.  Based on build %s\r\n", gitversion);
 
   i2cStart(i2cDriver, NULL);
   accelStart(i2cDriver);
+  radioStart();
 
   orchardShellRestart();
 

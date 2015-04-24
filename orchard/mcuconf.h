@@ -67,6 +67,21 @@
 #define KINETIS_EXT_PORTE_IRQ_PRIORITY          3
 
 /*
+ * SPI system settings.
+ */
+#define KINETIS_SPI_USE_SPI0                    TRUE
+#define KINETIS_SPI_SPI0_IRQ_PRIORITY           3
+#define KINETIS_SPI_SPI1_IRQ_PRIORITY           1
+
+/*
+ * I2C system settings.
+ */
+#define KINETIS_I2C_USE_I2C0                    TRUE
+#define KINETIS_I2C_USE_I2C1                    TRUE
+#define KINETIS_I2C_I2C0_PRIORITY               2
+#define KINETIS_I2C_I2C1_PRIORITY               2
+
+/*
  * Processor specific widths of each port.
  * Smaller numbers can be used if only lower pins in a port are being used to
  * generate interrupts. Can be set to 0 if a port is unused.

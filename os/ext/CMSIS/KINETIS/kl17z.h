@@ -1003,6 +1003,14 @@ typedef struct
 /***********  Bits definition for SPIx_M register  **************/
 #define SPIx_M_DATA                  ((uint8_t)0xFF)    /*!< SPI HW Compare value for Match */
 
+/***********  Bits definition for SPIx_C3 register  **************/
+#define SPIx_C3_TNEAREF_MARK         ((uint8_t)0x20)    /*!< Transmit FIFO near empty watermark */
+#define SPIx_C3_RNFULLF_MARK         ((uint8_t)0x10)    /*!< Receive FIFO near full watermark */
+#define SPIx_C3_INTCLR               ((uint8_t)0x08)    /*!< Interrupt clearing mechanism */
+#define SPIx_C3_TNEARIEN             ((uint8_t)0x04)    /*!< Transmit FIFO nearly empty interrupt enable */
+#define SPIx_C3_RNFULLIEN            ((uint8_t)0x02)    /*!< Receive FIFO nearly empty full enable */
+#define SPIx_C3_FIFOMODE             ((uint8_t)0x01)    /*!< Receive FIFO nearly empty full enable */
+
 /****************************************************************/
 /*                                                              */
 /*             Inter-Integrated Circuit (I2C)                   */

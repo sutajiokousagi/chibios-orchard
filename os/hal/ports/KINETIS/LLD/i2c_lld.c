@@ -59,6 +59,8 @@ I2CDriver I2CD2;
 
 void config_frequency(I2CDriver *i2cp) {
 
+  uint32_t clkfreq;
+
   /* Each index in the table corresponds to a a frequency
    * divider used to generate the SCL clock from the main
    * system clock.
@@ -79,10 +81,22 @@ void config_frequency(I2CDriver *i2cp) {
   uint8_t i = 0, index = 0;
   uint16_t best, diff;
 
+  clkfreq = KINETIS_SYSCLK_FREQUENCY;
+
+#if KINETIS_I2C_USE_I2C0
+  if (i2cp == &I2CD1)
+    clkfreq = KINETIS_BUSCLK_FREQUENCY;
+#endif
+
+#if KINETIS_I2C_USE_I2C1
+  if (i2cp == &I2CD2)
+    clkfreq = KINETIS_SYSCLK_FREQUENCY;
+#endif
+
   if (i2cp->config != NULL)
-    divisor = KINETIS_SYSCLK_FREQUENCY / i2cp->config->clock;
+    divisor = clkfreq / i2cp->config->clock;
   else
-    divisor = KINETIS_SYSCLK_FREQUENCY / 100000;
+    divisor = clkfreq / 100000;
 
   best = ~0;
   index = 0;

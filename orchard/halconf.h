@@ -149,6 +149,10 @@
 #define HAL_USE_SPI                 FALSE
 #endif
 
+#if HAL_USE_SPI
+#define KINETIS_SPI_USE_SPI0        TRUE
+#endif
+
 /**
  * @brief   Enables the UART subsystem.
  */

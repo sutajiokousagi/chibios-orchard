@@ -69,7 +69,14 @@
  * @brief   Enables the I2C subsystem.
  */
 #if !defined(HAL_USE_I2C) || defined(__DOXYGEN__)
-#define HAL_USE_I2C                 FALSE
+#define HAL_USE_I2C                 TRUE
+#endif
+
+#if HAL_USE_I2C
+#define KINETIS_I2C_USE_I2C0        TRUE
+#define KINETIS_I2C_I2C0_PRIORITY   2
+#define KINETIS_I2C_USE_I2C1        TRUE
+#define KINETIS_I2C_I2C1_PRIORITY   2
 #endif
 
 /**

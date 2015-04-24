@@ -38,7 +38,7 @@ typedef enum IRQn
   PendSV_IRQn                   = -2,
   SysTick_IRQn                  = -1,
 
-/******  KL2x Specific Interrupt Numbers ***********************/
+/******  KL1x Specific Interrupt Numbers ***********************/
   DMA0_IRQn                     = 0,
   DMA1_IRQn                     = 1,
   DMA2_IRQn                     = 2,
@@ -62,8 +62,8 @@ typedef enum IRQn
   RTC0_IRQn                     = 20,
   RTC1_IRQn                     = 21,
   PIT_IRQn                      = 22,
-  Reserved1_IRQn                = 23,
-  USB_OTG_IRQn                  = 24,
+  I2S0_IRQn                     = 23,
+  Reserved1_IRQn                = 24,
   DAC0_IRQn                     = 25,
   TSI0_IRQn                     = 26,
   MCG_IRQn                      = 27,

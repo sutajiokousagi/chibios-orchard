@@ -23,6 +23,8 @@
 #include "orchard.h"
 #include "orchard-shell.h"
 
+#include "accel.h"
+
 static void shell_termination_handler(eventid_t id)
 {
   static int i = 1;
@@ -32,58 +34,11 @@ static void shell_termination_handler(eventid_t id)
   orchardShellRestart();
 }
 
-#if 0
-/* Triggered when the button is pressed. The blue led is toggled. */
-static void extcb1(EXTDriver *extp, expchannel_t channel)
-{
-  (void)extp;
-  (void)channel;
-
-  palTogglePad(IOPORT4, 1);
-}
-
-static const EXTConfig extcfg = {
-  {
-   {EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, extcb1, PORTA, 1}
-  }
-};
-#endif
-
 static evhandler_t event_handlers[] = {
   shell_termination_handler,
 };
 
 static event_listener_t event_listeners[ARRAY_SIZE(event_handlers)];
-
-static THD_WORKING_AREA(waToggleThread, 16);
-static msg_t toggle_thread(void *arg)
-{
-  (void)arg;
-
-  //chSysLock();
-  while (1) {
-    chThdYield();
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-    FGPIOD->PSOR = (1 << 6);
-    FGPIOD->PCOR = (1 << 6);
-  }
-  //chSysUnlock();
-
-  return MSG_OK;
-}
 
 /*
  * Application entry point.
@@ -101,29 +56,15 @@ int main(void)
   halInit();
   chSysInit();
 
-  /* Start serial, so we can get status output.*/
   orchardShellInit();
   chEvtRegister(&shell_terminated, &event_listeners[0], 0);
 
+  chprintf(stream, "Orchard shell.  Based on build %s\r\n", gitversion);
 
-#if 0
-  /* Turn the LEDs OFF */
-  palSetPad(IOPORT2, 18);
-  palSetPad(IOPORT2, 19);
-  palSetPad(IOPORT4, 1);
-
-  /*
-   * Activates the EXT driver 1.
-   */
-  palSetPadMode(IOPORT1, 1, PAL_MODE_INPUT_PULLUP);
-  extStart(&EXTD1, &extcfg);
-#endif
+  i2cStart(i2cDriver, NULL);
+  accelStart(i2cDriver);
 
   orchardShellRestart();
-
-  chprintf(stream, "Orchard shell.  Based on build %s\r\n", gitversion);
-  chThdCreateStatic(waToggleThread, sizeof(waToggleThread),
-                    LOWPRIO, toggle_thread, NULL);
 
   while (TRUE)
     chEvtDispatch(event_handlers, chEvtWaitOne(ALL_EVENTS));

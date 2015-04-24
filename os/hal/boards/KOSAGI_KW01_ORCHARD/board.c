@@ -76,13 +76,13 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT1,  // PORTA
       .pads = {
-        /* PTA0*/ PAL_MODE_ALTERNATIVE_7,   /* PTA1*/ PAL_MODE_ALTERNATIVE_2,   /* PTA2*/ PAL_MODE_ALTERNATIVE_2,
-        /* PTA3*/ PAL_MODE_ALTERNATIVE_7,   /* PTA4*/ PAL_MODE_INPUT_ANALOG,    /* PTA5*/ PAL_MODE_UNCONNECTED,
+        /* PTA0*/ PAL_MODE_ALTERNATIVE_7,   /* PTA1*/ PAL_MODE_ALTERNATIVE_3,   /* PTA2*/ PAL_MODE_ALTERNATIVE_3,
+        /* PTA3*/ PAL_MODE_ALTERNATIVE_7,   /* PTA4*/ PAL_MODE_ALTERNATIVE_3,   /* PTA5*/ PAL_MODE_UNCONNECTED,
         /* PTA6*/ PAL_MODE_UNCONNECTED,     /* PTA7*/ PAL_MODE_UNCONNECTED,     /* PTA8*/ PAL_MODE_UNCONNECTED,
         /* PTA9*/ PAL_MODE_UNCONNECTED,     /*PTA10*/ PAL_MODE_UNCONNECTED,     /*PTA11*/ PAL_MODE_UNCONNECTED,
         /*PTA12*/ PAL_MODE_UNCONNECTED,     /*PTA13*/ PAL_MODE_UNCONNECTED,     /*PTA14*/ PAL_MODE_UNCONNECTED,
         /*PTA15*/ PAL_MODE_UNCONNECTED,     /*PTA16*/ PAL_MODE_UNCONNECTED,     /*PTA17*/ PAL_MODE_UNCONNECTED,
-        /*PTA18*/ PAL_MODE_INPUT_ANALOG,    /*PTA19*/ PAL_MODE_INPUT_ANALOG,    /*PTA20*/ PAL_MODE_ALTERNATIVE_7,
+        /*PTA18*/ PAL_MODE_INPUT_ANALOG,    /*PTA19*/ PAL_MODE_INPUT,           /*PTA20*/ PAL_MODE_ALTERNATIVE_7,
         /*PTA21*/ PAL_MODE_UNCONNECTED,     /*PTA22*/ PAL_MODE_UNCONNECTED,     /*PTA23*/ PAL_MODE_UNCONNECTED,
         /*PTA24*/ PAL_MODE_UNCONNECTED,     /*PTA25*/ PAL_MODE_UNCONNECTED,     /*PTA26*/ PAL_MODE_UNCONNECTED,
         /*PTA27*/ PAL_MODE_UNCONNECTED,     /*PTA28*/ PAL_MODE_UNCONNECTED,     /*PTA29*/ PAL_MODE_UNCONNECTED,
@@ -92,12 +92,12 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT2,  // PORTB
       .pads = {
-        /* PTB0*/ PAL_MODE_INPUT_ANALOG,    /* PTB1*/ PAL_MODE_INPUT_ANALOG,    /* PTB2*/ PAL_MODE_INPUT_ANALOG,
+        /* PTB0*/ PAL_MODE_ALTERNATIVE_3,   /* PTB1*/ PAL_MODE_ALTERNATIVE_3,   /* PTB2*/ PAL_MODE_ALTERNATIVE_3,
         /* PTB3*/ PAL_MODE_UNCONNECTED,     /* PTB4*/ PAL_MODE_UNCONNECTED,     /* PTB5*/ PAL_MODE_UNCONNECTED,
         /* PTB6*/ PAL_MODE_UNCONNECTED,     /* PTB7*/ PAL_MODE_UNCONNECTED,     /* PTB8*/ PAL_MODE_UNCONNECTED,
         /* PTB9*/ PAL_MODE_UNCONNECTED,     /*PTB10*/ PAL_MODE_UNCONNECTED,     /*PTB11*/ PAL_MODE_UNCONNECTED,
         /*PTB12*/ PAL_MODE_UNCONNECTED,     /*PTB13*/ PAL_MODE_UNCONNECTED,     /*PTB14*/ PAL_MODE_UNCONNECTED,
-        /*PTB15*/ PAL_MODE_UNCONNECTED,     /*PTB16*/ PAL_MODE_UNCONNECTED,     /*PTB17*/ PAL_MODE_INPUT_ANALOG,
+        /*PTB15*/ PAL_MODE_UNCONNECTED,     /*PTB16*/ PAL_MODE_UNCONNECTED,     /*PTB17*/ PAL_MODE_ALTERNATIVE_3,
         /*PTB18*/ PAL_MODE_UNCONNECTED,     /*PTB19*/ PAL_MODE_UNCONNECTED,     /*PTB20*/ PAL_MODE_UNCONNECTED,
         /*PTB21*/ PAL_MODE_UNCONNECTED,     /*PTB22*/ PAL_MODE_UNCONNECTED,     /*PTB23*/ PAL_MODE_UNCONNECTED,
         /*PTB24*/ PAL_MODE_UNCONNECTED,     /*PTB25*/ PAL_MODE_UNCONNECTED,     /*PTB26*/ PAL_MODE_UNCONNECTED,
@@ -108,9 +108,9 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT3,  // PORTC
       .pads = {
-        /* PTC0*/ PAL_MODE_INPUT_ANALOG,    /* PTC1*/ PAL_MODE_INPUT_ANALOG,    /* PTC2*/ PAL_MODE_INPUT_ANALOG,
-        /* PTC3*/ PAL_MODE_INPUT_ANALOG,    /* PTC4*/ PAL_MODE_INPUT_ANALOG,    /* PTC5*/ PAL_MODE_INPUT_ANALOG,
-        /* PTC6*/ PAL_MODE_INPUT_ANALOG,    /* PTC7*/ PAL_MODE_INPUT_ANALOG,    /* PTC8*/ PAL_MODE_UNCONNECTED,
+        /* PTC0*/ PAL_MODE_INPUT_ANALOG,    /* PTC1*/ PAL_MODE_ALTERNATIVE_2,   /* PTC2*/ PAL_MODE_ALTERNATIVE_2,
+        /* PTC3*/ PAL_MODE_INPUT,           /* PTC4*/ PAL_MODE_INPUT,           /* PTC5*/ PAL_MODE_ALTERNATIVE_2,
+        /* PTC6*/ PAL_MODE_ALTERNATIVE_2,   /* PTC7*/ PAL_MODE_ALTERNATIVE_2,   /* PTC8*/ PAL_MODE_UNCONNECTED,
         /* PTC9*/ PAL_MODE_UNCONNECTED,     /*PTC10*/ PAL_MODE_UNCONNECTED,     /*PTC11*/ PAL_MODE_UNCONNECTED,
         /*PTC12*/ PAL_MODE_UNCONNECTED,     /*PTC13*/ PAL_MODE_UNCONNECTED,     /*PTC14*/ PAL_MODE_UNCONNECTED,
         /*PTC15*/ PAL_MODE_UNCONNECTED,     /*PTC16*/ PAL_MODE_UNCONNECTED,     /*PTC17*/ PAL_MODE_UNCONNECTED,
@@ -124,9 +124,9 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT4,  // PORTD
       .pads = {
-        /* PTD0*/ PAL_MODE_INPUT_ANALOG,    /* PTD1*/ PAL_MODE_UNCONNECTED,     /* PTD2*/ PAL_MODE_UNCONNECTED,
-        /* PTD3*/ PAL_MODE_UNCONNECTED,     /* PTD4*/ PAL_MODE_INPUT_ANALOG,    /* PTD5*/ PAL_MODE_INPUT_ANALOG,
-        /* PTD6*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD7*/ PAL_MODE_INPUT_ANALOG,    /* PTD8*/ PAL_MODE_UNCONNECTED,
+        /* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_UNCONNECTED,     /* PTD2*/ PAL_MODE_UNCONNECTED,
+        /* PTD3*/ PAL_MODE_UNCONNECTED,     /* PTD4*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD5*/ PAL_MODE_ALTERNATIVE_2,
+        /* PTD6*/ PAL_MODE_ALTERNATIVE_3,   /* PTD7*/ PAL_MODE_ALTERNATIVE_3,   /* PTD8*/ PAL_MODE_UNCONNECTED,
         /* PTD9*/ PAL_MODE_UNCONNECTED,     /*PTD10*/ PAL_MODE_UNCONNECTED,     /*PTD11*/ PAL_MODE_UNCONNECTED,
         /*PTD12*/ PAL_MODE_UNCONNECTED,     /*PTD13*/ PAL_MODE_UNCONNECTED,     /*PTD14*/ PAL_MODE_UNCONNECTED,
         /*PTD15*/ PAL_MODE_UNCONNECTED,     /*PTD16*/ PAL_MODE_UNCONNECTED,     /*PTD17*/ PAL_MODE_UNCONNECTED,
@@ -140,17 +140,17 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT5,  // PORTE
       .pads = {
-        /* PTE0*/ PAL_MODE_INPUT_ANALOG,    /* PTE1*/ PAL_MODE_INPUT_ANALOG,    /* PTE2*/ PAL_MODE_INPUT_ANALOG,
-        /* PTE3*/ PAL_MODE_INPUT_ANALOG,    /* PTE4*/ PAL_MODE_UNCONNECTED,     /* PTE5*/ PAL_MODE_UNCONNECTED,
+        /* PTE0*/ PAL_MODE_ALTERNATIVE_2,   /* PTE1*/ PAL_MODE_ALTERNATIVE_2,   /* PTE2*/ PAL_MODE_ALTERNATIVE_2,
+        /* PTE3*/ PAL_MODE_ALTERNATIVE_2,   /* PTE4*/ PAL_MODE_UNCONNECTED,     /* PTE5*/ PAL_MODE_UNCONNECTED,
         /* PTE6*/ PAL_MODE_UNCONNECTED,     /* PTE7*/ PAL_MODE_UNCONNECTED,     /* PTE8*/ PAL_MODE_UNCONNECTED,
         /* PTE9*/ PAL_MODE_UNCONNECTED,     /*PTE10*/ PAL_MODE_UNCONNECTED,     /*PTE11*/ PAL_MODE_UNCONNECTED,
         /*PTE12*/ PAL_MODE_UNCONNECTED,     /*PTE13*/ PAL_MODE_UNCONNECTED,     /*PTE14*/ PAL_MODE_UNCONNECTED,
-        /*PTE15*/ PAL_MODE_UNCONNECTED,     /*PTE16*/ PAL_MODE_INPUT_ANALOG,    /*PTE17*/ PAL_MODE_INPUT_ANALOG,
-        /*PTE18*/ PAL_MODE_INPUT_ANALOG,    /*PTE19*/ PAL_MODE_INPUT_ANALOG,    /*PTE20*/ PAL_MODE_UNCONNECTED,
+        /*PTE15*/ PAL_MODE_UNCONNECTED,     /*PTE16*/ PAL_MODE_INPUT_ANALOG,    /*PTE17*/ PAL_MODE_OUTPUT_PUSHPULL,
+        /*PTE18*/ PAL_MODE_INPUT,           /*PTE19*/ PAL_MODE_OUTPUT_PUSHPULL, /*PTE20*/ PAL_MODE_UNCONNECTED,
         /*PTE21*/ PAL_MODE_UNCONNECTED,     /*PTE22*/ PAL_MODE_UNCONNECTED,     /*PTE23*/ PAL_MODE_UNCONNECTED,
         /*PTE24*/ PAL_MODE_UNCONNECTED,     /*PTE25*/ PAL_MODE_UNCONNECTED,     /*PTE26*/ PAL_MODE_UNCONNECTED,
         /*PTE27*/ PAL_MODE_UNCONNECTED,     /*PTE28*/ PAL_MODE_UNCONNECTED,     /*PTE29*/ PAL_MODE_UNCONNECTED,
-        /*PTE30*/ PAL_MODE_INPUT_ANALOG,    /*PTE31*/ PAL_MODE_UNCONNECTED,
+        /*PTE30*/ PAL_MODE_ALTERNATIVE_3,   /*PTE31*/ PAL_MODE_UNCONNECTED,
       },
     },
   },
@@ -266,6 +266,23 @@ void radio_write_register(uint8_t addr, uint8_t val) {
   deassert_cs();
 }
 
+static void early_usleep(int usec) {
+  int j, k;
+
+  for (j = 0; j < usec; j++)
+    for (k = 0; k < 30; k++)
+        asm("");
+}
+
+static void early_msleep(int msec) {
+  int i, j, k;
+
+  for (i = 0; i < msec; i++)
+    for (j = 0; j < 1000; j++)
+      for (k = 0; k < 30; k++)
+        asm("");
+}
+
 /**
  * @brief   Power cycle the radio
  * @details Put the radio into reset, then wait 100 us.  Bring it out of
@@ -273,7 +290,6 @@ void radio_write_register(uint8_t addr, uint8_t val) {
  */
 int radio_power_cycle(void)
 {
-  int i, j, k;
   /* @AC RESET sequence from SX1233 datasheet:
    * RESET high Z
    * RESET = 1, then wait 100us
@@ -283,17 +299,12 @@ int radio_power_cycle(void)
   radio_reset();
 
   /* Cheesy usleep(100).*/
-  for (j = 0; j < 100; j++)
-    for (k = 0; k < 30; k++)
-        asm("");
+  early_usleep(100);
 
   radio_enable();
 
   /* Cheesy msleep(5).*/
-  for (i = 0; i < 5; i++)
-    for (j = 0; j < 1000; j++)
-      for (k = 0; k < 30; k++)
-        asm("");
+  early_msleep(5);
 
   return 1;
 }
@@ -365,6 +376,68 @@ static void radio_configure_clko(uint8_t osc_div)
       (radio_read_register(RADIO_REG_DIOMAPPING2) & ~7) | osc_div);
 }
 
+#define SCL_PIN (1 << 1)
+#define SDA_PIN (1 << 2)
+
+static void set_scl(void) {
+  FGPIOC->PSOR = SCL_PIN;
+}
+
+static void clr_scl(void) {
+  FGPIOC->PCOR = SCL_PIN;
+}
+
+static void set_sda(void) {
+  FGPIOC->PSOR = SDA_PIN;
+}
+
+static void clr_sda(void) {
+  FGPIOC->PCOR = SDA_PIN;
+}
+
+/**
+ * @brief   Get I2C into a known-good state
+ * @details If the MCU is reset when I2C is in the middle of a transaction,
+ *          the I2C slaves may hold the line low waiting for the clock line
+ *          to transition.
+ *          It is possible to "unblock" the bus by jamming at least 9 high
+ *          pulses onto the line while toggling SCL.  This will cause the
+ *          slave device to NAK when it's finished, thus freeing the bus.
+ *
+ * @notapi
+ */
+static void orchard_i2c_deblock(void) {
+  int i;
+
+  /* Allow access to PORTC */
+  SIM->SCGC5 |= SIM_SCGC5_PORTC;
+
+  /* Deblock the I2C bus, in case we were reset during a transaction.
+   * Set the pins as GPIOs and toggle the clock line 9 times.
+   */
+  PORTC->PCR[1] = PORTx_PCRn_MUX(1) | PORTx_PCRn_PE | PORTx_PCRn_PS;
+  PORTC->PCR[2] = PORTx_PCRn_MUX(1) | PORTx_PCRn_PE | PORTx_PCRn_PS;
+
+  /* Set SCL and SDA as output GPIOs */
+  FGPIOC->PDDR |= SCL_PIN | SDA_PIN;
+
+  FGPIOC->PSOR = SCL_PIN | SDA_PIN;
+
+  /* Send 9 clocks with the SDA line high */
+  for (i = 0; i < 9; i++) {
+    clr_scl();
+    early_usleep(15);
+    set_scl();
+    early_usleep(15);
+  }
+
+  /* Send the STOP bit */
+  clr_sda();
+  early_usleep(15);
+  set_scl();
+  set_sda();
+  early_usleep(15);
+}
 
 /**
  * @brief   Early initialization code.
@@ -373,6 +446,7 @@ static void radio_configure_clko(uint8_t osc_div)
  */
 void __early_init(void) {
 
+  orchard_i2c_deblock();
   early_init_radio();
 
   radio_power_cycle();

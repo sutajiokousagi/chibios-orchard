@@ -71,6 +71,7 @@ SECTIONS
   {
     *(.text)
     *(.text.*)
+    KEEP(*(SORT(.chibi_list*)));
     *(.rodata)
     *(.rodata.*)
     *(.glue_7t)
@@ -135,6 +136,8 @@ SECTIONS
     . = ALIGN(4);
     PROVIDE(_edata = .);
   } > ram AT > flash
+
+  . = ALIGN(4);
 
   .bss :
   {

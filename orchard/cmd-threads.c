@@ -18,7 +18,9 @@
 #include "shell.h"
 #include "chprintf.h"
 
-void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[])
+#include "orchard-shell.h"
+
+static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[])
 {
   static const char *states[] = {CH_STATE_NAMES};
   thread_t *tp;
@@ -39,3 +41,5 @@ void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[])
     tp = chRegNextThread(tp);
   } while (tp != NULL);
 }
+
+orchard_command("threads", cmd_threads);

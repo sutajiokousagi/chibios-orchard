@@ -94,7 +94,14 @@ LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(STARTUPSRC) \
+CSRC = main.c \
+       orchard-shell.c \
+       $(wildcard cmd-*.c) \
+       accel.c \
+       lcd.c \
+       radio.c \
+       gitversion.c \
+       $(STARTUPSRC) \
        $(PORTSRC) \
        $(KERNSRC) \
        $(HALSRC) \
@@ -103,16 +110,6 @@ CSRC = $(STARTUPSRC) \
        $(BOARDSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       orchard-shell.c \
-       cmd-accel.c \
-       cmd-mem.c \
-       cmd-radio.c \
-       cmd-threads.c \
-       accel.c \
-       lcd.c \
-       radio.c \
-       gitversion.c \
-       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

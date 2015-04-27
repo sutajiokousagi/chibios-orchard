@@ -20,6 +20,7 @@
 #include "chprintf.h"
 
 #include "orchard.h"
+#include "orchard-shell.h"
 
 #include "accel.h"
 
@@ -42,3 +43,5 @@ void cmd_accel(BaseSequentialStream *chp, int argc, char *argv[])
   }
   chprintf(chp, "\r\n");
 }
+
+orchard_command("accel", cmd_accel);

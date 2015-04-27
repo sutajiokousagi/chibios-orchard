@@ -23,30 +23,14 @@
 /* Global stream variable, lets modules use chprintf().*/
 void *stream;
 
-void cmd_accel(BaseSequentialStream *chp, int argc, char *argv[]);
-void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);
-void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[]);
-void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
-
-static const ShellCommand shellCommands[] = {
-  {"accel", cmd_accel},
-  {"mem", cmd_mem},
-  {"radio", cmd_radio},
-  {"threads", cmd_threads},
-  {NULL, NULL}
-};
-
-static const ShellConfig shellConfig = {
-  stream_driver,
-  shellCommands
-};
+orchard_command_end();
 
 static const SerialConfig serialConfig = {
   115200,
 };
 
 static thread_t *shell_tp = NULL;
-static THD_WORKING_AREA(waShellThread, 256);
+static THD_WORKING_AREA(waShellThread, 1024);
 
 void orchardShellInit(void)
 {
@@ -58,9 +42,18 @@ void orchardShellInit(void)
 
 void orchardShellRestart(void)
 {
+  static ShellConfig shellConfig;
+  static const ShellCommand *shellCommands;
+
+  shellCommands = orchard_command_start();
+
+  shellConfig.sc_channel = stream_driver;
+  shellConfig.sc_commands = shellCommands;
+  
   /* Recovers memory of the previous shell. */
   if (shell_tp && chThdTerminatedX(shell_tp))
     chThdRelease(shell_tp);
+
   shell_tp = shellCreateStatic(&shellConfig, waShellThread,
                               sizeof(waShellThread), NORMALPRIO - 5);
 }

@@ -8,36 +8,24 @@
 
 static SPIDriver *driver;
 
-static const SPIConfig spi_config = {
-  NULL,
-  /* HW dependent part.*/
-  GPIOD,
-  0,
-};
-
 void radioStart(SPIDriver *spip) {
 
   driver = spip;
-  spiStart(driver, &spi_config);
 }
 
 #include "chprintf.h"
 
 uint8_t radioRead(uint8_t addr) {
 
-  uint8_t val[10];
+  uint8_t val;
   unsigned int i;
 
   spiSelect(driver);
   spiSend(driver, 1, &addr);
-  spiReceive(driver, sizeof(val), val);
-  chprintf(stream, "Debug %d bytes:\r\n", sizeof(val));
-  for (i = 0; i < sizeof(val); i++)
-    chprintf(stream, "    %02x: %02x\r\n", addr + i, val[i]);
-
+  spiReceive(driver, 1, &val);
   spiUnselect(driver);
 
-  return val[0];
+  return val;
 }
 
 void radioWrite(uint8_t addr, uint8_t val) {

@@ -18,7 +18,6 @@ void radioStart(SPIDriver *spip) {
 uint8_t radioRead(uint8_t addr) {
 
   uint8_t val;
-  unsigned int i;
 
   spiSelect(driver);
   spiSend(driver, 1, &addr);

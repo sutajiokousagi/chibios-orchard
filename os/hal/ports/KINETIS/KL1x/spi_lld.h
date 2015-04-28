@@ -47,6 +47,14 @@
 #if !defined(KINETIS_SPI_USE_SPI0) || defined(__DOXYGEN__)
 #define KINETIS_SPI_USE_SPI0                  FALSE
 #endif
+/**
+ * @brief   SPI1 driver enable switch.
+ * @details If set to @p TRUE the support for SPI1 is included.
+ * @note    The default is @p FALSE.
+ */
+#if !defined(KINETIS_SPI_USE_SPI1) || defined(__DOXYGEN__)
+#define KINETIS_SPI_USE_SPI1                  FALSE
+#endif
 
 /**
  * @brief   SPI0 interrupt priority level setting.
@@ -55,17 +63,29 @@
 #define KINETIS_SPI_SPI0_IRQ_PRIORITY         3
 #endif
 
+/**
+ * @brief   SPI0 interrupt priority level setting.
+ */
+#if !defined(KINETIS_SPI_SPI1_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define KINETIS_SPI_SPI1_IRQ_PRIORITY         2
+#endif
+
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
 
 #define KINETIS_HAS_SPI0    TRUE
+#define KINETIS_HAS_SPI1    TRUE
 
 #if KINETIS_SPI_USE_SPI0 && !KINETIS_HAS_SPI0
 #error "SPI0 not present in the selected device"
 #endif
 
-#if !KINETIS_SPI_USE_SPI0
+#if KINETIS_SPI_USE_SPI1 && !KINETIS_HAS_SPI1
+#error "SPI1 not present in the selected device"
+#endif
+
+#if !KINETIS_SPI_USE_SPI0 && !KINETIS_SPI_USE_SPI1
 #error "SPI driver activated but no SPI peripheral assigned"
 #endif
 
@@ -154,13 +174,13 @@ struct SPIDriver {
    */
   uint8_t                   *rxbuf;
   /**
-   * @brief   Offset for current tx/rx operation.
+   * @brief   Offset for current tx operation.
    */
-  uint32_t                  offset;
+  uint32_t                  txoffset;
   /**
-   * @brief   0 if we're performing an xmit, 1 if it's a receive.
+   * @brief   Offset for current rx operation.
    */
-  uint32_t                  current_dir;
+  uint32_t                  rxoffset;
 };
 
 /*===========================================================================*/
@@ -202,6 +222,10 @@ struct SPIDriver {
 
 #if KINETIS_SPI_USE_SPI0 && !defined(__DOXYGEN__)
 extern SPIDriver SPID1;
+#endif
+
+#if KINETIS_SPI_USE_SPI1 && !defined(__DOXYGEN__)
+extern SPIDriver SPID2;
 #endif
 
 #ifdef __cplusplus

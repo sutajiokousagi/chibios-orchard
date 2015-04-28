@@ -38,6 +38,29 @@
 #define KINETIS_SPI_USE_SPI1                TRUE
 #endif
 
+#if !defined(KINETIS_SPI0_RX_DMA_IRQ_PRIORITY)
+#define KINETIS_SPI0_RX_DMA_IRQ_PRIORITY    8
+#endif
+
+#if !defined(KINETIS_SPI0_RX_DMAMUX_CHANNEL)
+#define KINETIS_SPI0_RX_DMAMUX_CHANNEL      0
+#endif
+
+#if !defined(KINETIS_SPI0_RX_DMA_CHANNEL)
+#define KINETIS_SPI0_RX_DMA_CHANNEL         0
+#endif
+
+#if !defined(KINETIS_SPI0_TX_DMAMUX_CHANNEL)
+#define KINETIS_SPI0_TX_DMAMUX_CHANNEL      1
+#endif
+
+#if !defined(KINETIS_SPI0_TX_DMA_CHANNEL)
+#define KINETIS_SPI0_TX_DMA_CHANNEL         1
+#endif
+
+#define DMAMUX_SPI_RX_SOURCE    16
+#define DMAMUX_SPI_TX_SOURCE    17
+
 /*===========================================================================*/
 /* Driver exported variables.                                                */
 /*===========================================================================*/
@@ -98,36 +121,37 @@ static uint8_t spi_recv_byte_sync(SPIDriver *spip)
   return spip->spi->DL;
 }
 
+static void spi_fill_buffer(SPIDriver *spip)
+{
+//  while ((spip->txoffset < spip->count) && (spip->spi->S & SPIx_S_SPTEF)) {
+    if ((spip->txbuf) && (spip->txoffset < spip->count))
+      spip->spi->DL = spip->txbuf[spip->txoffset];
+    else
+      spip->spi->DL = 0xff;
+    spip->txoffset++;
+//  }
+}
+
 static void spi_start_xfer(SPIDriver *spip, bool polling)
 {
 
   (void)polling;
 
-  spip->offset = 0;
+  /* Reset the SPI Match Flag if it's set.  We don't use this feature. */
+  if (spip->spi->S & SPIx_S_SPMF)
+    spip->spi->S |= SPIx_S_SPMF;
+
+  spip->txoffset = 0;
+  spip->rxoffset = 0;
   spip->spi->C1 |= SPIx_C1_SPIE | SPIx_C1_SPTIE;
 
-  if (spip->txbuf)
-    spip->spi->DL = spip->txbuf[spip->offset];
-  else
-    spip->spi->DL = 0;
-
-  if (spip->rxbuf)
-    spip->rxbuf[spip->offset] = spip->spi->DL;
-  else
-    (void)spip->spi->DL;
-
-  spip->offset++;
+  spi_fill_buffer(spip);
 }
 
 static void spi_stop_xfer(SPIDriver *spip)
 {
-#if 0
-  /* Halt the DSPI peripheral */
-  spip->spi->MCR = SPIx_MCR_MSTR | SPIx_MCR_HALT;
 
-  /* Clear all the flags which are currently set. */
-  spip->spi->SR |= spip->spi->SR;
-#endif
+  spip->spi->C1 &= ~(SPIx_C1_SPIE | SPIx_C1_SPTIE);
 }
 
 /*===========================================================================*/
@@ -136,22 +160,28 @@ static void spi_stop_xfer(SPIDriver *spip)
 
 static void spi_handle_isr(SPIDriver *spip)
 {
-  if (spip->txbuf)
-    spip->spi->DL = spip->txbuf[spip->offset];
-  else
-    spip->spi->DL = 0;
 
-  if (spip->rxbuf)
-    spip->rxbuf[spip->offset] = spip->spi->DL;
-  else
-    (void)spip->spi->DL;
+  while ((spip->rxoffset < spip->count) && (spip->spi->S & SPIx_S_SPRF)) {
+    if ((spip->rxbuf) && (spip->rxoffset < spip->count))
+      spip->rxbuf[spip->rxoffset] = spip->spi->DL;
+    else
+      (void)spip->spi->DL;
+    spip->rxoffset++;
+  }
 
-  spip->offset++;
-
-  if (spip->offset > spip->count) {
+  if (spip->rxoffset >= spip->count) {
     spi_stop_xfer(spip);
     _spi_isr_code(spip);
   }
+  else if (spip->txoffset < spip->count) {
+    spi_fill_buffer(spip);
+  }
+//  else {
+//    while ((spip->rxoffset < spip->count) && (spip->spi->S & SPIx_S_SPTEF)) {
+//      spip->spi->DL = 0xff;
+//      spip->rxoffset++;
+//    }
+//  }
 }
 
 #define dummy_handler(type) OSAL_IRQ_HANDLER(type) { while(1); }
@@ -259,6 +289,8 @@ void spi_lld_stop(SPIDriver *spip) {
 
   /* If in ready state then disables the SPI clock.*/
   if (spip->state == SPI_READY) {
+
+    spip->spi->C1 &= ~(SPIx_C1_SPE | SPIx_C1_MSTR);
 
 #if KINETIS_SPI_USE_SPI0
     if (&SPID1 == spip) {

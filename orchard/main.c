@@ -16,6 +16,8 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "i2c.h"
+#include "spi.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -25,6 +27,8 @@
 
 #include "accel.h"
 #include "radio.h"
+#include "gpiox.h"
+#include "oled.h"
 
 static void shell_termination_handler(eventid_t id)
 {
@@ -40,6 +44,17 @@ static evhandler_t event_handlers[] = {
 };
 
 static event_listener_t event_listeners[ARRAY_SIZE(event_handlers)];
+
+static const I2CConfig i2c_config = {
+  100000
+};
+
+static const SPIConfig spi_config = {
+  NULL,
+  /* HW dependent part.*/
+  GPIOD,
+  0,
+};
 
 /*
  * Application entry point.
@@ -62,9 +77,15 @@ int main(void)
 
   chprintf(stream, "\r\n\r\nOrchard shell.  Based on build %s\r\n", gitversion);
 
-  i2cStart(i2cDriver, NULL);
+  i2cStart(i2cDriver, &i2c_config);
+
+  spiStart(&SPID1, &spi_config);
+  spiStart(&SPID2, &spi_config);
+
   accelStart(i2cDriver);
-  radioStart();
+  gpioxStart(i2cDriver);
+  radioStart(&SPID1);
+  oledStart(&SPID2);
 
   orchardShellRestart();
 

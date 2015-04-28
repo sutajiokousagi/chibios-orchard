@@ -29,11 +29,11 @@ static const uint8_t init_sequence[] = {
 static SPIDriver *driver;
 
 static void oled_command_mode(void) {
-  palClearPad(GPIOE, 19);
+  palClearPad(GPIOD, 4);
 }
 
 static void oled_data_mode(void) {
-  palSetPad(GPIOE, 19);
+  palSetPad(GPIOD, 4);
 }
 
 static void oled_select(void) {
@@ -68,13 +68,13 @@ void oledStart(SPIDriver *spip) {
   }
 
   oled_select();
+  oled_data_mode();
   {
-    uint16_t byte = 0x1234;
-//    while (1) {
-      byte = (byte >> 1) ^ ((byte & 1) << 5) ^ 0x55aa;
-      for (i = 0; i < 64*32; i++)
-        spiSend(driver, 1, &byte);
-//    }
+    uint8_t byte = 0xaa;
+    for (i = 0; i < 128*64 / 8; i++) {
+      byte ^= 0xff;
+      spiSend(driver, 1, &byte);
+    }
   }
   oled_unselect();
 

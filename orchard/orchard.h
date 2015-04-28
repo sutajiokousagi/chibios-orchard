@@ -12,6 +12,7 @@ extern void *stream;
 
 #define i2cDriver                     (&I2CD2)
 #define accelAddr                     0x1c
+#define gpioxAddr                     0x43
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))

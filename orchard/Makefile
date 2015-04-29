@@ -98,6 +98,7 @@ CSRC = main.c \
        orchard-shell.c \
        $(wildcard cmd-*.c) \
        accel.c \
+       captouch.c \
        gpiox.c \
        oled.c \
        radio.c \

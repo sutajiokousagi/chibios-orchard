@@ -45,6 +45,19 @@ static void oled_unselect(void) {
   palSetPad(GPIOA, 19);
 }
 
+static void oled_fill(uint8_t byte) {
+
+  unsigned int i;
+
+  oled_select();
+  oled_data_mode();
+
+  for (i = 0; i < 128*64 / 8; i++)
+    spiSend(driver, 1, &byte);
+
+  oled_unselect();
+}
+
 void oledStart(SPIDriver *spip) {
 
   unsigned int i;
@@ -68,16 +81,7 @@ void oledStart(SPIDriver *spip) {
     spiSend(driver, 1, &init_sequence[i]);
   }
 
-  oled_select();
-  oled_data_mode();
-  {
-    uint8_t byte = 0xaa;
-    for (i = 0; i < 128*64 / 8; i++) {
-      byte ^= 0xff;
-      spiSend(driver, 1, &byte);
-    }
-  }
-  oled_unselect();
+  oled_fill(0xff);
 
   spiReleaseBus(spip);
 }

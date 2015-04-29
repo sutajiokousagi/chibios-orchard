@@ -63,7 +63,7 @@ static THD_FUNCTION(gpiox_poll_thread, arg) {
 
   chRegSetThreadName("GPIOX poll thread");
   while (1) {
-    chThdSleepMilliseconds(50);
+    chThdSleepMilliseconds(5);
     gpioxPollInt(NULL);
   }
 

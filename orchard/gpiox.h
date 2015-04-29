@@ -17,10 +17,15 @@
 
 #define GPIOX_IRQMASK         0xc0
 #define GPIOX_IRQ_NONE      0x00
-#define GPIOX_IRQ_LOW       0x80
-#define GPIOX_IRQ_HIGH      0xc0
+#define GPIOX_IRQ_RISING    0x40
+#define GPIOX_IRQ_FALLING   0x80
+#define GPIOX_IRQ_BOTH      0xc0
 
 #define GPIOX               NULL
+
+#define GPIOX_NUM_PADS 8
+extern event_source_t gpiox_rising[GPIOX_NUM_PADS];
+extern event_source_t gpiox_falling[GPIOX_NUM_PADS];
 
 void gpioxStart(I2CDriver *i2cp);
 void gpioxSetPad(void *port, int pad);
@@ -28,5 +33,6 @@ void gpioxClearPad(void *port, int pad);
 void gpioxTogglePad(void *port, int pad);
 void gpioxSetPadMode(void *port, int pad, int mode);
 uint8_t gpioxReadPad(void *port, int pad);
+void gpioxPollInt(void *port);
 
 #endif /* __GPIOX_H__ */

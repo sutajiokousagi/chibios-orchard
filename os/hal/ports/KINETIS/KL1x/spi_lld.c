@@ -83,53 +83,13 @@ SPIDriver SPID2;
 /* Driver local functions.                                                   */
 /*===========================================================================*/
 
-/**
- * @brief   Send a byte and discard the response
- *
- * @notapi
- */
-static void spi_xmit_byte_sync(SPIDriver *spip, uint8_t byte)
-{
-  /* Send the byte */
-  spip->spi->DL = byte;
-
-  /* Wait for the byte to be transmitted */
-  while (!(spip->spi->S & SPIx_S_SPTEF))
-    asm("");
-
-  /* Discard the response */
-  (void)spip->spi->DL;
-}
-
-/**
- * @brief   Send a dummy byte and return the response
- *
- * @return              value read from said register
- *
- * @notapi
- */
-static uint8_t spi_recv_byte_sync(SPIDriver *spip)
-{
-  /* Send the byte */
-  spip->spi->DL = 0;
-
-  /* Wait for the byte to be transmitted */
-  while (!(spip->spi->S & SPIx_S_SPRF))
-    asm("");
-
-  /* Discard the response */
-  return spip->spi->DL;
-}
-
 static void spi_fill_buffer(SPIDriver *spip)
 {
-//  while ((spip->txoffset < spip->count) && (spip->spi->S & SPIx_S_SPTEF)) {
     if ((spip->txbuf) && (spip->txoffset < spip->count))
       spip->spi->DL = spip->txbuf[spip->txoffset];
     else
       spip->spi->DL = 0xff;
     spip->txoffset++;
-//  }
 }
 
 static void spi_start_xfer(SPIDriver *spip, bool polling)
@@ -176,24 +136,7 @@ static void spi_handle_isr(SPIDriver *spip)
   else if (spip->txoffset < spip->count) {
     spi_fill_buffer(spip);
   }
-//  else {
-//    while ((spip->rxoffset < spip->count) && (spip->spi->S & SPIx_S_SPTEF)) {
-//      spip->spi->DL = 0xff;
-//      spip->rxoffset++;
-//    }
-//  }
 }
-
-#define dummy_handler(type) OSAL_IRQ_HANDLER(type) { while(1); }
-
-dummy_handler(HardFault_Handler)
-dummy_handler(MemManage_Handler)
-dummy_handler(BusFault_Handler)
-dummy_handler(UsageFault_Handler)
-dummy_handler(Vector1C)
-dummy_handler(Vector20)
-dummy_handler(Vector24)
-dummy_handler(Vector28)
 
 OSAL_IRQ_HANDLER(Vector68) {
   OSAL_IRQ_PROLOGUE();
@@ -441,15 +384,6 @@ void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
 uint16_t spi_lld_polled_exchange(SPIDriver *spip, uint16_t frame) {
 
   spi_start_xfer(spip, true);
-
-  /*
-  spip->spi->PUSHR = SPIx_PUSHR_TXDATA(frame);
-
-  while ((spip->spi->SR & SPIx_SR_RFDF) == 0)
-    ;
-
-  frame = spip->spi->POPR;
-  */
 
   spi_stop_xfer(spip);
 

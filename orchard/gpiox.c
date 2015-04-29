@@ -142,12 +142,12 @@ void gpioxSetPadMode(void *port, int pad, int mode) {
 
     case GPIOX_IRQ_RISING:
       regcache[REG_IRQ_MASK  / 2] &= ~bit;
-      regcache[REG_IRQ_LEVEL / 2] |=  bit;
+      regcache[REG_IRQ_LEVEL / 2] &= ~bit;
       break;
 
     case GPIOX_IRQ_FALLING:
       regcache[REG_IRQ_MASK  / 2] &= ~bit;
-      regcache[REG_IRQ_LEVEL / 2] &= ~bit;
+      regcache[REG_IRQ_LEVEL / 2] |=  bit;
       break;
 
     case GPIOX_IRQ_BOTH:

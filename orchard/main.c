@@ -24,26 +24,13 @@
 
 #include "orchard.h"
 #include "orchard-shell.h"
+#include "orchard-events.h"
 
 #include "accel.h"
-#include "radio.h"
+#include "captouch.h"
 #include "gpiox.h"
 #include "oled.h"
-
-static void shell_termination_handler(eventid_t id)
-{
-  static int i = 1;
-  (void)id;
-
-  chprintf(stream, "\r\nRespawning shell (shell #%d)\r\n", ++i);
-  orchardShellRestart();
-}
-
-static evhandler_t event_handlers[] = {
-  shell_termination_handler,
-};
-
-static event_listener_t event_listeners[ARRAY_SIZE(event_handlers)];
+#include "radio.h"
 
 static const I2CConfig i2c_config = {
   100000
@@ -56,11 +43,26 @@ static const SPIConfig spi_config = {
   0,
 };
 
+static void shell_termination_handler(eventid_t id) {
+  static int i = 1;
+  (void)id;
+
+  chprintf(stream, "\r\nRespawning shell (shell #%d, event %d)\r\n", ++i, id);
+  orchardShellRestart();
+}
+
+static void gpio_event(eventid_t id) {
+
+  chprintf(stream, "Got GPIO event %d\r\n", id);
+}
+
 /*
  * Application entry point.
  */
 int main(void)
 {
+
+  struct evt_table events;
 
   /*
    * System initializations.
@@ -73,7 +75,6 @@ int main(void)
   chSysInit();
 
   orchardShellInit();
-  chEvtRegister(&shell_terminated, &event_listeners[0], 0);
 
   chprintf(stream, "\r\n\r\nOrchard shell.  Based on build %s\r\n", gitversion);
 
@@ -82,13 +83,26 @@ int main(void)
   spiStart(&SPID1, &spi_config);
   spiStart(&SPID2, &spi_config);
 
-  accelStart(i2cDriver);
   gpioxStart(i2cDriver);
+
+  accelStart(i2cDriver);
+  captouchStart(i2cDriver);
   radioStart(&SPID1);
   oledStart(&SPID2);
+
+  evtTableInit(events, 24);
+  evtTableHook(events, shell_terminated, shell_termination_handler);
+
+  {
+    int pad;
+    for (pad = 0; pad < GPIOX_NUM_PADS; pad++) {
+      evtTableHook(events, gpiox_rising[pad], gpio_event);
+      evtTableHook(events, gpiox_falling[pad], gpio_event);
+    }
+  }
 
   orchardShellRestart();
 
   while (TRUE)
-    chEvtDispatch(event_handlers, chEvtWaitOne(ALL_EVENTS));
+    chEvtDispatch(evtHandlers(events), chEvtWaitOne(ALL_EVENTS));
 }

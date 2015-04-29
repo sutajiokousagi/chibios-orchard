@@ -86,6 +86,7 @@ int main(void)
   gpioxStart(i2cDriver);
 
   accelStart(i2cDriver);
+  chargerStart(i2cDriver);
   captouchStart(i2cDriver);
   radioStart(&SPID1);
   oledStart(&SPID2);

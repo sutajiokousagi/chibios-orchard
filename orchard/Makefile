@@ -103,6 +103,7 @@ CSRC = main.c \
        gpiox.c \
        oled.c \
        radio.c \
+       led.c \
        gitversion.c \
        $(STARTUPSRC) \
        $(PORTSRC) \
@@ -139,7 +140,7 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) ws2812b_ll.s
 
 INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \

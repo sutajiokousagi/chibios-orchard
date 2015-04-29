@@ -28,9 +28,16 @@
 
 #include "accel.h"
 #include "captouch.h"
+#include "charger.h"
 #include "gpiox.h"
+#include "led.h"
 #include "oled.h"
 #include "radio.h"
+
+struct evt_table orchard_events;
+
+#define LED_COUNT 16
+static uint8_t fb[LED_COUNT * 3];
 
 static const I2CConfig i2c_config = {
   100000
@@ -51,9 +58,27 @@ static void shell_termination_handler(eventid_t id) {
   orchardShellRestart();
 }
 
-static void gpio_event(eventid_t id) {
+static void key_mod(eventid_t id) {
 
-  chprintf(stream, "Got GPIO event %d\r\n", id);
+  (void)id;
+  int i;
+  int val =captouchRead();
+
+  for (i = 0; i < 13; i++) {
+    int c;
+    if (val & (1 << i))
+      c = 0xff;
+    else
+      c = 0;
+
+    fb[i * 3 + 0] = c;
+    fb[i * 3 + 1] = c;
+    fb[i * 3 + 2] = c;
+  }
+
+  chSysLock();
+  ledUpdate(fb, LED_COUNT);
+  chSysUnlock();
 }
 
 /*
@@ -61,8 +86,6 @@ static void gpio_event(eventid_t id) {
  */
 int main(void)
 {
-
-  struct evt_table events;
 
   /*
    * System initializations.
@@ -73,6 +96,8 @@ int main(void)
    */
   halInit();
   chSysInit();
+
+  evtTableInit(orchard_events, 32);
 
   orchardShellInit();
 
@@ -90,20 +115,14 @@ int main(void)
   captouchStart(i2cDriver);
   radioStart(&SPID1);
   oledStart(&SPID2);
+  ledStart(LED_COUNT, fb);
 
-  evtTableInit(events, 24);
-  evtTableHook(events, shell_terminated, shell_termination_handler);
-
-  {
-    int pad;
-    for (pad = 0; pad < GPIOX_NUM_PADS; pad++) {
-      evtTableHook(events, gpiox_rising[pad], gpio_event);
-      evtTableHook(events, gpiox_falling[pad], gpio_event);
-    }
-  }
+  evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
+  evtTableHook(orchard_events, captouch_release, key_mod);
+  evtTableHook(orchard_events, captouch_press, key_mod);
 
   orchardShellRestart();
 
   while (TRUE)
-    chEvtDispatch(evtHandlers(events), chEvtWaitOne(ALL_EVENTS));
+    chEvtDispatch(evtHandlers(orchard_events), chEvtWaitOne(ALL_EVENTS));
 }

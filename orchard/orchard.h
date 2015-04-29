@@ -2,6 +2,7 @@
 #define __ORCHARD_H__
 
 extern const char *gitversion;
+extern struct evt_table orchard_events;
 
 #define ORCHARD_OS_VERSION_MAJOR      1
 #define ORCHARD_OS_VERSION_MINOR      0

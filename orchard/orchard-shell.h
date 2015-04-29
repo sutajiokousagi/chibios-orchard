@@ -1,6 +1,9 @@
 #ifndef __ORCHARD_SHELL_H__
 #define __ORCHARD_SHELL_H__
 
+#include "ch.h"
+#include "hal.h"
+#include "chprintf.h"
 #include "shell.h"
 
 void orchardShellInit(void);

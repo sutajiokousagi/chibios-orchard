@@ -23,6 +23,7 @@ static const uint8_t init_sequence[] = {
   0xdb, 0x40, 0xff, /* Set VCOMH deselect level */
   0xa4, 0xff,       /* Set entire display off */
   0xa6, 0xff,       /* Set normal (not inverted) display */
+  0x20, 0x00, 0xff, /* Horizontal addressing mode */
   0xaf, 0xff,       /* Turn display on */
 };
 

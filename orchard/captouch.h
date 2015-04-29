@@ -69,4 +69,7 @@
 void captouchStart(I2CDriver *i2cp);
 uint16_t captouchRead(void);
 
+extern event_source_t captouch_release;
+extern event_source_t captouch_press;
+
 #endif /* __CAPTOUCH_H__ */

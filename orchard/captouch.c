@@ -2,13 +2,18 @@
 #include "ch.h"
 #include "hal.h"
 #include "i2c.h"
+#include "chprintf.h"
 
 #include "orchard.h"
+#include "orchard-events.h"
 
 #include "captouch.h"
 #include "gpiox.h"
 
 static I2CDriver *driver;
+event_source_t captouch_release;
+event_source_t captouch_press;
+static uint16_t captouch_state;
 
 static void captouch_set(uint8_t reg, uint8_t val) {
 
@@ -20,13 +25,15 @@ static void captouch_set(uint8_t reg, uint8_t val) {
                            TIME_INFINITE);
 }
 
-static uint8_t captouch_get(uint8_t reg) {
+static uint16_t captouch_read(void) {
 
-  uint8_t val;
+  uint16_t val;
+  uint8_t reg;
 
+  reg = ELE_TCHL;
   i2cMasterTransmitTimeout(driver, touchAddr,
                            &reg, 1,
-                           &val, 1,
+                           (void *)&val, 2,
                            TIME_INFINITE);
   return val;
 }
@@ -95,6 +102,36 @@ static void captouch_config(void) {
   captouch_set(ATO_CFG_TGT, 176);  // target level
 }
 
+static void captouch_keychange(eventid_t id) {
+
+  uint16_t mask;
+  int i;
+
+  (void)id;
+
+  i2cAcquireBus(driver);
+  mask = captouch_read();
+  i2cReleaseBus(driver);
+
+  for (i = 0; i < 14; i++) {
+    int bit = (1 << i);
+
+    if ((mask & bit) && !(captouch_state & bit)) {
+      chprintf(stream, "Key %d down\r\n", i);
+      chEvtBroadcast(&captouch_press);
+    }
+    else if (!(mask & bit) && (captouch_state & bit)) {
+      chprintf(stream, "Key %d up\r\n", i);
+      chEvtBroadcast(&captouch_release);
+    }
+  }
+  captouch_state = mask;
+}
+
+uint16_t captouchRead(void) {
+  return captouch_state;
+}
+
 void captouchStart(I2CDriver *i2cp) {
 
   driver = i2cp;
@@ -103,16 +140,9 @@ void captouchStart(I2CDriver *i2cp) {
   captouch_config();
   i2cReleaseBus(driver);
 
-  gpioxSetPadMode(GPIOX, 7, GPIOX_IN | GPIOX_IRQ_BOTH | GPIOX_PULL_UP);
-}
+  chEvtObjectInit(&captouch_press);
+  chEvtObjectInit(&captouch_release);
 
-uint16_t captouchRead(void) {
-  uint16_t val;
-
-  i2cAcquireBus(driver);
-  val  = captouch_get(ELE_TCHH) << 8;
-  val |= captouch_get(ELE_TCHL);
-  i2cReleaseBus(driver);
-
-  return val;
+  gpioxSetPadMode(GPIOX, 7, GPIOX_IN | GPIOX_IRQ_FALLING | GPIOX_PULL_UP);
+  evtTableHook(orchard_events, gpiox_falling[7], captouch_keychange);
 }

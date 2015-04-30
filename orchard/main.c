@@ -62,7 +62,7 @@ static void key_mod(eventid_t id) {
 
   (void)id;
   int i;
-  int val =captouchRead();
+  int val = captouchRead();
 
   for (i = 0; i < 13; i++) {
     int c;
@@ -79,6 +79,18 @@ static void key_mod(eventid_t id) {
   chSysLock();
   ledUpdate(fb, LED_COUNT);
   chSysUnlock();
+}
+
+static void rf_ready(eventid_t id) {
+
+  (void)id;
+  chprintf(stream, " [RF ready] ");
+}
+
+static void ble_ready(eventid_t id) {
+
+  (void)id;
+  chprintf(stream, " [BLE ready] ");
 }
 
 /*
@@ -115,11 +127,14 @@ int main(void)
   captouchStart(i2cDriver);
   radioStart(&SPID1);
   oledStart(&SPID2);
+  orchardEventsStart();
   ledStart(LED_COUNT, fb);
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, captouch_release, key_mod);
   evtTableHook(orchard_events, captouch_press, key_mod);
+  evtTableHook(orchard_events, ble_rdy, ble_ready);
+  evtTableHook(orchard_events, rf_pkt_rdy, rf_ready);
 
   orchardShellRestart();
 

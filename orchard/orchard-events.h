@@ -57,4 +57,9 @@ struct evt_table {
 #define evtListeners(table)                                                 \
     table.listeners
 
+extern event_source_t ble_rdy;
+extern event_source_t rf_pkt_rdy;
+
+void orchardEventsStart(void);
+
 #endif /* __ORCHARD_EVENTS__ */

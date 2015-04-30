@@ -120,29 +120,6 @@ uint8_t pal_lld_readpad(ioportid_t port, uint8_t pad)
 }
 
 /**
- * @brief   Writes a logical state on an output pad.
- * @note    This function is not meant to be invoked directly by the
- *          application  code.
- * @note    The @ref PAL provides a default software implementation of this
- *          functionality, implement this function if can optimize it by using
- *          special hardware functionalities or special coding.
- *
- * @param[in] port      port identifier
- * @param[in] pad       pad number within the port
- * @param[in] bit       logical value, the value must be @p PAL_LOW or
- *                      @p PAL_HIGH
- *
- * @notapi
- */
-void pal_lld_writepad(ioportid_t port, uint8_t pad, uint8_t bit)
-{
-  if (bit == PAL_HIGH)
-    port->PDOR |= ((uint32_t) 1 << pad);
-  else
-    port->PDOR &= ~((uint32_t) 1 << pad);
-}
-
-/**
  * @brief   Pad mode setup.
  * @details This function programs a pad with the specified mode.
  * @note    The @ref PAL provides a default software implementation of this

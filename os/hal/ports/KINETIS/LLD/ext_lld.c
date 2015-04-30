@@ -67,6 +67,8 @@ uint8_t portb_channel_map[KINETIS_EXT_PORTB_WIDTH];
 #endif
 #if KINETIS_EXT_PORTC_WIDTH > 0
 uint8_t portc_channel_map[KINETIS_EXT_PORTC_WIDTH];
+#elif defined(KINETIS_EXT_PORTC_PORTD_GANGED)
+uint8_t portc_channel_map[KINETIS_EXT_PORTD_WIDTH];
 #endif
 #if KINETIS_EXT_PORTD_WIDTH > 0
 uint8_t portd_channel_map[KINETIS_EXT_PORTD_WIDTH];
@@ -204,6 +206,9 @@ OSAL_IRQ_HANDLER(KINETIS_PORTD_IRQ_VECTOR) {
   OSAL_IRQ_PROLOGUE();
 
   irq_handler(PORTD, KINETIS_EXT_PORTD_WIDTH, portd_channel_map);
+#if defined(KINETIS_EXT_PORTC_PORTD_GANGED)
+  irq_handler(PORTC, KINETIS_EXT_PORTD_WIDTH, portc_channel_map);
+#endif
 
   OSAL_IRQ_EPILOGUE();
 }
@@ -270,7 +275,7 @@ void ext_lld_start(EXTDriver *extp) {
       portb_channel_map[pin] = channel;
     else
 #endif
-#if KINETIS_EXT_PORTC_WIDTH > 0
+#if KINETIS_EXT_PORTC_WIDTH > 0 || defined(KINETIS_EXT_PORTC_PORTD_GANGED)
     if (port == PORTC)
       portc_channel_map[pin] = channel;
     else

@@ -37,6 +37,8 @@
 /* EXT attributes.*/
 #define KINETIS_PORTA_IRQ_VECTOR    VectorB8
 #define KINETIS_PORTD_IRQ_VECTOR    VectorBC
+/* PORTC uses the same interrupt vector as PORTD */
+#define KINETIS_EXT_PORTC_PORTD_GANGED
 
 /* ADC attributes.*/
 #define KINETIS_HAS_ADC0            TRUE

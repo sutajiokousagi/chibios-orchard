@@ -102,6 +102,7 @@ CSRC = main.c \
        captouch.c \
        gpiox.c \
        oled.c \
+       orchard-events.c \
        radio.c \
        led.c \
        gitversion.c \

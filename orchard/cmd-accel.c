@@ -45,3 +45,14 @@ void cmd_accel(BaseSequentialStream *chp, int argc, char *argv[])
 }
 
 orchard_command("accel", cmd_accel);
+
+void unce(BaseSequentialStream *chp, int argc, char **argv) {
+
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  accelEnableFreefall(0x18, 50);
+}
+
+orchard_command("unce", unce);

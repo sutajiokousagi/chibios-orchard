@@ -64,17 +64,55 @@ static void key_mod(eventid_t id) {
   int i;
   int val = captouchRead();
 
-  for (i = 0; i < 13; i++) {
-    int c;
-    if (val & (1 << i))
-      c = 0xff;
-    else
-      c = 0;
+  for (i = 0; i < sizeof(fb); i++)
+    fb[i] = 0;
+  if ((val & (1 << 7)))
+    ledSetRGB(fb, 0, 32, 32, 0, 0);
 
-    fb[i * 3 + 0] = c;
-    fb[i * 3 + 1] = c;
-    fb[i * 3 + 2] = c;
-  }
+  if ((val & (1 << 8)) && (val & (1 << 7)))
+    ledSetRGB(fb, 1, 32, 32, 0, 0);
+
+  if ((val & (1 << 8)))
+    ledSetRGB(fb, 2, 32, 32, 0, 0);
+
+  if ((val & (1 << 8)) && (val & (1 << 9)))
+    ledSetRGB(fb, 3, 32, 32, 0, 0);
+
+  if ((val & (1 << 9)))
+    ledSetRGB(fb, 4, 32, 32, 0, 0);
+
+  if ((val & (1 << 10)) && (val & (1 << 9)))
+    ledSetRGB(fb, 5, 32, 32, 0, 0);
+
+  if ((val & (1 << 10)))
+    ledSetRGB(fb, 6, 32, 32, 0, 0);
+
+  if ((val & (1 << 1)))
+    ledSetRGB(fb, 7, 32, 32, 0, 0);
+
+  if ((val & (1 << 1)) && (val & (1 << 2)))
+    ledSetRGB(fb, 8, 32, 32, 0, 0);
+
+  if ((val & (1 << 2)))
+    ledSetRGB(fb, 9, 32, 32, 0, 0);
+
+  if ((val & (1 << 3)) && (val & (1 << 2)))
+    ledSetRGB(fb, 10, 32, 32, 0, 0);
+
+  if ((val & (1 << 3)))
+    ledSetRGB(fb, 11, 32, 32, 0, 0);
+
+  if ((val & (1 << 4)) && (val & (1 << 3)))
+    ledSetRGB(fb, 12, 32, 32, 0, 0);
+
+  if ((val & (1 << 4)))
+    ledSetRGB(fb, 13, 32, 32, 0, 0);
+
+  if ((val & (1 << 4)) && (val & (1 << 6)))
+    ledSetRGB(fb, 14, 32, 32, 0, 0);
+
+  if ((val & (1 << 7)) && (val & (1 << 6)))
+    ledSetRGB(fb, 15, 32, 32, 0, 0);
 
   chSysLock();
   ledUpdate(fb, LED_COUNT);
@@ -91,6 +129,12 @@ static void ble_ready(eventid_t id) {
 
   (void)id;
   chprintf(stream, " [BLE ready] ");
+}
+
+static void freefall(eventid_t id) {
+
+  (void)id;
+  chprintf(stream, "Unce. ");
 }
 
 /*
@@ -134,6 +178,7 @@ int main(void)
   evtTableHook(orchard_events, captouch_release, key_mod);
   evtTableHook(orchard_events, captouch_press, key_mod);
   evtTableHook(orchard_events, ble_rdy, ble_ready);
+  evtTableHook(orchard_events, accel_freefall, freefall);
   evtTableHook(orchard_events, rf_pkt_rdy, rf_ready);
 
   orchardShellRestart();

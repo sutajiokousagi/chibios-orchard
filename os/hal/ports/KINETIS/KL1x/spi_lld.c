@@ -138,21 +138,25 @@ static void spi_handle_isr(SPIDriver *spip)
   }
 }
 
-OSAL_IRQ_HANDLER(Vector68) {
+#if KINETIS_SPI_USE_SPI0
+OSAL_IRQ_HANDLER(KINETIS_SPI0_IRQ_VECTOR) {
   OSAL_IRQ_PROLOGUE();
 
   spi_handle_isr(&SPID1);
 
   OSAL_IRQ_EPILOGUE();
 }
+#endif
 
-OSAL_IRQ_HANDLER(Vector6C) {
+#if KINETIS_SPI_USE_SPI1
+OSAL_IRQ_HANDLER(KINETIS_SPI1_IRQ_VECTOR) {
   OSAL_IRQ_PROLOGUE();
 
   spi_handle_isr(&SPID2);
 
   OSAL_IRQ_EPILOGUE();
 }
+#endif
 
 /*===========================================================================*/
 /* Driver exported functions.                                                */

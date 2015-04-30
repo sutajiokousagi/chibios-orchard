@@ -116,14 +116,10 @@ static void captouch_keychange(eventid_t id) {
   for (i = 0; i < 14; i++) {
     int bit = (1 << i);
 
-    if ((mask & bit) && !(captouch_state & bit)) {
-      chprintf(stream, "Key %d down\r\n", i);
+    if ((mask & bit) && !(captouch_state & bit))
       chEvtBroadcast(&captouch_press);
-    }
-    else if (!(mask & bit) && (captouch_state & bit)) {
-      chprintf(stream, "Key %d up\r\n", i);
+    else if (!(mask & bit) && (captouch_state & bit))
       chEvtBroadcast(&captouch_release);
-    }
   }
   captouch_state = mask;
 }

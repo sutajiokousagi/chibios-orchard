@@ -717,7 +717,7 @@ static msg_t effects_thread(void *arg) {
 
   while (1) {
     chSysLock();
-    ledsUpdate(led_config.fb, led_config.pixel_count);
+    ledUpdate(led_config.fb, led_config.pixel_count);
     chSysUnlock();
     chThdYield();
     chThdSleepMilliseconds(EFFECTS_REDRAW_MS);
@@ -730,10 +730,10 @@ void effectsDraw(void) {
   draw_pattern(&g_config);
 }
 
-void effectsStart(void *_fb, int _count) {
+void effectsStart(void) {
 
-  g_config.fb = _fb;
-  g_config.count = _count;
+  g_config.fb = led_config.fb;
+  g_config.count = led_config.pixel_count;
   g_config.loop = 0;
   g_config.pattern = patternWaveRainbow;
 

@@ -25,7 +25,7 @@ struct Color {
 
 void ledStart(uint32_t leds, uint8_t *o_fb);
 
-void effectsStart(void *_fb, int _count);
+void effectsStart(void);
 void effectsDraw(void);
 void effectsSetPattern(enum pattern pattern);
 enum pattern effectsGetPattern(void);

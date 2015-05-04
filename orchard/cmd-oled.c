@@ -23,42 +23,86 @@
 #include "orchard-shell.h"
 
 #include "gfx.h"
-#define OLED_REFRESH_RATE_MS  10
+#include "led.h"
+#include "accel.h"
+#include "captouch.h"
+
+#define TILT_THRESH 100
+#define TILT_RATE   128
+#define BALL_SIZE  6
 
 static int should_stop(void) {
   uint8_t bfr[1];
   return chnReadTimeout(serialDriver, bfr, sizeof(bfr), 1);
 }
 
-
 void cmd_oled(BaseSequentialStream *chp, int argc, char *argv[])
 {
   (void)argv;
   (void)argc;
-  uint8_t byte;
-  uint8_t iter = 0;
-  uint32_t i, j;
-  coord_t height, width;
-  chprintf(chp, "\r\nPress any key to quit\r\n");
-  
+  struct accel_data d, dref;
+  coord_t x = 60, y = 28;
+  coord_t xo, yo;
+  uint8_t changed = 0;
+  coord_t width, height;
+  uint16_t val;
+
   width = gdispGetWidth();
   height = gdispGetHeight();
 
-  i = 0;
-  j = 17;
-  while (!should_stop()) {
-    gdispDrawPixel(i, j, White);
-    i++;
-    if( i > width ) {
-      i = 0;
-      j++;
-    }
-    if( j > height ) {
-      j = 17;
-    }
-  }
+  accelPoll(&dref);  // seed accelerometer values
+  dref.x = (dref.x + 2048) & 0xFFF;
+  dref.y = (dref.y + 2048) & 0xFFF;
+
+  // x values go up as you tilt to the right
+  // y vaules go up as you tilt toward the bottom
   
+  chprintf(chp, "\r\nPress any key to quit\r\n");
+  while (!should_stop()) {
+    val = captouchRead();
+    if( val & 0x20 ) { // detect if center pad is hit
+      accelPoll(&dref);
+      dref.x = (dref.x + 2048) & 0xFFF;
+      dref.y = (dref.y + 2048) & 0xFFF;
+    }
+    accelPoll(&d);
+    d.x = (d.x + 2048) & 0xFFF;
+    d.y = (d.y + 2048) & 0xFFF;
+
+    xo = x; yo = y;
+    if( d.x > (dref.x + TILT_THRESH) ) {
+      x += (d.x - dref.x) / TILT_RATE;
+      changed = 1;
+    } else if( d.x < (dref.x - TILT_THRESH) ) {
+      x -= (dref.x -d.x) / TILT_RATE;
+      changed = 1;
+    }
+    if( x > (width - BALL_SIZE))
+      x = width - BALL_SIZE;
+    if( x < BALL_SIZE )
+      x = BALL_SIZE;
+    
+    if( d.y > (dref.y + TILT_THRESH) ) {
+      y += (d.y - dref.y) / TILT_RATE;
+      changed = 1;
+    } else if( d.y < (dref.y - TILT_THRESH) ) {
+      y -= (dref.y -d.y) / TILT_RATE;
+      changed = 1;
+    }
+    if( y > (height - BALL_SIZE))
+      y = height - BALL_SIZE;
+    if( y < BALL_SIZE )
+      y = BALL_SIZE;
+    
+    if( changed ) {
+      changed  = 0;
+      gdispFillCircle(xo, yo, BALL_SIZE, Black);
+    }
+    
+    gdispFillCircle(x, y, BALL_SIZE, White);
+  }
   chprintf(chp, "\r\n");
+
 }
 
 orchard_command("oled", cmd_oled);

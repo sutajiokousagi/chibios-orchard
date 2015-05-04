@@ -54,7 +54,7 @@
 //#define GDISP_NEED_TIMERFLUSH                        TRUE
 #define GDISP_NEED_VALIDATION                        TRUE
 #define GDISP_NEED_CLIP                              FALSE
-//#define GDISP_NEED_CIRCLE                            FALSE
+#define GDISP_NEED_CIRCLE                            TRUE
 //#define GDISP_NEED_ELLIPSE                           FALSE
 //#define GDISP_NEED_ARC                               FALSE
 //#define GDISP_NEED_ARCSECTORS                        FALSE
@@ -70,7 +70,7 @@
 //    #define GDISP_NEED_UTF8                          FALSE
 //    #define GDISP_NEED_TEXT_KERNING                  FALSE
 //    #define GDISP_INCLUDE_FONT_UI1                   FALSE
-#define GDISP_INCLUDE_FONT_UI2                   TRUE		// The smallest preferred font.
+// #define GDISP_INCLUDE_FONT_UI2                   TRUE		// The smallest preferred font.
 //    #define GDISP_INCLUDE_FONT_LARGENUMBERS          FALSE
 //    #define GDISP_INCLUDE_FONT_DEJAVUSANS10          FALSE
 //    #define GDISP_INCLUDE_FONT_DEJAVUSANS12          FALSE

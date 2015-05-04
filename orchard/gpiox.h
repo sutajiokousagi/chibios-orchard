@@ -35,4 +35,6 @@ void gpioxSetPadMode(void *port, int pad, int mode);
 uint8_t gpioxReadPad(void *port, int pad);
 void gpioxPollInt(void *port);
 
+#define oledResPad 6
+
 #endif /* __GPIOX_H__ */

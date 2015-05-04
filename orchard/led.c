@@ -34,7 +34,6 @@ unsigned int patternChanged = 0;
 int wavesign = -1;
 
 unsigned int rstate = 0xfade1337;
-unsigned int rand(void);
 unsigned int shift_lfsr(unsigned int v);
 
 uint8_t sinLUT[256] = {

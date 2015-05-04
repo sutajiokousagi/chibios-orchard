@@ -89,6 +89,10 @@ void ledStart(uint32_t leds, uint8_t *o_fb)
   led_config.fb = o_fb;
   for (j = 0; j < leds * 3; j++)
     led_config.fb[j] = 0x0;
+
+  chSysLock();
+  ledUpdate(led_config.fb, led_config.max_pixels);
+  chSysUnlock();
 }
 
 void ledSetRGBClipped(void *fb, uint32_t i,

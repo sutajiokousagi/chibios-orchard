@@ -18,15 +18,14 @@ enum pattern {
 
 typedef struct Color Color;
 struct Color {
-  uint8_t r;
   uint8_t g;
+  uint8_t r;
   uint8_t b;
 };
 
-void ledStart(uint32_t leds, uint8_t *o_fb);
+void ledStart(uint32_t leds, uint8_t *o_fb, uint32_t ui_leds, uint8_t *o_ui_fb);
 
 void effectsStart(void);
-void effectsDraw(void);
 void effectsSetPattern(enum pattern pattern);
 enum pattern effectsGetPattern(void);
 void bump(uint32_t amount);
@@ -36,16 +35,9 @@ void effectsNextPattern(void);
 void effectsPrevPattern(void);
 unsigned int rand(void);
 
+void uiLedGet(uint8_t index, Color *c);
+void uiLedSet(uint8_t index, Color c);
+
 #define EFFECTS_REDRAW_MS 35
-
-void ledSetRGB(void *ptr, int x, uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
-void ledSetColor(void *ptr, int x, Color c, uint8_t shift);
-void ledSetRGBClipped(void *fb, uint32_t i,
-                      uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
-Color ledGetColor(void *ptr, int x);
-void ledSetCount(uint32_t count);
-
-void ledUpdate(uint8_t *fb, uint32_t len);
-void ledStart(uint32_t leds, uint8_t *o_fb);
 
 #endif /* __LED_H__ */

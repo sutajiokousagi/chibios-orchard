@@ -5,19 +5,37 @@
 
 #include <math.h>
 
+extern void ledUpdate(uint8_t *fb, uint32_t len);
+
+static void ledSetRGB(void *ptr, int x, uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
+static void ledSetColor(void *ptr, int x, Color c, uint8_t shift);
+static void ledSetRGBClipped(void *fb, uint32_t i,
+                      uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
+static Color ledGetColor(void *ptr, int x);
+static void ledSetCount(uint32_t count);
+
+
+// hardware configuration information
+// max length is different from actual length because some
+// pattens may want to support the option of user-added LED
+// strips, whereas others will focus only on UI elements in the
+// circle provided on the board itself
+static struct {
+  uint8_t       *fb; // effects frame buffer
+  uint8_t       *final_fb;  // merged ui + effects frame buffer
+  uint32_t      pixel_count;  // generated pixel length
+  uint32_t      max_pixels;   // maximal generation length
+  uint8_t       *ui_fb; // frame buffer for UI effects
+  uint32_t      ui_pixels;  // number of LEDs on the PCB itself for UI use
+} led_config;
+
+// local effects state
 struct effects_config {
-  void *fb;
   uint32_t count;
   uint32_t loop;
   enum pattern pattern;
 };
-
-static struct {
-  uint8_t       *fb; // LED frame buffer
-  uint32_t      pixel_count;  // generated pixel length
-  uint32_t      max_pixels;   // maximal generation length
-} led_config;
-
+static struct effects_config g_config;
 
 uint8_t shift = 0;  // start a little bit dimmer
 
@@ -80,43 +98,68 @@ uint8_t sinLUT[256] = {
  * @param[out] o_fb     initialized frame buffer
  *
  */
-void ledStart(uint32_t leds, uint8_t *o_fb)
+void ledStart(uint32_t leds, uint8_t *o_fb, uint32_t ui_leds, uint8_t *o_ui_fb)
 {
   unsigned int j;
   led_config.max_pixels = leds;
   led_config.pixel_count = leds;
+  led_config.ui_pixels = ui_leds;
 
   led_config.fb = o_fb;
+  led_config.ui_fb = o_ui_fb;
+
+  led_config.final_fb = chHeapAlloc( NULL, sizeof(uint8_t) * led_config.max_pixels * 3 );
+  
   for (j = 0; j < leds * 3; j++)
     led_config.fb[j] = 0x0;
+  for (j = 0; j < ui_leds * 3; j++)
+    led_config.ui_fb[j] = 0x0;
 
   chSysLock();
   ledUpdate(led_config.fb, led_config.max_pixels);
   chSysUnlock();
 }
 
-void ledSetRGBClipped(void *fb, uint32_t i,
+void uiLedGet(uint8_t index, Color *c) {
+  if( index >= led_config.ui_pixels )
+    index = led_config.ui_pixels - 1;
+  
+  c->g = led_config.ui_fb[index*3];
+  c->r = led_config.ui_fb[index*3+1];
+  c->b = led_config.ui_fb[index*3+2];
+}
+
+void uiLedSet(uint8_t index, Color c) {
+  if( index >= led_config.ui_pixels )
+    index = led_config.ui_pixels - 1;
+  
+  led_config.ui_fb[index*3] = c.g;
+  led_config.ui_fb[index*3+1] = c.r;
+  led_config.ui_fb[index*3+2] = c.b;
+}
+
+static void ledSetRGBClipped(void *fb, uint32_t i,
                       uint8_t r, uint8_t g, uint8_t b, uint8_t shift) {
   if (i >= led_config.pixel_count)
     return;
   ledSetRGB(fb, i, r, g, b, shift);
 }
 
-void ledSetRGB(void *ptr, int x, uint8_t r, uint8_t g, uint8_t b, uint8_t shift) {
+static void ledSetRGB(void *ptr, int x, uint8_t r, uint8_t g, uint8_t b, uint8_t shift) {
   uint8_t *buf = ((uint8_t *)ptr) + (3 * x);
   buf[0] = g >> shift;
   buf[1] = r >> shift;
   buf[2] = b >> shift;
 }
 
-void ledSetColor(void *ptr, int x, Color c, uint8_t shift) {
+static void ledSetColor(void *ptr, int x, Color c, uint8_t shift) {
   uint8_t *buf = ((uint8_t *)ptr) + (3 * x);
   buf[0] = c.g >> shift;
   buf[1] = c.r >> shift;
   buf[2] = c.b >> shift;
 }
 
-Color ledGetColor(void *ptr, int x) {
+static Color ledGetColor(void *ptr, int x) {
   Color c;
   uint8_t *buf = ((uint8_t *)ptr) + (3 * x);
 
@@ -127,13 +170,11 @@ Color ledGetColor(void *ptr, int x) {
   return c;
 }
 
-void ledSetCount(uint32_t count) {
+static void ledSetCount(uint32_t count) {
   if (count > led_config.max_pixels)
     return;
   led_config.pixel_count = count;
 }
-
-
 
 void setShift(uint8_t s) {
   shift = s;
@@ -662,30 +703,29 @@ static int draw_pattern(struct effects_config *config) {
     }
 
     //    if (config->pattern == patternShoot)
-    //      shootPatternFB(config->fb, config->count, config->loop);
+    //      shootPatternFB(led_config.fb, config->count, config->loop);
     if (config->pattern == patternCalm) {
-      calmPatternFB(config->fb, config->count, config->loop);
+      calmPatternFB(led_config.fb, config->count, config->loop);
       config->loop += 2; // make this one go faster
     } else if (config->pattern == patternTest)
-      testPatternFB(config->fb, config->count, config->loop);
+      testPatternFB(led_config.fb, config->count, config->loop);
     else if (config->pattern == patternStrobe)
-      strobePatternFB(config->fb, config->count, config->loop);
+      strobePatternFB(led_config.fb, config->count, config->loop);
     else if( config->pattern == patternWaveRainbow )
-      waveRainbowFB(config->fb, config->count, config->loop);
+      waveRainbowFB(led_config.fb, config->count, config->loop);
     else if( config->pattern == patternDirectedRainbow )
-      directedRainbowFB(config->fb, config->count, config->loop);
+      directedRainbowFB(led_config.fb, config->count, config->loop);
     else if( config->pattern == patternRaindrop ) {
-      raindropFB(config->fb, config->count, config->loop);
+      raindropFB(led_config.fb, config->count, config->loop);
     } else if( config->pattern == patternRainbowdrop ) {
-      rainbowDropFB(config->fb, config->count, config->loop);
+      rainbowDropFB(led_config.fb, config->count, config->loop);
     } else {
-      testPatternFB(config->fb, config->count, config->loop);
+      testPatternFB(led_config.fb, config->count, config->loop);
     }
 
     return 0;
 }
 
-static struct effects_config g_config;
 void effectsSetPattern(enum pattern pattern) {
   g_config.pattern = pattern;
 }
@@ -709,6 +749,18 @@ void effectsPrevPattern(void) {
   patternChanged = 1;
 }
 
+static void blendFbs() {
+  uint8_t i;
+  // UI FB + effects FB blend (just do a saturating add)
+  for( i = 0; i < led_config.ui_pixels * 3; i ++ ) {
+    led_config.final_fb[i] = satadd_8(led_config.fb[i], led_config.ui_fb[i]);
+  }
+
+  // copy over the remainder of the effects FB that extends beyond UI FB
+  for( i = led_config.ui_pixels * 3; i < led_config.max_pixels * 3; i++ ) {
+    led_config.final_fb[i] = led_config.fb[i];
+  }
+}
 
 static THD_WORKING_AREA(waEffectsThread, 256);
 static msg_t effects_thread(void *arg) {
@@ -716,23 +768,25 @@ static msg_t effects_thread(void *arg) {
   chRegSetThreadName("effects");
 
   while (1) {
+    blendFbs();
+    
+    // transmit the actual framebuffer to the LED chain
     chSysLock();
-    ledUpdate(led_config.fb, led_config.pixel_count);
+    ledUpdate(led_config.final_fb, led_config.pixel_count);
     chSysUnlock();
+
+    // wait until the next update cycle
     chThdYield();
     chThdSleepMilliseconds(EFFECTS_REDRAW_MS);
-    effectsDraw();
+
+    // re-render the internal framebuffer animations
+    draw_pattern(&g_config);
   }
   return MSG_OK;
 }
 
-void effectsDraw(void) {
-  draw_pattern(&g_config);
-}
-
 void effectsStart(void) {
 
-  g_config.fb = led_config.fb;
   g_config.count = led_config.pixel_count;
   g_config.loop = 0;
   g_config.pattern = patternWaveRainbow;

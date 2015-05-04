@@ -39,7 +39,9 @@
 struct evt_table orchard_events;
 
 #define LED_COUNT 16
+#define UI_LED_COUNT 16
 static uint8_t fb[LED_COUNT * 3];
+static uint8_t ui_fb[LED_COUNT * 3];
 
 static const I2CConfig i2c_config = {
   100000
@@ -65,60 +67,66 @@ static void key_mod(eventid_t id) {
   (void)id;
   int i;
   int val = captouchRead();
+  Color uiColor;
 
-  for (i = 0; i < sizeof(fb); i++)
-    fb[i] = 0;
+  uiColor.r = 0;
+  uiColor.g = 0;
+  uiColor.b = 0;
+  for (i = 0; i < UI_LED_COUNT; i++)
+    uiLedSet(i, uiColor);
+
+  uiColor.r = 200;
+  uiColor.g = 200;
+  uiColor.b = 0;
+  
   if ((val & (1 << 7)))
-    ledSetRGB(fb, 0, 32, 32, 0, 0);
+    uiLedSet(0, uiColor);
 
   if ((val & (1 << 8)) && (val & (1 << 7)))
-    ledSetRGB(fb, 1, 32, 32, 0, 0);
+    uiLedSet(1, uiColor);
 
   if ((val & (1 << 8)))
-    ledSetRGB(fb, 2, 32, 32, 0, 0);
+    uiLedSet(2, uiColor);
 
   if ((val & (1 << 8)) && (val & (1 << 9)))
-    ledSetRGB(fb, 3, 32, 32, 0, 0);
+    uiLedSet(3, uiColor);
 
   if ((val & (1 << 9)))
-    ledSetRGB(fb, 4, 32, 32, 0, 0);
+    uiLedSet(4, uiColor);
 
   if ((val & (1 << 10)) && (val & (1 << 9)))
-    ledSetRGB(fb, 5, 32, 32, 0, 0);
+    uiLedSet(5, uiColor);
 
   if ((val & (1 << 10)))
-    ledSetRGB(fb, 6, 32, 32, 0, 0);
+    uiLedSet(6, uiColor);
 
   if ((val & (1 << 1)))
-    ledSetRGB(fb, 7, 32, 32, 0, 0);
+    uiLedSet(7, uiColor);
 
   if ((val & (1 << 1)) && (val & (1 << 2)))
-    ledSetRGB(fb, 8, 32, 32, 0, 0);
+    uiLedSet(8, uiColor);
 
   if ((val & (1 << 2)))
-    ledSetRGB(fb, 9, 32, 32, 0, 0);
+    uiLedSet(9, uiColor);
 
   if ((val & (1 << 3)) && (val & (1 << 2)))
-    ledSetRGB(fb, 10, 32, 32, 0, 0);
+    uiLedSet(10, uiColor);
 
   if ((val & (1 << 3)))
-    ledSetRGB(fb, 11, 32, 32, 0, 0);
+    uiLedSet(11, uiColor);
 
   if ((val & (1 << 4)) && (val & (1 << 3)))
-    ledSetRGB(fb, 12, 32, 32, 0, 0);
+    uiLedSet(12, uiColor);
 
   if ((val & (1 << 4)))
-    ledSetRGB(fb, 13, 32, 32, 0, 0);
+    uiLedSet(13, uiColor);
 
   if ((val & (1 << 4)) && (val & (1 << 6)))
-    ledSetRGB(fb, 14, 32, 32, 0, 0);
+    uiLedSet(14, uiColor);
 
   if ((val & (1 << 7)) && (val & (1 << 6)))
-    ledSetRGB(fb, 15, 32, 32, 0, 0);
+    uiLedSet(15, uiColor);
 
-  chSysLock();
-  ledUpdate(fb, LED_COUNT);
-  chSysUnlock();
 }
 
 static void rf_ready(eventid_t id) {
@@ -220,7 +228,8 @@ int main(void)
   radioStart(&SPID1);
   oledStart(&SPID2);
   orchardEventsStart();
-  ledStart(LED_COUNT, fb);
+  ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
+  effectsStart();
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, captouch_release, key_mod);
@@ -229,10 +238,10 @@ int main(void)
   evtTableHook(orchard_events, accel_freefall, freefall);
   evtTableHook(orchard_events, rf_pkt_rdy, rf_ready);
 
-  orchardShellRestart();
-
   gfxInit();
   
+  orchardShellRestart();
+
   oledOrchardBanner();
   
   while (TRUE)

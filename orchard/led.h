@@ -34,6 +34,7 @@ void setShift(uint8_t s);
 uint8_t getShift(void);
 void effectsNextPattern(void);
 void effectsPrevPattern(void);
+unsigned int rand(void);
 
 #define EFFECTS_REDRAW_MS 35
 

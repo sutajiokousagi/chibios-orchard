@@ -6,7 +6,7 @@
 #include "orchard.h"
 #include "gpiox.h"
 
-#define oledResPad 6
+#include "gfx.h"
 
 static const uint8_t init_sequence[] = {
   0xae, 0xff,       /* Set display off */
@@ -81,7 +81,43 @@ void oledStart(SPIDriver *spip) {
     spiSend(driver, 1, &init_sequence[i]);
   }
 
-  oled_fill(0xff);
+  oled_fill(0x00);
 
   spiReleaseBus(spip);
+}
+
+// assumes: Acquire/ReleaseBus called outside this function
+void oledCmd(uint8_t cmd) {
+    oled_select();
+    oled_command_mode();
+    spiSend(driver, 1, &cmd);
+}
+
+void oledData(uint8_t *data, uint16_t length) {
+  unsigned int i;
+
+  oled_select();
+  oled_data_mode();
+  for( i = 0; i < length; i++ ) {
+    spiSend(driver, 1, &data[i]);
+  }
+  
+}
+
+void oledAcquireBus(void) {
+  spiAcquireBus(driver);
+}
+
+void oledReleaseBus(void) {
+  spiReleaseBus(driver);
+}
+
+void oledOrchardBanner(void) {
+  coord_t width;
+  font_t font;
+  
+  width = gdispGetWidth();
+  font = gdispOpenFont("Fixed 5x8");
+  
+  gdispDrawStringBox(0, 0, width, 8, "Orchard EVT1", font, White, justifyCenter);
 }

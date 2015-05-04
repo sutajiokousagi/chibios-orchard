@@ -152,6 +152,9 @@ SECTIONS
     PROVIDE(_bss_end = .);
   } > ram
 
+  PROVIDE(end = .);
+  _end            = .;
+
   .note.gnu.build-id :
   {
     . = ALIGN(4);
@@ -175,9 +178,6 @@ SECTIONS
     PROVIDE( _note = .);
   } > flash
 }
-
-PROVIDE(end = .);
-_end            = .;
 
 __heap_base__   = _end;
 __heap_end__    = __ram_end__;

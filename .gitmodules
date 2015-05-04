@@ -1,0 +1,3 @@
+[submodule "ext/ugfx"]
+	path = ext/ugfx
+	url = git@github.com:sutajiokousagi/orchard-ugfx.git

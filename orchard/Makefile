@@ -76,7 +76,7 @@ PROJECT = orchard
 
 # Imported source files and paths
 CHIBIOS = ..
-GFXLIB = ../../ugfx
+GFXLIB =$(CHIBIOS)/ext/ugfx
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_kl1x.mk
 # HAL-OSAL files (optional).

@@ -88,27 +88,26 @@ void oledStart(SPIDriver *spip) {
 
 // assumes: Acquire/ReleaseBus called outside this function
 void oledCmd(uint8_t cmd) {
-    oled_select();
-    oled_command_mode();
-    spiSend(driver, 1, &cmd);
+
+  oled_command_mode();
+  spiSend(driver, 1, &cmd);
 }
 
 void oledData(uint8_t *data, uint16_t length) {
   unsigned int i;
 
-  oled_select();
   oled_data_mode();
-  for( i = 0; i < length; i++ ) {
+  for( i = 0; i < length; i++ )
     spiSend(driver, 1, &data[i]);
-  }
-  
 }
 
 void oledAcquireBus(void) {
   spiAcquireBus(driver);
+  oled_select();
 }
 
 void oledReleaseBus(void) {
+  oled_unselect();
   spiReleaseBus(driver);
 }
 

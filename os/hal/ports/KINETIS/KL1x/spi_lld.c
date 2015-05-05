@@ -97,6 +97,8 @@ static void spi_start_xfer(SPIDriver *spip, bool polling)
 
   (void)polling;
 
+  osalDbgAssert(spip->state == SPI_ACTIVE, "Invalid SPI state");
+
   /* Reset the SPI Match Flag if it's set.  We don't use this feature. */
   if (spip->spi->S & SPIx_S_SPMF)
     spip->spi->S |= SPIx_S_SPMF;
@@ -112,6 +114,7 @@ static void spi_stop_xfer(SPIDriver *spip)
 {
 
   spip->spi->C1 &= ~(SPIx_C1_SPIE | SPIx_C1_SPTIE);
+  spip->state = SPI_READY;
 }
 
 /*===========================================================================*/
@@ -120,6 +123,8 @@ static void spi_stop_xfer(SPIDriver *spip)
 
 static void spi_handle_isr(SPIDriver *spip)
 {
+
+  osalDbgAssert(spip->state == SPI_ACTIVE, "Invalid SPI state");
 
   while ((spip->rxoffset < spip->count) && (spip->spi->S & SPIx_S_SPRF)) {
     if ((spip->rxbuf) && (spip->rxoffset < spip->count))

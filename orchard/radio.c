@@ -16,14 +16,6 @@
 /* This number was guessed based on observations (133 at 30 degrees) */
 static int temperature_offset = 133 + 30;
 
-#define dummy_vector(n) OSAL_IRQ_HANDLER(n) { while(1); }
-
-dummy_vector(VectorA0)
-dummy_vector(VectorA4)
-dummy_vector(VectorAC)
-dummy_vector(VectorB0)
-dummy_vector(VectorB4)
-
 static SPIDriver *driver;
 
 static void radio_select(void) {

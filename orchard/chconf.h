@@ -484,7 +484,8 @@
  *          the system is halted.
  */
 #define CH_CFG_SYSTEM_HALT_HOOK(reason) {                                   \
-  /* System halt code here.*/                                               \
+  /* Break into the debugger on halt.*/                                     \
+  asm("bkpt #0");                                                           \
 }
 
 /** @} */

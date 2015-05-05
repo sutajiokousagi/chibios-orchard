@@ -102,6 +102,7 @@ LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
 # setting.
 CSRC = main.c \
        orchard-shell.c \
+       orchard-vectors.c \
        $(wildcard cmd-*.c) \
        accel.c \
        charger.c \

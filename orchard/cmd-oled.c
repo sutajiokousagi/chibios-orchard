@@ -100,6 +100,7 @@ void cmd_oled(BaseSequentialStream *chp, int argc, char *argv[])
     }
     
     gdispFillCircle(x, y, BALL_SIZE, White);
+    gdispFlush();
   }
   chprintf(chp, "\r\n");
 

@@ -1,3 +1,4 @@
+#include "orchard.h"
 #include "orchard-shell.h"
 #include "radio.h"
 
@@ -9,7 +10,7 @@ void cmd_temp(BaseSequentialStream *chp, int argc, char **argv) {
   (void)argv;
 
   chprintf(chp, "System temperature: ");
-  temp = radioTemperature();
+  temp = radioTemperature(radioDriver);
 
   chprintf(chp, "%d C\r\n", temp);
 }

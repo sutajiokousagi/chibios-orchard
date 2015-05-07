@@ -225,7 +225,7 @@ int main(void)
   accelStart(i2cDriver);
   chargerStart(i2cDriver);
   captouchStart(i2cDriver);
-  radioStart(&SPID1);
+  radioStart(&KRADIO1, &SPID1);
   oledStart(&SPID2);
   orchardEventsStart();
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);

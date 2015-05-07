@@ -20,6 +20,7 @@
 #include "chprintf.h"
 
 #include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include "orchard.h"
@@ -79,7 +80,7 @@ static void radio_get(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   addr = strtoul(argv[1], NULL, 0);
   chprintf(chp, "Value at address 0x%02x: ", addr);
-  chprintf(chp, "0x%02x\r\n", radioRead(addr));
+  chprintf(chp, "0x%02x\r\n", radioRead(radioDriver, addr));
 }
 
 static void radio_set(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -94,7 +95,7 @@ static void radio_set(BaseSequentialStream *chp, int argc, char *argv[]) {
   addr = strtoul(argv[1], NULL, 0);
   val  = strtoul(argv[2], NULL, 0);
   chprintf(chp, "Writing address 0x%02x: ", addr);
-  radioWrite(addr, val);
+  radioWrite(radioDriver, addr, val);
   chprintf(chp, "0x%02x\r\n", val);
 }
 
@@ -117,16 +118,12 @@ static void radio_dump(BaseSequentialStream *chp, int argc, char *argv[]) {
   uint8_t buf[count];
 
   chprintf(chp, "Dumping %d bytes from address 0x%02x:\r\n", count, addr);
-  radioDump(addr, buf, count);
+  radioDump(radioDriver, addr, buf, count);
 
   print_hex_offset(chp, buf, count, 0, addr);
 }
 
-static void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[])
-{
-
-  (void)argv;
-  (void)argc;
+static void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   if (argc == 0) {
     chprintf(chp, "Radio commands:\r\n");
@@ -147,3 +144,20 @@ static void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[])
 }
 
 orchard_command("radio", cmd_radio);
+
+
+static void cmd_msg(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+  int addr;
+
+  if (argc < 2) {
+    chprintf(chp, "Usage: msg [addr] [message]\r\n");
+    chprintf(chp, "    e.g. msg 0xff \"Hello, everybody\"\r\n");
+    return;
+  }
+
+  addr = strtoul(argv[0], NULL, 0);
+  chprintf(chp, "Sending '%s' to address %d\r\n", argv[1], addr);
+  radioSend(radioDriver, addr, 0, strlen(argv[1]) + 1, argv[1]);
+}
+orchard_command("msg", cmd_msg);

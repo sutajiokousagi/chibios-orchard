@@ -5,6 +5,7 @@
 #include "hal.h"
 #include "chprintf.h"
 #include "shell.h"
+#include "orchard.h"
 
 void orchardShellInit(void);
 void orchardShellRestart(void);

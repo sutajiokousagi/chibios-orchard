@@ -123,6 +123,25 @@ static void radio_dump(BaseSequentialStream *chp, int argc, char *argv[]) {
   print_hex_offset(chp, buf, count, 0, addr);
 }
 
+static void radio_addr(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+  unsigned int addr;
+
+  if (argc == 1) {
+    chprintf(chp, "Radio address: %d\r\n", radioAddress(radioDriver));
+    return;
+  }
+
+  if (argc != 2) {
+    chprintf(chp, "No address specified\r\n");
+    return;
+  }
+
+  addr = strtoul(argv[1], NULL, 0);
+  radioSetAddress(radioDriver, addr);
+  chprintf(chp, "Set radio address to %d\r\n", addr);
+}
+
 static void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   if (argc == 0) {
@@ -130,6 +149,7 @@ static void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "   get [addr]           Get a SPI register\r\n");
     chprintf(chp, "   set [addr] [val]     Set a SPI register\r\n");
     chprintf(chp, "   dump [addr] [count]  Dump a set of SPI registers\r\n");
+    chprintf(chp, "   addr [addr]          Set radio node address\r\n");
     return;
   }
 
@@ -139,6 +159,8 @@ static void cmd_radio(BaseSequentialStream *chp, int argc, char *argv[]) {
     radio_set(chp, argc, argv);
   else if (!strcasecmp(argv[0], "dump"))
     radio_dump(chp, argc, argv);
+  else if (!strcasecmp(argv[0], "addr"))
+    radio_addr(chp, argc, argv);
   else
     chprintf(chp, "Unrecognized radio command\r\n");
 }

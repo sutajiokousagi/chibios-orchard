@@ -129,12 +129,6 @@ static void key_mod(eventid_t id) {
 
 }
 
-static void rf_ready(eventid_t id) {
-
-  (void)id;
-  chprintf(stream, " [RF ready] ");
-}
-
 static void ble_ready(eventid_t id) {
 
   (void)id;
@@ -145,6 +139,17 @@ static void freefall(eventid_t id) {
 
   (void)id;
   chprintf(stream, "Unce. ");
+}
+
+extern int print_hex(BaseSequentialStream *chp,
+                     const void *block, int count, uint32_t start);
+
+static void default_radio_handler(uint8_t type, uint8_t src, uint8_t dst,
+                                  uint8_t length, void *data) {
+
+  chprintf(stream, "\r\nNo handler for packet found.  %02x -> %02x : %02x\r\n",
+           src, dst, type);
+  print_hex(stream, data, length, 0);
 }
 
 static void print_mcu_info(void) {
@@ -215,6 +220,7 @@ int main(void)
   chprintf(stream, "\r\n\r\nOrchard shell.  Based on build %s\r\n", gitversion);
   print_mcu_info();
 
+  orchardEventsStart();
   i2cStart(i2cDriver, &i2c_config);
 
   spiStart(&SPID1, &spi_config);
@@ -227,7 +233,6 @@ int main(void)
   captouchStart(i2cDriver);
   radioStart(&KRADIO1, &SPID1);
   oledStart(&SPID2);
-  orchardEventsStart();
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
   effectsStart();
 
@@ -236,7 +241,7 @@ int main(void)
   evtTableHook(orchard_events, captouch_press, key_mod);
   evtTableHook(orchard_events, ble_rdy, ble_ready);
   evtTableHook(orchard_events, accel_freefall, freefall);
-  evtTableHook(orchard_events, rf_pkt_rdy, rf_ready);
+  radioSetDefaultHandler(radioDriver, default_radio_handler);
 
   gfxInit();
   

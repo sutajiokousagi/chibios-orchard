@@ -556,6 +556,17 @@ void radioInterrupt(EXTDriver *extp, expchannel_t channel) {
   radio_handle_interrupt(radioDriver);
 }
 
+void radioSetAddress(KRadioDevice *radio, uint8_t addr) {
+
+  radio->address = addr;
+  radio_set_node_address(radio, addr);
+}
+
+uint8_t radioAddress(KRadioDevice *radio) {
+  
+  return radio->address;
+}
+
 void radioSend(KRadioDevice *radio,
                uint8_t addr,
                uint8_t type,

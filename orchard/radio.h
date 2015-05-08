@@ -24,6 +24,8 @@ int radioTemperature(KRadioDevice *radio);
 void radioSetNetwork(KRadioDevice *radio, const uint8_t *id, uint8_t len);
 void radioSend(KRadioDevice *radio, uint8_t dest, uint8_t type,
                                     size_t len, const void *payload);
+void radioSetAddress(KRadioDevice *radio, uint8_t addr);
+uint8_t radioAddress(KRadioDevice *radio);
 
 void radioSetDefaultHandler(KRadioDevice *radio,
                             void (*handler)(uint8_t type,

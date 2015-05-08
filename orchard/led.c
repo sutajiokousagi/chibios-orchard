@@ -9,10 +9,7 @@ extern void ledUpdate(uint8_t *fb, uint32_t len);
 
 static void ledSetRGB(void *ptr, int x, uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
 static void ledSetColor(void *ptr, int x, Color c, uint8_t shift);
-static void ledSetRGBClipped(void *fb, uint32_t i,
-                      uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
 static Color ledGetColor(void *ptr, int x);
-static void ledSetCount(uint32_t count);
 
 
 // hardware configuration information
@@ -138,13 +135,6 @@ void uiLedSet(uint8_t index, Color c) {
   led_config.ui_fb[index*3+2] = c.b;
 }
 
-static void ledSetRGBClipped(void *fb, uint32_t i,
-                      uint8_t r, uint8_t g, uint8_t b, uint8_t shift) {
-  if (i >= led_config.pixel_count)
-    return;
-  ledSetRGB(fb, i, r, g, b, shift);
-}
-
 static void ledSetRGB(void *ptr, int x, uint8_t r, uint8_t g, uint8_t b, uint8_t shift) {
   uint8_t *buf = ((uint8_t *)ptr) + (3 * x);
   buf[0] = g >> shift;
@@ -168,20 +158,6 @@ static Color ledGetColor(void *ptr, int x) {
   c.b = buf[2];
   
   return c;
-}
-
-static void ledSetCount(uint32_t count) {
-  if (count > led_config.max_pixels)
-    return;
-  led_config.pixel_count = count;
-}
-
-void setShift(uint8_t s) {
-  shift = s;
-}
-
-uint8_t getShift(void) {
-  return shift;
 }
 
 unsigned int shift_lfsr(unsigned int v)
@@ -327,6 +303,8 @@ static Color Wheel(uint8_t wheelPos) {
 static void strobePatternFB(void *fb, int count, int loop) {
   uint16_t i;
   uint8_t oldshift = shift;
+
+  (void)loop;
   
   shift = 0;
 
@@ -364,83 +342,11 @@ static void calmPatternFB(void *fb, int count, int loop) {
 static void testPatternFB(void *fb, int count, int loop) {
   int i = 0;
 
-#if 0
-  while (i < count) {
-    /* Black */
-    ledSetRGB(fb, (i + loop) % count, 0, 0, 0, shift);
-    if (++i >= count) break;
-
-    /* Red */
-    ledSetRGB(fb, (i + loop) % count, 255, 0, 0, shift);
-    if (++i >= count) break;
-
-    /* Yellow */
-    ledSetRGB(fb, (i + loop) % count, 255, 255, 0, shift);
-    if (++i >= count) break;
-
-    /* Green */
-    ledSetRGB(fb, (i + loop) % count, 0, 255, 0, shift);
-    if (++i >= count) break;
-
-    /* Cyan */
-    ledSetRGB(fb, (i + loop) % count, 0, 255, 255, shift);
-    if (++i >= count) break;
-
-    /* Blue */
-    ledSetRGB(fb, (i + loop) % count, 0, 0, 255, shift);
-    if (++i >= count) break;
-
-    /* Purple */
-    ledSetRGB(fb, (i + loop) % count, 255, 0, 255, shift);
-    if (++i >= count) break;
-
-    /* White */
-    ledSetRGB(fb, (i + loop) % count, 255, 255, 255, shift);
-    if (++i >= count) break;
-  }
-#endif
-#if 0
-  while (i < count) {
-    if (loop & 1) {
-      /* Black */
-      ledSetRGB(fb, (i++ + loop) % count, 0, 0, 0, shift);
-
-      /* Black */
-      ledSetRGB(fb, (i++ + loop) % count, 0, 0, 0, shift);
-
-      /* White */
-      ledSetRGB(fb, (i++ + loop) % count, 32, 32, 32, shift);
-    }
-    else {
-      /* White */
-      ledSetRGB(fb, (i++ + loop) % count, 32, 32, 32, shift);
-
-      /* Black */
-      ledSetRGB(fb, (i++ + loop) % count, 0, 0, 0, shift);
-
-      /* Black */
-      ledSetRGB(fb, (i++ + loop) % count, 0, 0, 0, shift);
-    }
-  }
-#endif
-  //  int threshold = (phageAdcGet() * count / 4096);
+  (void)loop;
   int threshold = (20 * count / 4096);   ////////// NOTE NOTE BODGE
   for (i = 0; i < count; i++) {
     if (i > threshold)
       ledSetRGB(fb, i, 255, 0, 0, shift);
-    else
-      ledSetRGB(fb, i, 0, 0, 0, shift);
-  }
-}
-
-static void shootPatternFB(void *fb, int count, int loop) {
-  int i;
-
-  //loop = (loop >> 3) % count;
-  loop = loop % count;
-  for (i = 0; i < count; i++) {
-    if (loop == i)
-      ledSetRGB(fb, i, 255, 255, 255, shift);
     else
       ledSetRGB(fb, i, 0, 0, 0, shift);
   }
@@ -456,6 +362,8 @@ static void waveRainbowFB(void *fb, int count, int loop) {
   uint32_t c;
   int sign = 1;
   uint16_t colorrate = 1;
+
+  (void)loop;
   
   curtime = chVTGetSystemTime() + offset;
   if( (curtime - reftime) > VU_T_PERIOD )
@@ -509,6 +417,7 @@ static void directedRainbowFB(void *fb, int count, int loop) {
   uint32_t c;
   uint32_t colorrate = 1;
   
+  (void)loop;
   curtime = chVTGetSystemTime() + offset;
   if( (curtime - reftime) > VU_T_PERIOD )
     reftime = curtime;
@@ -546,12 +455,6 @@ static void directedRainbowFB(void *fb, int count, int loop) {
   }  
 }
 
-static uint32_t asb_l(int i) {
-  if (i > 0)
-      return i;
-  return -i;
-}
-
 #define DROP_INT 600
 #define BUMP_TIMEOUT 2300
 static void raindropFB(void *fb, int count, int loop) {
@@ -561,6 +464,7 @@ static void raindropFB(void *fb, int count, int loop) {
   Color c;
   int i;
   
+  (void)loop;
   if(patternChanged) {
     patternChanged = 0;
     for( i = 0; i < count; i++ ) {
@@ -652,38 +556,6 @@ static void rainbowDropFB(void *fb, int count, int loop) {
 }
 
 
-static void larsonScannerFB(void *fb, int count, int loop) {
-  int i;
-  int dir;
-
-  loop %= (count * 2);
-
-  if (loop >= count)
-    dir = 1;
-  else
-    dir = 0;
-
-  loop %= count;
-
-  for (i = 0; i < count; i++) {
-    uint32_t x = i;
-
-    if (dir)
-      x = count - i - 1;
-
-    /* LED going out */
-    if (asb_l(i - loop) == 2)
-      ledSetRGBClipped(fb, x, 1, 0, 0, shift);
-    else if (asb_l(i - loop) == 1)
-      ledSetRGBClipped(fb, x, 20, 0, 0, shift);
-    else if (asb_l(i - loop) == 0)
-      ledSetRGBClipped(fb, x, 255, 0, 0, shift);
-    else
-      ledSetRGBClipped(fb, x, 0, 0, 0, shift);
-  }
-
-}
-
 #define BUMP_DEBOUNCE 300 // 300ms debounce to next bump
 
 void bump(uint32_t amount) {
@@ -702,8 +574,6 @@ static int draw_pattern(struct effects_config *config) {
       bump_amount = 0;
     }
 
-    //    if (config->pattern == patternShoot)
-    //      shootPatternFB(led_config.fb, config->count, config->loop);
     if (config->pattern == patternCalm) {
       calmPatternFB(led_config.fb, config->count, config->loop);
       config->loop += 2; // make this one go faster
@@ -749,7 +619,7 @@ void effectsPrevPattern(void) {
   patternChanged = 1;
 }
 
-static void blendFbs() {
+static void blendFbs(void) {
   uint8_t i;
   // UI FB + effects FB blend (just do a saturating add)
   for( i = 0; i < led_config.ui_pixels * 3; i ++ ) {
@@ -763,8 +633,9 @@ static void blendFbs() {
 }
 
 static THD_WORKING_AREA(waEffectsThread, 256);
-static msg_t effects_thread(void *arg) {
+static THD_FUNCTION(effects_thread, arg) {
 
+  (void)arg;
   chRegSetThreadName("effects");
 
   while (1) {
@@ -782,7 +653,7 @@ static msg_t effects_thread(void *arg) {
     // re-render the internal framebuffer animations
     draw_pattern(&g_config);
   }
-  return MSG_OK;
+  return;
 }
 
 void effectsStart(void) {

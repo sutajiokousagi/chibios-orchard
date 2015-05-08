@@ -25,6 +25,19 @@ void radioSetNetwork(KRadioDevice *radio, const uint8_t *id, uint8_t len);
 void radioSend(KRadioDevice *radio, uint8_t dest, uint8_t type,
                                     size_t len, const void *payload);
 
+void radioSetDefaultHandler(KRadioDevice *radio,
+                            void (*handler)(uint8_t type,
+                                            uint8_t src,
+                                            uint8_t dst,
+                                            uint8_t length,
+                                            void *data));
+void radioSetHandler(KRadioDevice *radio, uint8_t type,
+                     void (*handler)(uint8_t type,
+                                     uint8_t src,
+                                     uint8_t dst,
+                                     uint8_t length,
+                                     void *data));
+
 void radioInterrupt(EXTDriver *extp, expchannel_t channel);
 
 #endif /* __ORCHARD_RADIO_H__ */

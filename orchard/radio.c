@@ -21,6 +21,8 @@
 #define RADIO_BUFFER_SIZE         64
 #define RADIO_BUFFER_MASK         (RADIO_BUFFER_SIZE - 1)
 
+#define MAX_PACKET_HANDLERS       10
+
 /* This number was guessed based on observations (133 at 30 degrees) */
 static int temperature_offset = 133 + 30;
 
@@ -48,6 +50,11 @@ enum encoding_type {
   encoding_whitening = 2,
 };
 
+typedef struct _PacketHandler {
+    void (*handler)(uint8_t type, uint8_t src, uint8_t dst, uint8_t length, void *data);
+      uint8_t type;
+} PacketHandler;
+
 /* Kinetis Radio definition */
 struct _KRadioDevice {
   uint16_t                bit_rate;
@@ -58,6 +65,13 @@ struct _KRadioDevice {
   uint32_t                rx_buf_pos;
   uint8_t                 address;
   uint8_t                 broadcast;
+  uint8_t                 num_handlers;
+  PacketHandler           handlers[MAX_PACKET_HANDLERS];
+  void                    (*default_handler)(uint8_t type,
+                                             uint8_t src,
+                                             uint8_t dst,
+                                             uint8_t length,
+                                             void *data);
   enum modulation_type    modulation;
   enum radio_mode         mode;
   enum encoding_type      encoding;
@@ -66,6 +80,7 @@ struct _KRadioDevice {
 };
 
 KRadioDevice KRADIO1;
+
 
 static uint8_t const default_registers[] = {
   /* Radio operation mode initialization @0x01*/
@@ -267,6 +282,7 @@ static void radio_set_output_power_dbm(KRadioDevice *radio, int power) {
                                 | ((power + 18) & 0x1f));
 }
 
+#if 0
 static void radio_phy_force_idle(KRadioDevice *radio) {
   //Put transceiver in Stand-By mode
   radio_set(radio, RADIO_OpMode, OpMode_Sequencer_On
@@ -277,6 +293,7 @@ static void radio_phy_force_idle(KRadioDevice *radio) {
   while(radio_get(radio, RADIO_IrqFlags2) & 0x40)
     (void)radio_get(radio, RADIO_Fifo);
 }
+#endif
 
 static void radio_set_packet_mode(KRadioDevice *radio) {
   uint8_t reg;
@@ -322,11 +339,59 @@ static void radio_set_broadcast_address(KRadioDevice *radio, uint8_t address) {
   radio_set(radio, RADIO_BroadcastAddress, address);
 }
 
+static void radio_unload_packet(eventid_t id) {
+  
+  (void)id;
+
+  KRadioDevice *radio = radioDriver;
+  RadioPacket pkt;
+  uint8_t reg, crc;
+
+  radio_select(radio);
+  reg = RADIO_Fifo;
+  spiSend(radio->driver, 1, &reg);
+
+  /* Read the "length" byte */
+  spiReceive(radio->driver, sizeof(pkt), &pkt);
+
+  uint8_t payload[pkt.length - sizeof(pkt)];
+
+  /* read the remainder of the packet */
+  spiReceive(radio->driver, sizeof(payload), payload);
+  spiReceive(radio->driver, sizeof(crc), &crc);
+  radio_unselect(radio);
+
+  /* Dispatch the packet handler */
+  unsigned int i;
+  bool handled = false;
+  for (i = 0; i < radio->num_handlers; i++) {
+    if (radio->handlers[i].type == pkt.type) {
+      radio->handlers[i].handler(pkt.type,
+                                 pkt.src,
+                                 pkt.dst,
+                                 sizeof(payload),
+                                 payload);
+      handled = true;
+      break;
+    }
+  }
+
+  /* If the packet wasn't handled, pass it to the default handler */
+  if (!handled && radio->default_handler)
+      radio->default_handler(pkt.type,
+                             pkt.src,
+                             pkt.dst,
+                             sizeof(payload),
+                             payload);
+}
+
 void radioStart(KRadioDevice *radio, SPIDriver *spip) {
 
   unsigned int reg;
 
   radio->driver = spip;
+
+  evtTableHook(orchard_events, rf_pkt_rdy, radio_unload_packet);
 
   reg = 0;
   while (reg < ARRAY_SIZE(default_registers)) {
@@ -362,6 +427,39 @@ void radioStart(KRadioDevice *radio, SPIDriver *spip) {
   radio_set(radio, RADIO_OpMode, OpMode_Sequencer_On
                                | OpMode_Listen_Off
                                | OpMode_Receiver);
+}
+
+void radioSetDefaultHandler(KRadioDevice *radio,
+                            void (*handler)(uint8_t type,
+                                            uint8_t src,
+                                            uint8_t dst,
+                                            uint8_t length,
+                                            void *data)) {
+  radio->default_handler = handler;
+}
+
+void radioSetHandler(KRadioDevice *radio, uint8_t type,
+                     void (*handler)(uint8_t type,
+                                     uint8_t src,
+                                     uint8_t dst,
+                                     uint8_t length,
+                                     void *data)) {
+  unsigned int i;
+
+  /* Replace an existing handler? */
+  for (i = 0; i < radio->num_handlers; i++) {
+    if (radio->handlers[i].type == type) {
+      radio->handlers[i].handler = handler;
+      return;
+    }
+  }
+
+  /* New handler */
+  osalDbgAssert(radio->num_handlers < MAX_PACKET_HANDLERS,
+                "Too many packet handler types");
+  radio->handlers[radio->num_handlers].type    = type;
+  radio->handlers[radio->num_handlers].handler = handler;
+  radio->num_handlers++;
 }
 
 uint8_t radioRead(KRadioDevice *radio, uint8_t addr) {
@@ -436,12 +534,7 @@ void radioSetNetwork(KRadioDevice *radio, const uint8_t *id, uint8_t len) {
   }
 }
 
-void radioInterrupt(EXTDriver *extp, expchannel_t channel) {
-
-  (void)extp;
-  (void)channel;
-
-  KRadioDevice *radio = radioDriver;
+static void radio_handle_interrupt(KRadioDevice *radio) {
 
   if (radio->mode == mode_transmitting) {
     osalSysLockFromISR();
@@ -453,6 +546,14 @@ void radioInterrupt(EXTDriver *extp, expchannel_t channel) {
     chEvtBroadcastI(&rf_pkt_rdy);
     chSysUnlockFromISR();
   }
+}
+
+void radioInterrupt(EXTDriver *extp, expchannel_t channel) {
+
+  (void)extp;
+  (void)channel;
+
+  radio_handle_interrupt(radioDriver);
 }
 
 void radioSend(KRadioDevice *radio,

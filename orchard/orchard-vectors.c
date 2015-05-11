@@ -1,3 +1,7 @@
+#include "ch.h"
+#include "hal.h"
+
+#include <stdint.h>
 #include <stdbool.h>
 
 /**
@@ -8,27 +12,15 @@
  * @notapi
  */
 /*lint -save -e9075 [8.4] All symbols are invoked from asm context.*/
+
+void **HARDFAULT_PSP;
+register void *stack_pointer asm("sp");
+
 void HardFault_Handler(void) {
 /*lint -restore*/
-
-  /* Get back the existing stack frame, so backtrace will work */
-  asm (
-    /* Determine if we were using PSP or MSP before the exception */
-    "    movs r0, #4          \n"
-    "    movs r1, lr          \n"
-    "    tst r0, r1           \n"
-    "    beq reg_from_msp     \n"
-    "\n"
-    "    mrs r0, psp          \n"
-    "    b restore_lr         \n"
-    "reg_from_msp:            \n"
-    "    mrs r0, msp          \n"
-    "restore_lr:              \n"
-    "    ldr r1, [r0, #20]    \n"
-    "    mov lr, r1           \n"
-    "    ldr r1, [r0, #24]    \n"  /* r1 contains previous sp */
-    "break_into_debugger:     \n"
-  );
+  // Hijack the process stack pointer to make backtrace work
+  asm("mrs %0, psp" : "=r"(HARDFAULT_PSP) : :);
+  stack_pointer = HARDFAULT_PSP;
 
   /* Break into the debugger */
   asm("bkpt #0");
@@ -79,4 +71,11 @@ void UsageFault_Handler(void) {
 
   while (true) {
   }
+}
+
+uintptr_t __stack_chk_guard = 0x12345678;
+__attribute__((noreturn))
+void __stack_chk_fail(void) {
+  chSysHalt("Stack check fail");
+  while(1);
 }

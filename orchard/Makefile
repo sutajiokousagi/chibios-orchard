@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -nostdlib
+  USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16 -nostdlib -fstack-protector
 endif
 
 # C specific options here (added to USE_OPT).
@@ -102,8 +102,10 @@ LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
 # setting.
 CSRC = main.c \
        orchard-shell.c \
+       orchard-app.c \
        orchard-vectors.c \
        $(wildcard cmd-*.c) \
+       $(wildcard app-*.c) \
        accel.c \
        charger.c \
        captouch.c \
@@ -121,6 +123,7 @@ CSRC = main.c \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
+       $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(GFXSRC) \
 

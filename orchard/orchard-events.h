@@ -51,6 +51,15 @@ struct evt_table {
     table.next++;                                                           \
   } while(0)
 
+#define evtTableUnhook(table, event, callback)                              \
+  do {                                                                      \
+    int i;                                                                  \
+    for (i = 0; i < table.next; i++) {                                      \
+      if (table.handlers[i] == callback)                                    \
+        chEvtUnregister(&event, &table.listeners[i]);                       \
+    }                                                                       \
+  } while(0)
+
 #define evtHandlers(table)                                                  \
     table.handlers
 

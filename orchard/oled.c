@@ -64,8 +64,10 @@ void oledOrchardBanner(void) {
   font_t font;
   
   width = gdispGetWidth();
-  font = gdispOpenFont("uGFX Font 2");
+  font = gdispOpenFont("UI2");
   
-  gdispDrawStringBox(0, 0, width, 8, "Orchard EVT1", font, White, justifyCenter);
+  gdispClear(Black);
+  gdispDrawStringBox(0, 0, width, gdispGetFontMetric(font, fontHeight),
+                     "Orchard EVT1", font, White, justifyCenter);
   gdispFlush();
 }

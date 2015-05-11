@@ -56,7 +56,7 @@ uint8_t gpiox_read_pad(void *port, int pad) {
   return !!(gpiox_get(REG_IN) & (1 << pad));
 }
 
-static THD_WORKING_AREA(waGpioxPollThread, 128);
+static THD_WORKING_AREA(waGpioxPollThread, 192);
 static THD_FUNCTION(gpiox_poll_thread, arg) {
 
   (void)arg;

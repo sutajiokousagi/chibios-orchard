@@ -25,6 +25,7 @@
 #include "orchard.h"
 #include "orchard-shell.h"
 #include "orchard-events.h"
+#include "orchard-app.h"
 
 #include "accel.h"
 #include "captouch.h"
@@ -60,6 +61,14 @@ static void shell_termination_handler(eventid_t id) {
 
   chprintf(stream, "\r\nRespawning shell (shell #%d, event %d)\r\n", ++i, id);
   orchardShellRestart();
+}
+
+static void orchard_app_restart(eventid_t id) {
+  static int i = 1;
+  (void)id;
+
+  chprintf(stream, "\r\nRunning next app (pid #%d)\r\n", ++i);
+  orchardAppRestart();
 }
 
 static void key_mod(eventid_t id) {
@@ -220,11 +229,11 @@ int main(void)
   chprintf(stream, "\r\n\r\nOrchard shell.  Based on build %s\r\n", gitversion);
   print_mcu_info();
 
-  orchardEventsStart();
   i2cStart(i2cDriver, &i2c_config);
-
   spiStart(&SPID1, &spi_config);
   spiStart(&SPID2, &spi_config);
+
+  orchardEventsStart();
 
   gpioxStart(i2cDriver);
 
@@ -234,11 +243,12 @@ int main(void)
   radioStart(&KRADIO1, &SPID1);
   oledStart(&SPID2);
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
-  effectsStart();
+  //effectsStart();
+  orchardAppInit();
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
-  evtTableHook(orchard_events, captouch_release, key_mod);
-  evtTableHook(orchard_events, captouch_press, key_mod);
+  evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);
+  evtTableHook(orchard_events, captouch_changed, key_mod);
   evtTableHook(orchard_events, ble_rdy, ble_ready);
   evtTableHook(orchard_events, accel_freefall, freefall);
   radioSetDefaultHandler(radioDriver, default_radio_handler);
@@ -246,9 +256,8 @@ int main(void)
   gfxInit();
   
   orchardShellRestart();
+  orchardAppRestart();
 
-  oledOrchardBanner();
-  
   while (TRUE)
     chEvtDispatch(evtHandlers(orchard_events), chEvtWaitOne(ALL_EVENTS));
 }

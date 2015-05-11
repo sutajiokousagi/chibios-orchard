@@ -5,6 +5,7 @@ struct _KRadioDevice;
 typedef struct _KRadioDevice KRadioDevice;
 
 #define RADIO_NETWORK_MAX_LENGTH 8
+#define RADIO_BROADCAST_ADDRESS 255
 
 typedef struct _RadioPacket {
   uint8_t length;       /* Total length of packet, including length field */

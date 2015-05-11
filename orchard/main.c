@@ -243,7 +243,7 @@ int main(void)
   radioStart(&KRADIO1, &SPID1);
   oledStart(&SPID2);
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
-  //effectsStart();
+  effectsStart();
   orchardAppInit();
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);

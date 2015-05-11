@@ -37,7 +37,7 @@ struct effects_config {
 };
 static struct effects_config g_config;
 
-uint8_t shift = 0;  // start a little bit dimmer
+uint8_t shift = 4;  // start a little bit dimmer
 
 uint32_t bump_amount = 0;
 uint8_t bumped = 0;

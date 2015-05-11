@@ -58,7 +58,7 @@
 //#define GDISP_NEED_ELLIPSE                           FALSE
 //#define GDISP_NEED_ARC                               FALSE
 //#define GDISP_NEED_ARCSECTORS                        FALSE
-//#define GDISP_NEED_CONVEX_POLYGON                    FALSE
+#define GDISP_NEED_CONVEX_POLYGON                    TRUE
 //#define GDISP_NEED_SCROLL                            FALSE
 //#define GDISP_NEED_PIXELREAD                         FALSE
 #define GDISP_NEED_CONTROL                           FALSE
@@ -176,7 +176,7 @@
 //    #define GWIN_NEED_IMAGE                          FALSE
 //        #define GWIN_NEED_IMAGE_ANIMATION            FALSE
 //    #define GWIN_NEED_RADIO                          FALSE
-//    #define GWIN_NEED_LIST                           FALSE
+//    #define GWIN_NEED_LIST                           TRUE
 //        #define GWIN_NEED_LIST_IMAGES                FALSE
 //    #define GWIN_NEED_PROGRESSBAR                    FALSE
 //        #define GWIN_PROGRESSBAR_AUTO                FALSE

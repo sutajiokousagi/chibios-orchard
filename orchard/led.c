@@ -160,6 +160,61 @@ static Color ledGetColor(void *ptr, int x) {
   return c;
 }
 
+unsigned int shift_lfsr(unsigned int v)
+{
+  /*
+    config          : galois
+    length          : 16
+    taps            : (16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 3, 2)
+    shift-amount    : 1
+    shift-direction : right
+  */
+  enum {
+    length = 16,
+    tap_00 = 16,
+    tap_01 = 15,
+    tap_02 = 14,
+    tap_03 = 13,
+    tap_04 = 12,
+    tap_05 = 11,
+    tap_06 = 10,
+    tap_07 =  9,
+    tap_08 =  8,
+    tap_09 =  7,
+    tap_10 =  6,
+    tap_11 =  5,
+    tap_12 =  3,
+    tap_13 =  2
+  };
+  typedef unsigned int T;
+  const T zero = (T)(0);
+  const T lsb = zero + (T)(1);
+  const T feedback = (
+		      (lsb << (tap_00 - 1)) ^
+		      (lsb << (tap_01 - 1)) ^
+		      (lsb << (tap_02 - 1)) ^
+		      (lsb << (tap_03 - 1)) ^
+		      (lsb << (tap_04 - 1)) ^
+		      (lsb << (tap_05 - 1)) ^
+		      (lsb << (tap_06 - 1)) ^
+		      (lsb << (tap_07 - 1)) ^
+		      (lsb << (tap_08 - 1)) ^
+		      (lsb << (tap_09 - 1)) ^
+		      (lsb << (tap_10 - 1)) ^
+		      (lsb << (tap_11 - 1)) ^
+		      (lsb << (tap_12 - 1)) ^
+		      (lsb << (tap_13 - 1))
+		      );
+  v = (v >> 1) ^ ((zero - (v & lsb)) & feedback);
+  return v;
+}
+
+unsigned int rand(void) {
+  rstate = shift_lfsr(rstate);
+  return rstate;
+}
+
+
 ////////////////////
 /// MATH ROUTINES
 /// help with manipulating pixels 

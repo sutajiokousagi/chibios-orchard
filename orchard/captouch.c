@@ -11,8 +11,7 @@
 #include "gpiox.h"
 
 static I2CDriver *driver;
-event_source_t captouch_release;
-event_source_t captouch_press;
+event_source_t captouch_changed;
 static uint16_t captouch_state;
 
 static void captouch_set(uint8_t reg, uint8_t val) {
@@ -105,7 +104,7 @@ static void captouch_config(void) {
 static void captouch_keychange(eventid_t id) {
 
   uint16_t mask;
-  int i;
+  bool changed = false;
 
   (void)id;
 
@@ -113,15 +112,12 @@ static void captouch_keychange(eventid_t id) {
   mask = captouch_read();
   i2cReleaseBus(driver);
 
-  for (i = 0; i < 14; i++) {
-    int bit = (1 << i);
-
-    if ((mask & bit) && !(captouch_state & bit))
-      chEvtBroadcast(&captouch_press);
-    else if (!(mask & bit) && (captouch_state & bit))
-      chEvtBroadcast(&captouch_release);
-  }
+  if (captouch_state != mask)
+    changed = true;
   captouch_state = mask;
+
+  if (changed)
+    chEvtBroadcast(&captouch_changed);
 }
 
 uint16_t captouchRead(void) {
@@ -136,8 +132,7 @@ void captouchStart(I2CDriver *i2cp) {
   captouch_config();
   i2cReleaseBus(driver);
 
-  chEvtObjectInit(&captouch_press);
-  chEvtObjectInit(&captouch_release);
+  chEvtObjectInit(&captouch_changed);
 
   gpioxSetPadMode(GPIOX, 7, GPIOX_IN | GPIOX_IRQ_FALLING | GPIOX_PULL_UP);
   evtTableHook(orchard_events, gpiox_falling[7], captouch_keychange);

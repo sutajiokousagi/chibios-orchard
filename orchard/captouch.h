@@ -64,12 +64,11 @@
 
 // Global Constants
 #define TOU_THRESH	0x0F
-#define	REL_THRESH	0x0A
+#define	REL_THRESH	0x2A
 
 void captouchStart(I2CDriver *i2cp);
 uint16_t captouchRead(void);
 
-extern event_source_t captouch_release;
-extern event_source_t captouch_press;
+extern event_source_t captouch_changed;
 
 #endif /* __CAPTOUCH_H__ */

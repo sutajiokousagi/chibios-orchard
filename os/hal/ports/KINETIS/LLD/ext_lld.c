@@ -65,10 +65,10 @@ uint8_t porta_channel_map[KINETIS_EXT_PORTA_WIDTH];
 #if KINETIS_EXT_PORTB_WIDTH > 0
 uint8_t portb_channel_map[KINETIS_EXT_PORTB_WIDTH];
 #endif
-#if KINETIS_EXT_PORTC_WIDTH > 0
-uint8_t portc_channel_map[KINETIS_EXT_PORTC_WIDTH];
-#elif defined(KINETIS_EXT_PORTC_PORTD_GANGED)
+#if defined(KINETIS_EXT_PORTC_PORTD_GANGED)
 uint8_t portc_channel_map[KINETIS_EXT_PORTD_WIDTH];
+#elif KINETIS_EXT_PORTC_WIDTH > 0
+uint8_t portc_channel_map[KINETIS_EXT_PORTC_WIDTH];
 #endif
 #if KINETIS_EXT_PORTD_WIDTH > 0
 uint8_t portd_channel_map[KINETIS_EXT_PORTD_WIDTH];
@@ -94,7 +94,7 @@ static void ext_lld_exti_irq_enable(void) {
 #if KINETIS_EXT_PORTB_WIDTH > 0
   nvicEnableVector(PINB_IRQn, KINETIS_EXT_PORTB_IRQ_PRIORITY);
 #endif
-#if KINETIS_EXT_PORTC_WIDTH > 0
+#if KINETIS_EXT_PORTC_WIDTH > 0 && !defined(KINETIS_EXT_PORTC_PORTD_GANGED)
   nvicEnableVector(PINC_IRQn, KINETIS_EXT_PORTC_IRQ_PRIORITY);
 #endif
 #if KINETIS_EXT_PORTD_WIDTH > 0
@@ -118,7 +118,7 @@ static void ext_lld_exti_irq_disable(void) {
 #if KINETIS_EXT_PORTB_WIDTH > 0
   nvicDisableVector(PINB_IRQn);
 #endif
-#if KINETIS_EXT_PORTC_WIDTH > 0
+#if KINETIS_EXT_PORTC_WIDTH > 0 && !defined(KINETIS_EXT_PORTC_PORTD_GANGED)
   nvicDisableVector(PINC_IRQn);
 #endif
 #if KINETIS_EXT_PORTD_WIDTH > 0
@@ -186,7 +186,7 @@ OSAL_IRQ_HANDLER(KINETIS_PORTB_IRQ_VECTOR) {
  *
  * @isr
  */
-#if defined(KINETIS_PORTC_IRQ_VECTOR) && KINETIS_EXT_PORTC_WIDTH > 0
+#if defined(KINETIS_PORTC_IRQ_VECTOR) && KINETIS_EXT_PORTC_WIDTH > 0 && !defined(KINETIS_EXT_PORTC_PORTD_GANGED)
 OSAL_IRQ_HANDLER(KINETIS_PORTC_IRQ_VECTOR) {
   OSAL_IRQ_PROLOGUE();
 

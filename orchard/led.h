@@ -33,7 +33,6 @@ void setShift(uint8_t s);
 uint8_t getShift(void);
 void effectsNextPattern(void);
 void effectsPrevPattern(void);
-unsigned int rand(void);
 
 void uiLedGet(uint8_t index, Color *c);
 void uiLedSet(uint8_t index, Color c);

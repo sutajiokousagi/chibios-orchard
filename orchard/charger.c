@@ -50,7 +50,8 @@ static void do_charger_watchdog(void) {
     
   case CHG_IDLE:
   default:
-    charger_set(0x00, 0x00); // nothing in particular mode
+    break;
+    // do nothing
   }
 }
 

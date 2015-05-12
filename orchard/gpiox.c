@@ -5,6 +5,7 @@
 
 #include "gpiox.h"
 #include "orchard.h"
+#include "orchard-app.h"
 
 #define REG_ID            0x01
 #define REG_DIR           0x03
@@ -50,7 +51,7 @@ static uint8_t gpiox_get(uint8_t reg) {
   return rx[0];
 }
 
-uint8_t gpiox_read_pad(void *port, int pad) {
+static uint8_t gpiox_read_pad(void *port, int pad) {
 
   (void)port;
   return !!(gpiox_get(REG_IN) & (1 << pad));
@@ -63,7 +64,7 @@ static THD_FUNCTION(gpiox_poll_thread, arg) {
 
   chRegSetThreadName("GPIOX poll thread");
   while (1) {
-    chThdSleepMilliseconds(5);
+    chThdSleepMilliseconds(30);
     gpioxPollInt(NULL);
   }
 
@@ -86,10 +87,12 @@ void gpioxStart(I2CDriver *i2cp) {
 
   i2cAcquireBus(driver);
   gpiox_set(REG_ID, 1);
+  /* Wait for the reset to complete */
+  while (!(gpiox_get(REG_ID) & (1 << 1)));
   i2cReleaseBus(driver);
 
   chThdCreateStatic(waGpioxPollThread, sizeof(waGpioxPollThread),
-                    LOWPRIO + 1, gpiox_poll_thread, NULL);
+                    ORCHARD_APP_PRIO, gpiox_poll_thread, NULL);
 }
 
 void gpioxSetPad(void *port, int pad) {
@@ -257,30 +260,41 @@ static void irq_check_and_broadcast(uint8_t state, int gpio) {
   }
 }
 
+static uint32_t false_interrupts;
+static uint32_t real_interrupts;
 void gpioxPollInt(void *port) {
 
   (void)port;
-  uint8_t irq_state;
   int pad;
+  uint8_t irq_state;
+  int pal_level;
 
-//  chSysLockFromISR();
+  pal_level = palReadPad(GPIOB, 0);
 
-  if (palReadPad(GPIOB, 0))
+  if (pal_level)
     goto out;
 
   i2cAcquireBus(driver);
   irq_state = gpiox_get(REG_IRQ_STATUS);
   i2cReleaseBus(driver);
 
+  if (!irq_state && !pal_level)
+    false_interrupts++;
+  else
+    real_interrupts++;
+
   for (pad = 0; pad < GPIOX_NUM_PADS; pad++)
     irq_check_and_broadcast(irq_state, pad);
 
   /* Acknowledge the IRQ by writing new values to watch */
   i2cAcquireBus(driver);
+  /* Mask off the pins that caused this interrupt, while we re-set the level */
+  gpiox_set(REG_IRQ_MASK, regcache[REG_IRQ_MASK / 2] | irq_state);
   gpiox_sync(REG_IRQ_LEVEL);
+  /* Unmask the new pins */
+  gpiox_sync(REG_IRQ_MASK);
   i2cReleaseBus(driver);
 
 out:
-//  chSysUnlockFromISR();
   return;
 }

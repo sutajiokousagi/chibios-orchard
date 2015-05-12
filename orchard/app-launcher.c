@@ -96,27 +96,6 @@ static void launcher_start(OrchardAppContext *context) {
 void launcher_event(OrchardAppContext *context, OrchardAppEvent *event) {
 
   struct launcher_list *list = (struct launcher_list *)context->priv;
-  chprintf(stream, "Got launcher event %d - ", event->type);
-
-  if (event->type == keyEvent) {
-    if (event->key.flags == keyDown)
-      chprintf(stream, "Got keydown for %d\r\n", event->key.code);
-    else if (event->key.flags == keyUp)
-      chprintf(stream, "Got keyup for %d\r\n", event->key.code);
-    else
-      chprintf(stream, "Got unknown event for %d\r\n", event->key.code);
-  }
-  else if (event->type == appEvent) {
-    chprintf(stream, "App lifetime event: ");
-    if (event->app.event == appTerminate)
-      chprintf(stream, "Terminating\r\n");
-    else if (event->app.event == appStart)
-      chprintf(stream, "Starting up\r\n");
-    else
-      chprintf(stream, "Unknown event\r\n");
-  }
-  else
-    chprintf(stream, "Unrecognized event\r\n");
 
   if (event->type == keyEvent) {
     if ((event->key.flags == keyDown) && (event->key.code == 11)) {

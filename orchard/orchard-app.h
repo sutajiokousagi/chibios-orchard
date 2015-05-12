@@ -47,6 +47,14 @@ typedef enum _OrchardAppEventKeyFlag {
   keyDown = 1,
 } OrchardAppEventKeyFlag;
 
+typedef enum _OrchardAppEventKeyCode {
+  keyLeft = 0x80,
+  keyRight = 0x81,
+  keySelect = 0x82,
+  keyCW = 0x83,
+  keyCCW = 0x84,
+} OrchardAppEventKeyCode;
+
 typedef struct _OrchardAppKeyEvent {
   uint8_t   code;
   uint8_t   flags;
@@ -84,7 +92,7 @@ typedef struct _OrchardApp {
   char *name;
   uint32_t (*init)(OrchardAppContext *context);
   void (*start)(OrchardAppContext *context);
-  void (*event)(OrchardAppContext *context, OrchardAppEvent *event);
+  void (*event)(OrchardAppContext *context, const OrchardAppEvent *event);
   void (*exit)(OrchardAppContext *context);
 } OrchardApp;
 

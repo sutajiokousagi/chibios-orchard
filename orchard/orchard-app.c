@@ -12,13 +12,21 @@
 orchard_app_end();
 
 static const OrchardApp *orchard_app_list;
-static const OrchardApp *current_app;
-static const OrchardApp *next_app;
-static OrchardAppContext *current_app_context;
-static thread_t *app_tp = NULL;
+
+static struct orchard_app_instance {
+  const OrchardApp      *app;
+  const OrchardApp      *next_app;
+  OrchardAppContext     *context;
+  thread_t              *thr;
+  uint32_t              keymask;
+  virtual_timer_t       timer;
+  uint32_t              timer_usecs;
+  bool                  timer_repeating;
+} instance;
 
 event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
+event_source_t timer_expired;
 
 static void keypress(eventid_t id) {
 
@@ -27,24 +35,24 @@ static void keypress(eventid_t id) {
   int i;
   OrchardAppEvent evt;
 
-  if (!current_app->event)
+  if (!instance.app->event)
     return;
 
   for (i = 0; i < 16; i++) {
-    if ((val & (1 << i)) && !(current_app_context->keymask & (1 << i))) {
+    if ((val & (1 << i)) && !(instance.keymask & (1 << i))) {
       evt.type = keyEvent;
       evt.key.code = i;
       evt.key.flags = keyDown;
-      current_app->event(current_app_context, &evt);
+      instance.app->event(instance.context, &evt);
     }
-    if (!(val & (1 << i)) && (current_app_context->keymask & (1 << i))) {
+    if (!(val & (1 << i)) && (instance.keymask & (1 << i))) {
       evt.type = keyEvent;
       evt.key.code = i;
       evt.key.flags = keyUp;
-      current_app->event(current_app_context, &evt);
+      instance.app->event(instance.context, &evt);
     }
   }
-  current_app_context->keymask = val;
+  instance.keymask = val;
 }
 
 static void terminate(eventid_t id) {
@@ -52,42 +60,83 @@ static void terminate(eventid_t id) {
   (void)id;
   OrchardAppEvent evt;
 
-  if (!current_app->event)
+  if (!instance.app->event)
     return;
 
   evt.type = appEvent;
   evt.app.event = appTerminate;
-  current_app->event(current_app_context, &evt);
-  chThdTerminate(app_tp);
+  instance.app->event(instance.context, &evt);
+  chThdTerminate(instance.thr);
+}
+
+static void timer_event(eventid_t id) {
+
+  (void)id;
+  OrchardAppEvent evt;
+
+  if (!instance.app->event)
+    return;
+
+  evt.type = timerEvent;
+  evt.timer.usecs = instance.timer_usecs;
+  instance.app->event(instance.context, &evt);
+
+  if (instance.timer_repeating)
+    orchardAppTimer(instance.context, instance.timer_usecs, true);
+}
+
+static void timer_do_send_message(void *arg) {
+
+  (void)arg;
+  chSysLockFromISR();
+  chEvtBroadcastI(&timer_expired);
+  chSysUnlockFromISR();
 }
 
 void orchardAppRun(const OrchardApp *app) {
-  next_app = app;
-  chThdTerminate(app_tp);
+  instance.next_app = app;
+  chThdTerminate(instance.thr);
   chEvtBroadcast(&orchard_app_terminate);
+}
+
+void orchardAppTimer(const OrchardAppContext *context,
+                     uint32_t usecs,
+                     bool repeating) {
+
+  if (!usecs) {
+    chVTReset(&context->instance->timer);
+    context->instance->timer_usecs = 0;
+    return;
+  }
+
+  context->instance->timer_usecs = usecs;
+  context->instance->timer_repeating = repeating;
+  chVTSet(&context->instance->timer, US2ST(usecs), timer_do_send_message, NULL);
 }
 
 static THD_WORKING_AREA(waOrchardAppThread, 0x800);
 static THD_FUNCTION(orchard_app_thread, arg) {
 
   (void)arg;
-  const OrchardApp *current = arg;
+  struct orchard_app_instance *instance = arg;
   struct evt_table orchard_app_events;
   OrchardAppContext app_context;
 
   memset(&app_context, 0, sizeof(app_context));
-  current_app_context = &app_context;
+  instance->context = &app_context;
+  app_context.instance = instance;
 
   chRegSetThreadName("Orchard App");
 
-  app_context.keymask = captouchRead();
+  instance->keymask = captouchRead();
 
   evtTableInit(orchard_app_events, 32);
   evtTableHook(orchard_app_events, captouch_changed, keypress);
   evtTableHook(orchard_app_events, orchard_app_terminate, terminate);
+  evtTableHook(orchard_app_events, timer_expired, timer_event);
 
-  if (current->init)
-    app_context.priv_size = current->init(&app_context);
+  if (instance->app->init)
+    app_context.priv_size = instance->app->init(&app_context);
   else
     app_context.priv_size = 0;
 
@@ -100,28 +149,35 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   else
     app_context.priv = NULL;
 
-  if (current->start)
-    current->start(&app_context);
-  if (current->event) {
+  if (instance->app->start)
+    instance->app->start(&app_context);
+  if (instance->app->event) {
     {
       OrchardAppEvent evt;
       evt.type = appEvent;
       evt.app.event = appStart;
-      current_app->event(current_app_context, &evt);
+      instance->app->event(instance->context, &evt);
     }
     while (!chThdShouldTerminateX())
       chEvtDispatch(evtHandlers(orchard_app_events), chEvtWaitOne(ALL_EVENTS));
   }
-  if (current->exit)
-    current->exit(&app_context);
 
-  current_app_context = NULL;
+  chVTReset(&instance->timer);
+
+  if (instance->app->exit)
+    instance->app->exit(&app_context);
+
+  instance->context = NULL;
 
   /* Set up the next app to run when the orchard_app_terminated message is
      acted upon.*/
-  if (next_app)
-    current_app = next_app;
+  if (instance->next_app)
+    instance->app = instance->next_app;
+  else
+    instance->app = orchard_app_list;
+  instance->next_app = NULL;
 
+  evtTableUnhook(orchard_app_events, timer_expired, timer_event);
   evtTableUnhook(orchard_app_events, orchard_app_terminate, terminate);
   evtTableUnhook(orchard_app_events, captouch_changed, keypress);
 
@@ -135,20 +191,25 @@ static THD_FUNCTION(orchard_app_thread, arg) {
 void orchardAppInit(void) {
 
   orchard_app_list = orchard_app_start();
-  current_app = orchard_app_list;
+  instance.app = orchard_app_list;
   chEvtObjectInit(&orchard_app_terminated);
   chEvtObjectInit(&orchard_app_terminate);
+  chEvtObjectInit(&timer_expired);
+  chVTReset(&instance.timer);
 }
 
 void orchardAppRestart(void) {
 
   /* Recovers memory of the previous application. */
-  if (app_tp) {
-    osalDbgAssert(chThdTerminatedX(app_tp), "App thread still running");
-    chThdRelease(app_tp);
-    app_tp = NULL;
+  if (instance.thr) {
+    osalDbgAssert(chThdTerminatedX(instance.thr), "App thread still running");
+    chThdRelease(instance.thr);
+    instance.thr = NULL;
   }
 
-  app_tp = chThdCreateStatic(waOrchardAppThread, sizeof(waOrchardAppThread),
-                    LOWPRIO + 2, orchard_app_thread, (void *)current_app);
+  instance.thr = chThdCreateStatic(waOrchardAppThread,
+                                   sizeof(waOrchardAppThread),
+                                   ORCHARD_APP_PRIO,
+                                   orchard_app_thread,
+                                   (void *)&instance);
 }

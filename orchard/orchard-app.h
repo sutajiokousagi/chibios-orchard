@@ -10,6 +10,9 @@
 
 struct _OrchardApp;
 typedef struct _OrchardApp OrchardApp;
+struct _OrchardAppContext;
+typedef struct _OrchardAppContext OrchardAppContext;
+struct orchard_app_instance;
 
 /* Emitted to an app when it's about to be terminated */
 extern event_source_t orchard_app_terminate;
@@ -21,16 +24,20 @@ void orchardAppInit(void);
 void orchardAppRestart(void);
 void orchardAppWatchdog(void);
 void orchardAppRun(const OrchardApp *app);
+void orchardAppTimer(const OrchardAppContext *context,
+                     uint32_t usecs,
+                     bool repeating);
 
 typedef struct _OrchardAppContext {
-  uint32_t keymask;
-  uint32_t priv_size;
-  void *priv;
+  struct orchard_app_instance *instance;
+  uint32_t                    priv_size;
+  void                        *priv;
 } OrchardAppContext;
 
 typedef enum _OrchardAppEventType {
   keyEvent,
   appEvent,
+  timerEvent,
 } OrchardAppEventType;
 
 /* ------- */
@@ -58,11 +65,18 @@ typedef struct _OrchardAppLifeEvent {
 
 /* ------- */
 
+typedef struct _OrchardAppTimerEvent {
+  uint32_t  usecs;
+} OrchardAppTimerEvent;
+
+/* ------- */
+
 typedef struct _OrchardAppEvent {
-  OrchardAppEventType   type;
+  OrchardAppEventType     type;
   union {
-    OrchardAppKeyEvent  key;
-    OrchardAppLifeEvent app;
+    OrchardAppKeyEvent    key;
+    OrchardAppLifeEvent   app;
+    OrchardAppTimerEvent  timer;
   };
 } OrchardAppEvent;
 

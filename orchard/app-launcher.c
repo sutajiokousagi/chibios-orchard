@@ -93,22 +93,22 @@ static void launcher_start(OrchardAppContext *context) {
   redraw_list(list);
 }
 
-void launcher_event(OrchardAppContext *context, OrchardAppEvent *event) {
+void launcher_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   struct launcher_list *list = (struct launcher_list *)context->priv;
 
   if (event->type == keyEvent) {
-    if ((event->key.flags == keyDown) && (event->key.code == 11)) {
+    if ((event->key.flags == keyDown) && (event->key.code == keyCW)) {
       list->selected++;
       if (list->selected >= list->total)
         list->selected = 0;
     }
-    else if ((event->key.flags == keyDown) && (event->key.code == 0)) {
+    else if ((event->key.flags == keyDown) && (event->key.code == keyCCW)) {
       list->selected--;
       if (list->selected >= list->total)
         list->selected = list->total - 1;
     }
-    else if ((event->key.flags == keyDown) && (event->key.code == 5)) {
+    else if ((event->key.flags == keyDown) && (event->key.code == keySelect)) {
       orchardAppRun(list->items[list->selected].entry);
     }
     redraw_list(list);

@@ -15,7 +15,7 @@ static void test_start(OrchardAppContext *context) {
   orchardAppTimer(context, 2000 * 1000 * 1000, true);
 }
 
-static void test_event(OrchardAppContext *context, OrchardAppEvent *event) {
+static void test_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   (void)context;
 

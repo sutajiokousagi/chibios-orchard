@@ -24,7 +24,6 @@ void orchardAppRun(const OrchardApp *app);
 
 typedef struct _OrchardAppContext {
   uint32_t keymask;
-  bool should_exit;
   uint32_t priv_size;
   void *priv;
 } OrchardAppContext;

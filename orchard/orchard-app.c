@@ -15,6 +15,7 @@ static const OrchardApp *orchard_app_list;
 static const OrchardApp *current_app;
 static const OrchardApp *next_app;
 static OrchardAppContext *current_app_context;
+static thread_t *app_tp = NULL;
 
 event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
@@ -57,12 +58,12 @@ static void terminate(eventid_t id) {
   evt.type = appEvent;
   evt.app.event = appTerminate;
   current_app->event(current_app_context, &evt);
-  chEvtBroadcast(&orchard_app_terminated);
+  chThdTerminate(app_tp);
 }
 
 void orchardAppRun(const OrchardApp *app) {
   next_app = app;
-  current_app_context->should_exit = true;
+  chThdTerminate(app_tp);
   chEvtBroadcast(&orchard_app_terminate);
 }
 
@@ -108,7 +109,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
       evt.app.event = appStart;
       current_app->event(current_app_context, &evt);
     }
-    while (!app_context.should_exit)
+    while (!chThdShouldTerminateX())
       chEvtDispatch(evtHandlers(orchard_app_events), chEvtWaitOne(ALL_EVENTS));
   }
   if (current->exit)
@@ -139,15 +140,15 @@ void orchardAppInit(void) {
   chEvtObjectInit(&orchard_app_terminate);
 }
 
-static thread_t *app_tp = NULL;
-
 void orchardAppRestart(void) {
 
   /* Recovers memory of the previous application. */
-  if (app_tp && chThdTerminatedX(app_tp))
+  if (app_tp) {
+    osalDbgAssert(chThdTerminatedX(app_tp), "App thread still running");
     chThdRelease(app_tp);
+    app_tp = NULL;
+  }
 
   app_tp = chThdCreateStatic(waOrchardAppThread, sizeof(waOrchardAppThread),
-                    NORMALPRIO + 1, orchard_app_thread, (void *)current_app);
+                    LOWPRIO + 2, orchard_app_thread, (void *)current_app);
 }
-

@@ -28,31 +28,75 @@ event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 
+static int captouch_to_key(uint8_t code) {
+  if (code == 11)
+    return keyLeft;
+  if (code == 0)
+    return keyRight;
+  if (code == 5)
+    return keySelect;
+  return code;
+}
 static void keypress(eventid_t id) {
 
   (void)id;
-  int val = captouchRead();
-  int i;
+  uint32_t val = captouchRead();
+  uint32_t i;
   OrchardAppEvent evt;
 
   if (!instance.app->event)
     return;
 
+  /* No key changed */
+  if (instance.keymask == val)
+    return;
+
   for (i = 0; i < 16; i++) {
+    uint8_t code = captouch_to_key(i);
+
+    /* Code is a wheel event */
+    if (code < 0x80)
+      continue;
+
     if ((val & (1 << i)) && !(instance.keymask & (1 << i))) {
       evt.type = keyEvent;
-      evt.key.code = i;
+      evt.key.code = code;
       evt.key.flags = keyDown;
       instance.app->event(instance.context, &evt);
     }
     if (!(val & (1 << i)) && (instance.keymask & (1 << i))) {
       evt.type = keyEvent;
-      evt.key.code = i;
+      evt.key.code = code;
       evt.key.flags = keyUp;
       instance.app->event(instance.context, &evt);
     }
   }
+  {
+#define only_one_bit_set(x) (x && !(x & (x - 1)))
+  /* Super cheesy spin detection */
+    uint32_t this_spin = (val & ~((1 << 0) | (1 << 11) | (1 << 5)));
+    uint32_t last_spin = (instance.keymask & ~((1 << 0) | (1 << 11) | (1 << 5)));
+    if (only_one_bit_set(this_spin) && only_one_bit_set(last_spin)) {
+      evt.type = keyEvent;
+      evt.key.flags = keyDown;
+      if (this_spin < last_spin) {
+        if (!this_spin)
+          evt.key.code = keyCCW;
+        else
+          evt.key.code = keyCW;
+      }
+      else {
+        if (!this_spin)
+          evt.key.code = keyCW;
+        else
+          evt.key.code = keyCCW;
+      }
+      instance.app->event(instance.context, &evt);
+    }
+  }
+
   instance.keymask = val;
+
 }
 
 static void terminate(eventid_t id) {

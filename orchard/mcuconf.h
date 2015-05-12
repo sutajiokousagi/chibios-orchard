@@ -89,55 +89,11 @@
  */
 
 
-#if 0
-/* MK20 48pin */
-#define KINETIS_EXT_PORTA_WIDTH                 20
-#define KINETIS_EXT_PORTB_WIDTH                 18
-#define KINETIS_EXT_PORTC_WIDTH                 8
-#define KINETIS_EXT_PORTD_WIDTH                 8
-#define KINETIS_EXT_PORTE_WIDTH                 0
-#endif
-
-#if 0
-/* MK20 64pin  */
-#define KINETIS_EXT_PORTA_WIDTH                 20
-#define KINETIS_EXT_PORTB_WIDTH                 20
-#define KINETIS_EXT_PORTC_WIDTH                 12
-#define KINETIS_EXT_PORTD_WIDTH                 8
-#define KINETIS_EXT_PORTE_WIDTH                 2
-#endif
-
-#if 0
-/* MK20 144pin  */
-#define KINETIS_EXT_PORTA_WIDTH                 30
-#define KINETIS_EXT_PORTB_WIDTH                 24
-#define KINETIS_EXT_PORTC_WIDTH                 20
-#define KINETIS_EXT_PORTD_WIDTH                 16
-#define KINETIS_EXT_PORTE_WIDTH                 13
-#endif
-
-
-#if 0
-/* KL25 32pin */
-#define KINETIS_EXT_PORTA_WIDTH                 21
-#define KINETIS_EXT_PORTD_WIDTH                 8
-#endif
-
-#if 0
-/* KL25 48pin */
-#define KINETIS_EXT_PORTA_WIDTH                 21
-#define KINETIS_EXT_PORTD_WIDTH                 8
-#endif
-
-#if 0
-/* KL25 64pin  */
-#define KINETIS_EXT_PORTA_WIDTH                 21
-#define KINETIS_EXT_PORTD_WIDTH                 8
-#endif
-
-/* KL25 80pin  */
-#define KINETIS_EXT_PORTA_WIDTH                 21
-#define KINETIS_EXT_PORTD_WIDTH                 8
+/* KL16 32pin  */
+#define KINETIS_EXT_PORTA_WIDTH                 32
+#define KINETIS_EXT_PORTB_WIDTH                 0 /* PORTB can't generate IRQ */
+#define KINETIS_EXT_PORTC_WIDTH                 32
+#define KINETIS_EXT_PORTD_WIDTH                 32
 
 #ifndef KINETIS_EXT_PORTA_WIDTH
 #define KINETIS_EXT_PORTA_WIDTH                 0

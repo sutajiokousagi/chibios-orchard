@@ -40,14 +40,14 @@
 #include "orchard-math.h"
 #include "orchard-app.h"
 
-#define TETRIS_CELL_WIDTH       17
-#define TETRIS_CELL_HEIGHT      17
+#define TETRIS_CELL_WIDTH       2
+#define TETRIS_CELL_HEIGHT      2
 #define TETRIS_FIELD_WIDTH      10
 #define TETRIS_FIELD_HEIGHT     17
 #define TETRIS_SHAPE_COUNT      7
 
 // Size of 7-segment styled numbers
-#define SEVEN_SEG_SIZE          0.8
+#define SEVEN_SEG_SIZE          0.6
 
 #define SEVEN_SEG_HEIGHT            SEVEN_SEG_SIZE*3
 #define SEVEN_SEG_WIDTH             SEVEN_SEG_HEIGHT*3
@@ -448,6 +448,7 @@ static void clearField(struct tetris_context *tetris) {
   }
 }
 
+#define round(x) ((int)x)
 static void rotate_shape(struct tetris_context *tetris) {
   int i, ox, oy, tx, ty;
   ox = tetris->current_shape[1][0];
@@ -515,11 +516,11 @@ static void tetris_start(OrchardAppContext *context) {
   tetris->font16 = gdispOpenFont("DejaVuSans16");
   tetris->font12 = gdispOpenFont("DejaVuSans12");
 
-  // game key repeat speed in ms
-  tetris->key_speed = 140;
+  // game key repeat speed in us
+  tetris->key_speed = 140 * 1000;
 
-  // game auto-move speed in ms
-  tetris->game_speed = 500;
+  // game auto-move speed in us
+  tetris->game_speed = 500 * 1000;
 
 
   // Draw the board
@@ -536,6 +537,8 @@ static void tetris_start(OrchardAppContext *context) {
   print_game_over(tetris); // removes "Game Over!" if tetrisGameOver == FALSE
   tetris->previous_game_time = gfxSystemTicks();
 
+  orchardAppTimer(context, tetris->game_speed, true);
+
   gdispFlush();
 }
 
@@ -549,9 +552,29 @@ static void tetris_exit(OrchardAppContext *context) {
   gdispCloseFont(tetris->font12);
 }
 
-static void tetris_event(OrchardAppContext *context) {
+static void tetris_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   struct tetris_context *tetris = context->priv;
 
+  if (event->type == timerEvent) {
+    go_down(tetris);
+  }
+  else if (event->type == keyEvent) {
+    if (event->key.code == keyCW)
+      rotate_shape(tetris);
+    else if (event->key.code == keyCCW) {
+      int i;
+      for (i = 0; i < 2; i++)
+        rotate_shape(tetris);
+    }
+    else if (event->key.code == keyLeft)
+      go_left(tetris);
+    else if (event->key.code == keyRight)
+      go_right(tetris);
+    else if (event->key.code == keySelect)
+      go_down(tetris);
+  }
+
+  gdispFlush();
 #if 0
 static DECLARE_THREAD_FUNCTION(thdTetris, arg) {
   (void)arg;
@@ -561,9 +584,9 @@ static DECLARE_THREAD_FUNCTION(thdTetris, arg) {
 
     // key handling
     if (gfxSystemTicks() - tetrisPreviousKeyTime >= gfxMillisecondsToTicks(tetrisKeySpeed) || gfxSystemTicks() <= gfxMillisecondsToTicks(tetrisKeySpeed)) {
-      for (i = 0; i < sizeof(tetrisKeysPressed); i++) {
-        if (tetrisKeysPressed[i] == TRUE) {
-          tetrisKeysPressed[i] = FALSE;
+      for (i = 0; i < sizeof(tetris->keys_pressed); i++) {
+        if (tetris->keys_pressed[i] == TRUE) {
+          tetris->keys_pressed[i] = FALSE;
         }
       }
       tetrisPreviousKeyTime = gfxSystemTicks();
@@ -575,28 +598,28 @@ static DECLARE_THREAD_FUNCTION(thdTetris, arg) {
       tetrisPreviousGameTime = gfxSystemTicks();
     }
     if (!(ev.buttons & GINPUT_MOUSE_BTN_LEFT)) continue;
-    if (ev.x <= gdispGetWidth()/4 && ev.y >= gdispGetHeight()-(gdispGetHeight()/4) && tetrisKeysPressed[0] == FALSE && !tetrisPaused) {
+    if (ev.x <= gdispGetWidth()/4 && ev.y >= gdispGetHeight()-(gdispGetHeight()/4) && tetris->keys_pressed[0] == FALSE && !tetrisPaused) {
       go_left(tetris);
-      tetrisKeysPressed[0] = TRUE;
+      tetris->keys_pressed[0] = TRUE;
       tetrisPreviousKeyTime = gfxSystemTicks();
     }
-    if (ev.x > gdispGetWidth()-(gdispGetWidth()/4) && ev.y >= gdispGetHeight()-(gdispGetHeight()/4) && tetrisKeysPressed[2] == FALSE && !tetrisPaused) {
+    if (ev.x > gdispGetWidth()-(gdispGetWidth()/4) && ev.y >= gdispGetHeight()-(gdispGetHeight()/4) && tetris->keys_pressed[2] == FALSE && !tetrisPaused) {
       go_right(tetris);
-      tetrisKeysPressed[2] = TRUE;
+      tetris->keys_pressed[2] = TRUE;
       tetrisPreviousKeyTime = gfxSystemTicks();
     }
-    if (ev.y > gdispGetHeight()/4 && ev.y < gdispGetHeight()-(gdispGetHeight()/4) && tetrisKeysPressed[3] == FALSE && !tetrisPaused) {
+    if (ev.y > gdispGetHeight()/4 && ev.y < gdispGetHeight()-(gdispGetHeight()/4) && tetris->keys_pressed[3] == FALSE && !tetrisPaused) {
       rotate_shape(tetris);
-      tetrisKeysPressed[3] = TRUE;
+      tetris->keys_pressed[3] = TRUE;
       tetrisPreviousKeyTime = gfxSystemTicks();
     }
-    if (ev.x > gdispGetWidth()/4 && ev.x <= gdispGetWidth()-(gdispGetWidth()/4) && ev.y >= gdispGetHeight()-(gdispGetHeight()/4) && tetrisKeysPressed[1] == FALSE && !tetrisPaused) {
+    if (ev.x > gdispGetWidth()/4 && ev.x <= gdispGetWidth()-(gdispGetWidth()/4) && ev.y >= gdispGetHeight()-(gdispGetHeight()/4) && tetris->keys_pressed[1] == FALSE && !tetrisPaused) {
       go_down();
-      tetrisKeysPressed[1] = TRUE;
+      tetris->keys_pressed[1] = TRUE;
       tetrisPreviousKeyTime = gfxSystemTicks();
     }
-    if (ev.y <= gdispGetHeight()/4 && tetrisKeysPressed[4] == FALSE) {
-      tetrisKeysPressed[4] = TRUE;
+    if (ev.y <= gdispGetHeight()/4 && tetris->keys_pressed[4] == FALSE) {
+      tetris->keys_pressed[4] = TRUE;
       tetrisPaused = !tetrisPaused;
       print_paused();
       tetrisPreviousKeyTime = gfxSystemTicks();

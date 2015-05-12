@@ -73,8 +73,8 @@
 #define GDISP_INCLUDE_FONT_UI2                   TRUE		// The smallest preferred font.
 //    #define GDISP_INCLUDE_FONT_LARGENUMBERS          FALSE
 //    #define GDISP_INCLUDE_FONT_DEJAVUSANS10          FALSE
-//    #define GDISP_INCLUDE_FONT_DEJAVUSANS12          FALSE
-//    #define GDISP_INCLUDE_FONT_DEJAVUSANS16          FALSE
+    #define GDISP_INCLUDE_FONT_DEJAVUSANS12          TRUE
+    #define GDISP_INCLUDE_FONT_DEJAVUSANS16          TRUE
 //    #define GDISP_INCLUDE_FONT_DEJAVUSANS20          FALSE
 //    #define GDISP_INCLUDE_FONT_DEJAVUSANS24          FALSE
 //    #define GDISP_INCLUDE_FONT_DEJAVUSANS32          FALSE

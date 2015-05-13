@@ -432,22 +432,6 @@ static void go_down(struct tetris_context *tetris) {
   }
 }
 
-static void clearField(struct tetris_context *tetris) {
-  int j, k;
-  for (k = 16; k >= 0; k--) {
-    for (j = 0; j <= 9; j++) {
-      drawCell(j,16-k, random_int(8)+1);
-      gfxSleepMilliseconds(10);
-    }
-  }
-  for (k = 0; k <= 16; k++) {
-    for (j = 0; j <= 9; j++) {
-      drawCell(j,16-k, tetrisShapeColors[0]);
-      gfxSleepMilliseconds(10);
-    }
-  }
-}
-
 #define round(x) ((int)x)
 static void rotate_shape(struct tetris_context *tetris) {
   int i, ox, oy, tx, ty;
@@ -544,9 +528,6 @@ static void tetris_start(OrchardAppContext *context) {
 
 static void tetris_exit(OrchardAppContext *context) {
   struct tetris_context *tetris = context->priv;
-
-  clearField(tetris);
-  print_game_over(tetris);
 
   gdispCloseFont(tetris->font16);
   gdispCloseFont(tetris->font12);

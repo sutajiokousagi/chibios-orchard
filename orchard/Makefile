@@ -76,7 +76,6 @@ PROJECT = orchard
 
 # Imported source files and paths
 CHIBIOS = ..
-GFXLIB =$(CHIBIOS)/ext/ugfx
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_kl1x.mk
 # HAL-OSAL files (optional).
@@ -90,10 +89,15 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
 # Other files (optional).
 include $(CHIBIOS)/test/rt/test.mk
 
-#ugfx includes
+# uGFX includes
+GFXLIB =$(CHIBIOS)/ext/ugfx
 include $(GFXLIB)/gfx.mk
 include $(GFXLIB)/boards/base/Kosagi-KinetisW-OrchardBM15/board.mk
 include $(GFXLIB)/drivers/gdisp/SSD1306/driver.mk
+
+# libfixmath
+LIBFIXMATH = $(CHIBIOS)/ext/libfixmath
+include $(LIBFIXMATH)/build.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
@@ -127,6 +131,7 @@ CSRC = main.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(GFXSRC) \
+       $(LIBFIXMATHSRC) \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -155,7 +160,7 @@ TCPPSRC =
 # List ASM source files here
 ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) ws2812b_ll.s
 
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
+INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) $(LIBFIXMATHINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) $(GFXINC) \
          $(CHIBIOS)/os/hal/lib/streams $(CHIBIOS)/os/various
 

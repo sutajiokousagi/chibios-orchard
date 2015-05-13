@@ -12,6 +12,9 @@
 orchard_app_end();
 
 static const OrchardApp *orchard_app_list;
+static virtual_timer_t run_launcher_timer;
+static bool run_launcher_timer_engaged;
+#define RUN_LAUNCHER_TIMEOUT MS2ST(500)
 
 static struct orchard_app_instance {
   const OrchardApp      *app;
@@ -28,6 +31,9 @@ event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 
+#define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
+#define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
+
 static int captouch_to_key(uint8_t code) {
   if (code == 11)
     return keyLeft;
@@ -37,7 +43,46 @@ static int captouch_to_key(uint8_t code) {
     return keySelect;
   return code;
 }
-static void keypress(eventid_t id) {
+
+static void run_launcher(void *arg) {
+
+  (void)arg;
+
+  chSysLockFromISR();
+  /* Launcher is the first app in the list */
+  instance.next_app = orchard_app_list;
+  instance.thr->p_flags |= CH_FLAG_TERMINATE;
+  chEvtBroadcastI(&orchard_app_terminate);
+  run_launcher_timer_engaged = false;
+  chSysUnlockFromISR();
+}
+
+static void poke_run_launcher_timer(eventid_t id) {
+
+  (void)id;
+
+  uint32_t val = captouchRead();
+  if (run_launcher_timer_engaged) {
+    /* Timer is engaged, but both buttons are still held.  Do nothing.*/
+    if ((val & MAIN_MENU_MASK) == MAIN_MENU_VALUE)
+      return;
+
+    /* One or more buttons was released.  Cancel the timer.*/
+    chVTReset(&run_launcher_timer);
+    run_launcher_timer_engaged = false;
+  }
+  else {
+    /* Timer not engaged, and the magic sequene isn't held.  Do nothing.*/
+    if ((val & MAIN_MENU_MASK) != MAIN_MENU_VALUE)
+      return;
+
+    /* Start the sequence to go to the main menu when we're done.*/
+    run_launcher_timer_engaged = true;
+    chVTSet(&run_launcher_timer, RUN_LAUNCHER_TIMEOUT, run_launcher, NULL);
+  }
+}
+
+static void key_event(eventid_t id) {
 
   (void)id;
   uint32_t val = captouchRead();
@@ -175,7 +220,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   instance->keymask = captouchRead();
 
   evtTableInit(orchard_app_events, 32);
-  evtTableHook(orchard_app_events, captouch_changed, keypress);
+  evtTableHook(orchard_app_events, captouch_changed, key_event);
   evtTableHook(orchard_app_events, orchard_app_terminate, terminate);
   evtTableHook(orchard_app_events, timer_expired, timer_event);
 
@@ -221,9 +266,12 @@ static THD_FUNCTION(orchard_app_thread, arg) {
     instance->app = orchard_app_list;
   instance->next_app = NULL;
 
+  chVTReset(&run_launcher_timer);
+  run_launcher_timer_engaged = false;
+
   evtTableUnhook(orchard_app_events, timer_expired, timer_event);
   evtTableUnhook(orchard_app_events, orchard_app_terminate, terminate);
-  evtTableUnhook(orchard_app_events, captouch_changed, keypress);
+  evtTableUnhook(orchard_app_events, captouch_changed, key_event);
 
   /* Atomically broadcasting the event source and terminating the thread,
      there is not a chSysUnlock() because the thread terminates upon return.*/
@@ -240,6 +288,10 @@ void orchardAppInit(void) {
   chEvtObjectInit(&orchard_app_terminate);
   chEvtObjectInit(&timer_expired);
   chVTReset(&instance.timer);
+
+  /* Hook this outside of the app-specific runloop, so it runs even if
+     the app isn't listening for events.*/
+  evtTableHook(orchard_events, captouch_changed, poke_run_launcher_timer);
 }
 
 void orchardAppRestart(void) {

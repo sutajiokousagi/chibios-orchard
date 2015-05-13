@@ -72,7 +72,9 @@ void cmd_charge(BaseSequentialStream *chp, int argc, char *argv[])
     return;
   }
   if( strncmp( argv[0], "on", 2 ) == 0 ) {
-    chprintf(chp, "Turning charge intent on\r\n");
+    chprintf(chp, "Turning charge intent on and setting charger parameter\r\n");
+    chargerSetTargetCurrent(1500);
+    chargerSetTargetVoltage(4160);
     chargerChargeIntent(1);
   } else {
     chprintf(chp, "Turning charge intent off\r\n");
@@ -81,7 +83,6 @@ void cmd_charge(BaseSequentialStream *chp, int argc, char *argv[])
 }
 
 orchard_command("charge", cmd_charge);
-
 
 void cmd_chgstat(BaseSequentialStream *chp, int argc, char *argv[])
 {
@@ -148,6 +149,12 @@ void cmd_chgstat(BaseSequentialStream *chp, int argc, char *argv[])
       chprintf(chp, "Charge is ina n unknown state (program error)\r\n" );
     }
   }
+
+  chprintf(chp, "Port current capability reported at %dmA\r\n", chargerGetHostCurrent() );
+  chprintf(chp, "Battery target voltage is %dmV\r\n", chargerGetTargetVoltage() );
+  chprintf(chp, "Battery target current is %dmA\r\n", chargerGetTargetCurrent() );
+  chprintf(chp, "Battery termination current is %dmA\r\n", chargerGetTerminationCurrent() );
+  chprintf(chp, "Boost current limit is %dmA\r\n", chargerGetBoostLimit() );
 }
 
 orchard_command("chgstat", cmd_chgstat);

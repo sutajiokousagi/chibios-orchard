@@ -35,6 +35,19 @@ msg_t chargerChargeIntent(uint8_t enable);
 chargerIntent chargerCurrentIntent(void);
 chargerFault chargerFaultCode(void);
 chargerStat chargerGetStat(void);
+uint16_t chargerGetHostCurrent(void);
+uint16_t chargerGetTargetVoltage(void);
+uint16_t chargerGetTargetCurrent(void);
+uint16_t chargerGetTerminationCurrent(void);
+uint16_t chargerGetBoostLimit(void);
+
+void chargerSetTargetVoltage(uint16_t voltage);
+void chargerSetTargetCurrent(uint16_t current);
+
+// commands to force charger current setting
+void chargerForce500(void);
+void chargerForce900(void);
+void chargerForce1500(void);
 
 #define CHG_REG_STATUS  0
 #define CHG_REG_CTL     1

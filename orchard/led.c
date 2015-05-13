@@ -661,9 +661,10 @@ static void blendFbs() {
 }
 
 static THD_WORKING_AREA(waEffectsThread, 256);
-static msg_t effects_thread(void *arg) {
+static THD_FUNCTION(effects_thread, arg) {
 
-  chRegSetThreadName("effects");
+  (void)arg;
+  chRegSetThreadName("LED effects");
 
   while (1) {
     blendFbs();
@@ -680,7 +681,7 @@ static msg_t effects_thread(void *arg) {
     // re-render the internal framebuffer animations
     draw_pattern(&g_config);
   }
-  return MSG_OK;
+  return;
 }
 
 void effectsStart(void) {

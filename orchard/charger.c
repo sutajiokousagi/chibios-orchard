@@ -7,7 +7,7 @@
 #include "orchard.h"
 
 static I2CDriver *driver;
-static chargerStates chargerState = CHG_IDLE;
+static chargerIntent chgIntent = CHG_IDLE;
 
 static void charger_set(uint8_t reg, uint8_t val) {
 
@@ -39,7 +39,7 @@ static void charger_get(uint8_t adr, uint8_t *data) {
 
 
 static void do_charger_watchdog(void) {
-  switch( chargerState ) {
+  switch( chgIntent ) {
   case CHG_CHARGE:
     charger_set(0x00, 0x80); // command for charge mode
     break;
@@ -95,19 +95,47 @@ msg_t chargerShipMode(void) {
   return MSG_OK;
 }
 
-// this function sets boost mode based on the enable argument
-// enable = 1 turn on boost mode
-// enable = 0 turn off boost mode
-msg_t chargerBoostMode(uint8_t enable) {
+// this function sets boost intent based on the enable argument
+// enable = 1 turn on boost intent
+// enable = 0 turn off boost intent
+msg_t chargerBoostIntent(uint8_t enable) {
   if( enable ) {
-    chargerState = CHG_BOOST;
+    chgIntent = CHG_BOOST;
   } else {
-    chargerState = CHG_IDLE;
+    chgIntent = CHG_IDLE;
   }
   
   return MSG_OK;
 }
 
-chargerStates chargerCurrentState(void) {
-  return chargerState;
+// this function sets charge intent with sane defaults for the bm15 board
+// enable = 1 turn on charge intent
+// enable = 0 turn off charge intent
+msg_t chargerChargeIntent(uint8_t enable) {
+  // charger_set(0x00, 0x08); // command for ship mode
+  if( enable ) {
+    chgIntent = CHG_CHARGE;
+  } else {
+    chgIntent = CHG_IDLE;
+  }
+  
+  return MSG_OK;
+}
+
+chargerIntent chargerCurrentIntent(void) {
+  return chgIntent;
+}
+
+chargerFault chargerFaultCode(void) {
+  uint8_t data;
+  charger_get(CHG_REG_STATUS, &data);
+
+  return (chargerFault) (data & 0x7);
+}
+
+chargerStat chargerGetStat(void) {
+  uint8_t data;
+  charger_get(CHG_REG_STATUS, &data);
+
+  return (chargerStat) ((data >> 4) & 0x3);
 }

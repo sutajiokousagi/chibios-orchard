@@ -3,6 +3,7 @@
 #include "pwm.h"
 #include "led.h"
 #include "orchard-math.h"
+#include "fixmath.h"
 
 #include <math.h>
 
@@ -38,55 +39,19 @@ struct effects_config {
 };
 static struct effects_config g_config;
 
-uint8_t shift = 4;  // start a little bit dimmer
+static uint8_t shift = 4;  // start a little bit dimmer
 
-uint32_t bump_amount = 0;
-uint8_t bumped = 0;
-unsigned int bumptime = 0;
-unsigned long reftime = 0;
-unsigned long reftime_tau = 0;
-unsigned long offset = 0;
-unsigned int waverate = 10;
-unsigned int waveloop = 0;
-unsigned int patternChanged = 0;
+static uint32_t bump_amount = 0;
+static uint8_t bumped = 0;
+static unsigned int bumptime = 0;
+static unsigned long reftime = 0;
+static unsigned long reftime_tau = 0;
+static unsigned long offset = 0;
+static unsigned int waverate = 10;
+static unsigned int waveloop = 0;
+static unsigned int patternChanged = 0;
 
-int wavesign = -1;
-
-uint8_t sinLUT[256] = {
-  0x80,0x83,0x86,0x89,0x8c,0x8f,0x92,0x95,
-  0x98,0x9b,0x9e,0xa2,0xa5,0xa7,0xaa,0xad,
-  0xb0,0xb3,0xb6,0xb9,0xbc,0xbe,0xc1,0xc4,
-  0xc6,0xc9,0xcb,0xce,0xd0,0xd3,0xd5,0xd7,
-  0xda,0xdc,0xde,0xe0,0xe2,0xe4,0xe6,0xe8,
-  0xea,0xeb,0xed,0xee,0xf0,0xf1,0xf3,0xf4,
-  0xf5,0xf6,0xf8,0xf9,0xfa,0xfa,0xfb,0xfc,
-  0xfd,0xfd,0xfe,0xfe,0xfe,0xff,0xff,0xff,
-  0xff,0xff,0xff,0xff,0xfe,0xfe,0xfe,0xfd,
-  0xfd,0xfc,0xfb,0xfa,0xfa,0xf9,0xf8,0xf6,
-  0xf5,0xf4,0xf3,0xf1,0xf0,0xee,0xed,0xeb,
-  0xea,0xe8,0xe6,0xe4,0xe2,0xe0,0xde,0xdc,
-  0xda,0xd7,0xd5,0xd3,0xd0,0xce,0xcb,0xc9,
-  0xc6,0xc4,0xc1,0xbe,0xbc,0xb9,0xb6,0xb3,
-  0xb0,0xad,0xaa,0xa7,0xa5,0xa2,0x9e,0x9b,
-  0x98,0x95,0x92,0x8f,0x8c,0x89,0x86,0x83,
-  0x80,0x7c,0x79,0x76,0x73,0x70,0x6d,0x6a,
-  0x67,0x64,0x61,0x5d,0x5a,0x58,0x55,0x52,
-  0x4f,0x4c,0x49,0x46,0x43,0x41,0x3e,0x3b,
-  0x39,0x36,0x34,0x31,0x2f,0x2c,0x2a,0x28,
-  0x25,0x23,0x21,0x1f,0x1d,0x1b,0x19,0x17,
-  0x15,0x14,0x12,0x11,0xf,0xe,0xc,0xb,
-  0xa,0x9,0x7,0x6,0x5,0x5,0x4,0x3,
-  0x2,0x2,0x1,0x1,0x1,0x0,0x0,0x0,
-  0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x2,
-  0x2,0x3,0x4,0x5,0x5,0x6,0x7,0x9,
-  0xa,0xb,0xc,0xe,0xf,0x11,0x12,0x14,
-  0x15,0x17,0x19,0x1b,0x1d,0x1f,0x21,0x23,
-  0x25,0x28,0x2a,0x2c,0x2f,0x31,0x34,0x36,
-  0x39,0x3b,0x3e,0x41,0x43,0x46,0x49,0x4c,
-  0x4f,0x52,0x55,0x58,0x5a,0x5d,0x61,0x64,
-  0x67,0x6a,0x6d,0x70,0x73,0x76,0x79,0x7c,
-};
-
+static int wavesign = -1;
 
 /**
  * @brief   Initialize Led Driver
@@ -348,6 +313,8 @@ static void shootPatternFB(void *fb, int count, int loop) {
 #define VU_T_PERIOD 2500  // time to complete 2pi rotation, in integer milliseconds
 #define TAU 1000
 
+#include "chprintf.h"
+#include "orchard.h"
 static void waveRainbowFB(void *fb, int count, int loop) {
   unsigned long curtime;
   int i;
@@ -356,31 +323,31 @@ static void waveRainbowFB(void *fb, int count, int loop) {
   uint16_t colorrate = 1;
   
   curtime = chVTGetSystemTime() + offset;
-  if( (curtime - reftime) > VU_T_PERIOD )
+  if ((curtime - reftime) > VU_T_PERIOD)
     reftime = curtime;
 
-  if( (curtime - reftime_tau) > TAU ) {
+  if ((curtime - reftime_tau) > TAU) {
     reftime_tau = curtime;
     waverate -= 4;
-    if( waverate < 10 )
+    if (waverate < 10)
       waverate = 10;
     
-    if( colorrate > 1 )
+    if (colorrate > 1)
       colorrate -= 1;
   }
 
-  if( bumped ) {
+  if (bumped) {
     bumped = 0;
     waverate += 20;
     colorrate += 1;
-    if( waverate > 300 )
+    if (waverate > 300)
       waverate = 300;
-    if( colorrate > 10 )
+    if (colorrate > 10)
       colorrate = 10;
   }
 
   offset += waverate;
-  if( offset > 0x80000000) {
+  if (offset > 0x80000000) {
     offset = 0;
     curtime = chVTGetSystemTime();
     reftime = curtime;
@@ -388,15 +355,32 @@ static void waveRainbowFB(void *fb, int count, int loop) {
   }
 
   waveloop += colorrate;
-  if( waveloop == (256 * 5) ) {
+  if (waveloop == (256 * 5)) {
     waveloop = 0;
   }
-  for( i = 0; i < count; i++ ) {
-    c = (uint8_t) (sinLUT[ (((i * VU_X_PERIOD * 255) / (count - 1))  +
-			    ( (sign * 255 * (curtime - reftime)) / VU_T_PERIOD ) ) % 256]);
-    
+  for (i = 0; i < count; i++) {
+    fix16_t count_n = fix16_from_int(i * VU_X_PERIOD);
+    fix16_t count_d = fix16_from_int(count - 1);
+    fix16_t time_n = fix16_from_int(curtime - reftime);
+    fix16_t time_d = fix16_from_int(VU_T_PERIOD);
+    fix16_t ratios = fix16_add(
+                fix16_div(count_n, count_d), fix16_div(time_n, time_d));
+
+    /* 'ratios' now goes from 0 to 2, depending on where we are in the cycle */
+
+    ratios = fix16_mul(ratios, fix16_from_int(2));
+    ratios = fix16_mul(ratios, fix16_pi);
+    fix16_t v = fix16_sin(ratios);
+
+    /* Normalize, go from [-1, 1] to [0, 256] */
+    v = fix16_mul(fix16_add(v, fix16_from_int(1)), fix16_from_int(127));
+
+    c = fix16_to_int(v);
+
+    /* Quick and dirty nonlinearity */
     c = c * c;
     c = (c >> 8) & 0xFF;
+
     ledSetColor(fb, i, alphaPix(Wheel(((i * 256 / count) + waveloop) & 255), (uint8_t) c), shift);
   }  
 }
@@ -435,9 +419,25 @@ static void directedRainbowFB(void *fb, int count, int loop) {
     waveloop = 0;
   }
   for( i = 0; i < (uint32_t) count; i++ ) {
-    c = (uint8_t) (sinLUT[ ((((int)i * VU_X_PERIOD * 255) / ((int)count - 1))  +
-			    ( (wavesign * 255 * ((int)curtime - (int)reftime)) / VU_T_PERIOD ) ) & 0xFF]);
+    fix16_t count_n = fix16_from_int(i * VU_X_PERIOD);
+    fix16_t count_d = fix16_from_int(count - 1);
+    fix16_t time_n = fix16_from_int((curtime - reftime) * wavesign);
+    fix16_t time_d = fix16_from_int(VU_T_PERIOD);
+    fix16_t ratios = fix16_add(
+                fix16_div(count_n, count_d), fix16_div(time_n, time_d));
+
+    /* 'ratios' now goes from 0 to 2, depending on where we are in the cycle */
+
+    ratios = fix16_mul(ratios, fix16_from_int(2));
+    ratios = fix16_mul(ratios, fix16_pi);
+    fix16_t v = fix16_sin(ratios);
+
+    /* Normalize, go from [-1, 1] to [0, 256] */
+    v = fix16_mul(fix16_add(v, fix16_from_int(1)), fix16_from_int(127));
+
+    c = fix16_to_int(v);
     
+    /* Quick and dirty nonlinearity */
     c = c * c;
     c = (c >> 8) & 0xFF;
     ledSetColor(fb, i, alphaPix(Wheel(((i * 256 / count) + waveloop) & 255), (uint8_t) c), shift);

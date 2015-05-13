@@ -103,6 +103,7 @@ msg_t chargerBoostIntent(uint8_t enable) {
     chgIntent = CHG_BOOST;
   } else {
     chgIntent = CHG_IDLE;
+    charger_set(0x00, 0x00); // force to idle mode quickly
   }
   
   return MSG_OK;
@@ -117,6 +118,7 @@ msg_t chargerChargeIntent(uint8_t enable) {
     chgIntent = CHG_CHARGE;
   } else {
     chgIntent = CHG_IDLE;
+    charger_set(0x00, 0x00); // force to idle mode quickly
   }
   
   return MSG_OK;

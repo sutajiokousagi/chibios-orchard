@@ -2,6 +2,9 @@
 #include "hal.h"
 #include "pwm.h"
 #include "led.h"
+#include "orchard-effects.h"
+
+#include "stdlib.h"
 #include "orchard-math.h"
 #include "fixmath.h"
 
@@ -22,7 +25,7 @@ static void ledSetCount(uint32_t count);
 // pattens may want to support the option of user-added LED
 // strips, whereas others will focus only on UI elements in the
 // circle provided on the board itself
-static struct {
+static struct led_config {
   uint8_t       *fb; // effects frame buffer
   uint8_t       *final_fb;  // merged ui + effects frame buffer
   uint32_t      pixel_count;  // generated pixel length
@@ -31,13 +34,8 @@ static struct {
   uint32_t      ui_pixels;  // number of LEDs on the PCB itself for UI use
 } led_config;
 
-// local effects state
-struct effects_config {
-  uint32_t count;
-  uint32_t loop;
-  enum pattern pattern;
-};
-static struct effects_config g_config;
+// global effects state
+static effects_config fx_config;
 
 static uint8_t shift = 4;  // start a little bit dimmer
 
@@ -187,7 +185,10 @@ static Color Wheel(uint8_t wheelPos) {
   return c;
 }
 
-static void strobePatternFB(void *fb, int count, int loop) {
+static void strobePatternFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  
   uint16_t i;
   uint8_t oldshift = shift;
   
@@ -210,8 +211,13 @@ static void strobePatternFB(void *fb, int count, int loop) {
   
   shift = oldshift;
 }
+orchard_effects("strobe", strobePatternFB);
 
-static void calmPatternFB(void *fb, int count, int loop) {
+static void calmPatternFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  int loop = config->loop;
+  
   int i;
   int count_mask;
   Color c;
@@ -223,8 +229,13 @@ static void calmPatternFB(void *fb, int count, int loop) {
     ledSetRGB(fb, i, c.r, c.g, c.b, shift);
   }
 }
+orchard_effects("calm", calmPatternFB);
 
-static void testPatternFB(void *fb, int count, int loop) {
+static void testPatternFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  int loop = config->loop;
+  
   int i = 0;
 
 #if 0
@@ -262,7 +273,7 @@ static void testPatternFB(void *fb, int count, int loop) {
     if (++i >= count) break;
   }
 #endif
-#if 0
+#if 1
   while (i < count) {
     if (loop & 1) {
       /* Black */
@@ -286,6 +297,7 @@ static void testPatternFB(void *fb, int count, int loop) {
     }
   }
 #endif
+#if 0
   //  int threshold = (phageAdcGet() * count / 4096);
   int threshold = (20 * count / 4096);   ////////// NOTE NOTE BODGE
   for (i = 0; i < count; i++) {
@@ -294,9 +306,15 @@ static void testPatternFB(void *fb, int count, int loop) {
     else
       ledSetRGB(fb, i, 0, 0, 0, shift);
   }
+#endif
 }
+orchard_effects("test-pattern", testPatternFB);
 
-static void shootPatternFB(void *fb, int count, int loop) {
+static void shootPatternFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  int loop = config->loop;
+  
   int i;
 
   //loop = (loop >> 3) % count;
@@ -308,6 +326,7 @@ static void shootPatternFB(void *fb, int count, int loop) {
       ledSetRGB(fb, i, 0, 0, 0, shift);
   }
 }
+orchard_effects("shootingstar", shootPatternFB);
 
 #define VU_X_PERIOD 3   // number of waves across the entire band
 #define VU_T_PERIOD 2500  // time to complete 2pi rotation, in integer milliseconds
@@ -315,11 +334,13 @@ static void shootPatternFB(void *fb, int count, int loop) {
 
 #include "chprintf.h"
 #include "orchard.h"
-static void waveRainbowFB(void *fb, int count, int loop) {
+static void waveRainbowFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  
   unsigned long curtime;
   int i;
   uint32_t c;
-  int sign = 1;
   uint16_t colorrate = 1;
   
   curtime = chVTGetSystemTime() + offset;
@@ -384,8 +405,12 @@ static void waveRainbowFB(void *fb, int count, int loop) {
     ledSetColor(fb, i, alphaPix(Wheel(((i * 256 / count) + waveloop) & 255), (uint8_t) c), shift);
   }  
 }
+orchard_effects("wave-rainbow", waveRainbowFB);
 
-static void directedRainbowFB(void *fb, int count, int loop) {
+static void directedRainbowFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  
   unsigned long curtime;
   uint32_t i;
   uint32_t c;
@@ -449,10 +474,14 @@ static uint32_t asb_l(int i) {
       return i;
   return -i;
 }
+orchard_effects("directed-rainbow", directedRainbowFB);
 
 #define DROP_INT 600
 #define BUMP_TIMEOUT 2300
-static void raindropFB(void *fb, int count, int loop) {
+static void raindropFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  
   unsigned long curtime;
   uint8_t oldshift = shift;
   uint8_t myshift;
@@ -496,8 +525,14 @@ static void raindropFB(void *fb, int count, int loop) {
 
   shift = oldshift;
 }
+orchard_effects("raindrop", raindropFB);
 
-static void rainbowDropFB(void *fb, int count, int loop) {
+
+static void rainbowDropFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  int loop = config->loop;
+  
   unsigned long curtime;
   uint8_t oldshift = shift;
   uint8_t myshift;
@@ -548,9 +583,14 @@ static void rainbowDropFB(void *fb, int count, int loop) {
 
   shift = oldshift;
 }
+orchard_effects("Rainbow-drop", rainbowDropFB);
 
 
-static void larsonScannerFB(void *fb, int count, int loop) {
+static void larsonScannerFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  int loop = config->loop;
+  
   int i;
   int dir;
 
@@ -581,6 +621,7 @@ static void larsonScannerFB(void *fb, int count, int loop) {
   }
 
 }
+orchard_effects("larson-scanner", larsonScannerFB);
 
 #define BUMP_DEBOUNCE 300 // 300ms debounce to next bump
 
@@ -592,62 +633,62 @@ void bump(uint32_t amount) {
   }
 }
 
-static int draw_pattern(struct effects_config *config) {
-    config->loop++;
+static int draw_pattern(void) {
+    fx_config.loop++;
 
     if( bump_amount != 0 ) {
-      config->loop += bump_amount;
+      fx_config.loop += bump_amount;
       bump_amount = 0;
     }
 
-    //    if (config->pattern == patternShoot)
-    //      shootPatternFB(led_config.fb, config->count, config->loop);
-    if (config->pattern == patternCalm) {
-      calmPatternFB(led_config.fb, config->count, config->loop);
-      config->loop += 2; // make this one go faster
-    } else if (config->pattern == patternTest)
-      testPatternFB(led_config.fb, config->count, config->loop);
-    else if (config->pattern == patternStrobe)
-      strobePatternFB(led_config.fb, config->count, config->loop);
-    else if( config->pattern == patternWaveRainbow )
-      waveRainbowFB(led_config.fb, config->count, config->loop);
-    else if( config->pattern == patternDirectedRainbow )
-      directedRainbowFB(led_config.fb, config->count, config->loop);
-    else if( config->pattern == patternRaindrop ) {
-      raindropFB(led_config.fb, config->count, config->loop);
-    } else if( config->pattern == patternRainbowdrop ) {
-      rainbowDropFB(led_config.fb, config->count, config->loop);
+    //if (fx_config->pattern == patternShoot)
+    //  shootPatternFB(fx_config.fb, fx_config->count, fx_config->loop);
+    if (fx_config.pattern == patternCalm) {
+      calmPatternFB(&fx_config);
+      fx_config.loop += 2; // make this one go faster
+    } else if (fx_config.pattern == patternTest)
+      testPatternFB(&fx_config);
+    else if (fx_config.pattern == patternStrobe)
+      strobePatternFB(&fx_config);
+    else if( fx_config.pattern == patternWaveRainbow )
+      waveRainbowFB(&fx_config);
+    else if( fx_config.pattern == patternDirectedRainbow )
+      directedRainbowFB(&fx_config);
+    else if( fx_config.pattern == patternRaindrop ) {
+      raindropFB(&fx_config);
+    } else if( fx_config.pattern == patternRainbowdrop ) {
+      rainbowDropFB(&fx_config);
     } else {
-      testPatternFB(led_config.fb, config->count, config->loop);
+      testPatternFB(&fx_config);
     }
 
     return 0;
 }
 
 void effectsSetPattern(enum pattern pattern) {
-  g_config.pattern = pattern;
+  fx_config.pattern = pattern;
 }
 
 enum pattern effectsGetPattern(void) {
-  return g_config.pattern;
+  return fx_config.pattern;
 }
 
 void effectsNextPattern(void) {
-  g_config.pattern = g_config.pattern + 1;
-  g_config.pattern = g_config.pattern % patternLast;
+  fx_config.pattern = fx_config.pattern + 1;
+  fx_config.pattern = fx_config.pattern % patternLast;
   patternChanged = 1;
 }
 
 void effectsPrevPattern(void) {
-  if( g_config.pattern == 0 ) {
-    g_config.pattern = patternLast - 1;
+  if( fx_config.pattern == 0 ) {
+    fx_config.pattern = patternLast - 1;
   } else {
-    g_config.pattern = g_config.pattern - 1;
+    fx_config.pattern = fx_config.pattern - 1;
   }
   patternChanged = 1;
 }
 
-static void blendFbs() {
+static void blendFbs(void) {
   uint8_t i;
   // UI FB + effects FB blend (just do a saturating add)
   for( i = 0; i < led_config.ui_pixels * 3; i ++ ) {
@@ -679,18 +720,19 @@ static THD_FUNCTION(effects_thread, arg) {
     chThdSleepMilliseconds(EFFECTS_REDRAW_MS);
 
     // re-render the internal framebuffer animations
-    draw_pattern(&g_config);
+    draw_pattern();
   }
   return;
 }
 
 void effectsStart(void) {
 
-  g_config.count = led_config.pixel_count;
-  g_config.loop = 0;
-  g_config.pattern = patternWaveRainbow;
+  fx_config.hwconfig = &led_config;
+  fx_config.count = led_config.pixel_count;
+  fx_config.loop = 0;
+  fx_config.pattern = patternWaveRainbow;
 
-  draw_pattern(&g_config);
+  draw_pattern();
   chThdCreateStatic(waEffectsThread, sizeof(waEffectsThread),
-      NORMALPRIO - 6, effects_thread, &g_config);
+      NORMALPRIO - 6, effects_thread, &led_config);
 }

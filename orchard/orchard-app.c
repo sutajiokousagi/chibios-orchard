@@ -31,6 +31,9 @@ event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 
+#define DEBOUNCE_INTERVAL 5  // in ms
+static unsigned long debounce_time;
+
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
 
@@ -88,6 +91,7 @@ static void key_event(eventid_t id) {
   uint32_t val = captouchRead();
   uint32_t i;
   OrchardAppEvent evt;
+  unsigned int curtime;
 
   if (!instance.app->event)
     return;
@@ -95,6 +99,12 @@ static void key_event(eventid_t id) {
   /* No key changed */
   if (instance.keymask == val)
     return;
+
+  curtime = chVTGetSystemTime();
+  if( (curtime - debounce_time) < DEBOUNCE_INTERVAL ) {
+    return;
+  }
+  debounce_time = curtime;
 
   for (i = 0; i < 16; i++) {
     uint8_t code = captouch_to_key(i);
@@ -288,6 +298,8 @@ void orchardAppInit(void) {
   chEvtObjectInit(&orchard_app_terminate);
   chEvtObjectInit(&timer_expired);
   chVTReset(&instance.timer);
+
+  debounce_time = chVTGetSystemTime();
 
   /* Hook this outside of the app-specific runloop, so it runs even if
      the app isn't listening for events.*/

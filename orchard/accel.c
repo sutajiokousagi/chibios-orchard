@@ -383,6 +383,10 @@ void accelStart(I2CDriver *i2cp) {
 
   evtTableHook(orchard_events, gpiox_falling[3], accel_irq);
   gpioxSetPadMode(GPIOX, 3, GPIOX_IN | GPIOX_IRQ_FALLING);
+
+  // enable freefall by default
+  accelEnableFreefall(0x18, 50);
+  
 }
 
 msg_t accelPoll(struct accel_data *data) {

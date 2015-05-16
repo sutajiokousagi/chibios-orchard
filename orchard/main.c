@@ -147,7 +147,8 @@ static void ble_ready(eventid_t id) {
 static void freefall(eventid_t id) {
 
   (void)id;
-  chprintf(stream, "Unce. ");
+  chprintf(stream, "A");
+  bump(100);
 }
 
 extern int print_hex(BaseSequentialStream *chp,

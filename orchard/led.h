@@ -3,17 +3,6 @@
 
 #include "hal.h"
 
-enum pattern {
-  patternCalm = 0,
-  patternStrobe,
-  patternRaindrop,
-  patternRainbowdrop,
-  patternWaveRainbow,
-  patternTest,
-  patternDirectedRainbow,
-  patternLast
-};
-
 #define sign(x) (( x > 0 ) - ( x < 0 ))
 
 typedef struct Color Color;
@@ -26,8 +15,8 @@ struct Color {
 void ledStart(uint32_t leds, uint8_t *o_fb, uint32_t ui_leds, uint8_t *o_ui_fb);
 
 void effectsStart(void);
-void effectsSetPattern(enum pattern pattern);
-enum pattern effectsGetPattern(void);
+void effectsSetPattern(char *name);
+uint8_t effectsGetPattern(void);
 void bump(uint32_t amount);
 void setShift(uint8_t s);
 uint8_t getShift(void);
@@ -36,6 +25,8 @@ void effectsPrevPattern(void);
 
 void uiLedGet(uint8_t index, Color *c);
 void uiLedSet(uint8_t index, Color c);
+
+void listEffects(void);
 
 #define EFFECTS_REDRAW_MS 35
 

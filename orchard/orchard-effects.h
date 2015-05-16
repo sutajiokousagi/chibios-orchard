@@ -12,7 +12,6 @@ typedef struct effects_config {
   struct led_config *hwconfig;
   uint32_t count;
   uint32_t loop;
-  enum pattern pattern;
 } effects_config;
 
 void orchardEffectsInit(void);

@@ -3,12 +3,17 @@
 #include "pwm.h"
 #include "led.h"
 #include "orchard-effects.h"
+#include "gfx.h"
 
+#include "chprintf.h"
 #include "stdlib.h"
 #include "orchard-math.h"
 #include "fixmath.h"
 
+#include <string.h>
 #include <math.h>
+
+orchard_effects_end();
 
 extern void ledUpdate(uint8_t *fb, uint32_t len);
 
@@ -18,7 +23,7 @@ static void ledSetRGBClipped(void *fb, uint32_t i,
                       uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
 static Color ledGetColor(void *ptr, int x);
 static void ledSetCount(uint32_t count);
-
+static void redraw_ui(void);
 
 // hardware configuration information
 // max length is different from actual length because some
@@ -36,6 +41,8 @@ static struct led_config {
 
 // global effects state
 static effects_config fx_config;
+static uint8_t fx_index = 0;  // current effect
+static uint8_t fx_max = 0;    // max # of effects
 
 static uint8_t shift = 4;  // start a little bit dimmer
 
@@ -307,6 +314,7 @@ static void testPatternFB(struct effects_config *config) {
       ledSetRGB(fb, i, 0, 0, 0, shift);
   }
 #endif
+ 
 }
 orchard_effects("test-pattern", testPatternFB);
 
@@ -332,8 +340,6 @@ orchard_effects("shootingstar", shootPatternFB);
 #define VU_T_PERIOD 2500  // time to complete 2pi rotation, in integer milliseconds
 #define TAU 1000
 
-#include "chprintf.h"
-#include "orchard.h"
 static void waveRainbowFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   int count = config->count;
@@ -405,7 +411,7 @@ static void waveRainbowFB(struct effects_config *config) {
     ledSetColor(fb, i, alphaPix(Wheel(((i * 256 / count) + waveloop) & 255), (uint8_t) c), shift);
   }  
 }
-orchard_effects("wave-rainbow", waveRainbowFB);
+orchard_effects("/wave-rainbow/", waveRainbowFB);
 
 static void directedRainbowFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -633,59 +639,66 @@ void bump(uint32_t amount) {
   }
 }
 
-static int draw_pattern(void) {
-    fx_config.loop++;
+static  draw_pattern(void) {
+  const OrchardEffects *curfx;
+  
+  curfx = orchard_effects_start();
+  
+  fx_config.loop++;
 
-    if( bump_amount != 0 ) {
-      fx_config.loop += bump_amount;
-      bump_amount = 0;
-    }
+  if( bump_amount != 0 ) {
+    fx_config.loop += bump_amount;
+    bump_amount = 0;
+  }
 
-    //if (fx_config->pattern == patternShoot)
-    //  shootPatternFB(fx_config.fb, fx_config->count, fx_config->loop);
-    if (fx_config.pattern == patternCalm) {
-      calmPatternFB(&fx_config);
-      fx_config.loop += 2; // make this one go faster
-    } else if (fx_config.pattern == patternTest)
-      testPatternFB(&fx_config);
-    else if (fx_config.pattern == patternStrobe)
-      strobePatternFB(&fx_config);
-    else if( fx_config.pattern == patternWaveRainbow )
-      waveRainbowFB(&fx_config);
-    else if( fx_config.pattern == patternDirectedRainbow )
-      directedRainbowFB(&fx_config);
-    else if( fx_config.pattern == patternRaindrop ) {
-      raindropFB(&fx_config);
-    } else if( fx_config.pattern == patternRainbowdrop ) {
-      rainbowDropFB(&fx_config);
-    } else {
-      testPatternFB(&fx_config);
-    }
+  curfx += fx_index;
 
-    return 0;
+  curfx->computeEffect(&fx_config);
 }
 
-void effectsSetPattern(enum pattern pattern) {
-  fx_config.pattern = pattern;
+void effectsSetPattern(char *name) {
+  uint8_t i;
+  const OrchardEffects *curfx;
+
+  curfx = orchard_effects_start();
+  if( name == NULL ) {
+    fx_index = 0;
+    redraw_ui();
+    return;
+  }
+  
+  
+  for( i = 0; i < fx_max; i++ ) {
+    if( strcmp(name, curfx->name) == 0 ) {
+      fx_index = i;
+      patternChanged = 1;
+      redraw_ui();
+      break;
+    }
+    curfx++;
+  }
 }
 
-enum pattern effectsGetPattern(void) {
-  return fx_config.pattern;
+uint8_t effectsGetPattern(void) {
+  return fx_index;
 }
 
 void effectsNextPattern(void) {
-  fx_config.pattern = fx_config.pattern + 1;
-  fx_config.pattern = fx_config.pattern % patternLast;
+  fx_index = (fx_index + 1) % fx_max;
+  
   patternChanged = 1;
+  redraw_ui();
 }
 
 void effectsPrevPattern(void) {
-  if( fx_config.pattern == 0 ) {
-    fx_config.pattern = patternLast - 1;
+  if( fx_index == 0 ) {
+    fx_index = fx_max - 1;
   } else {
-    fx_config.pattern = fx_config.pattern - 1;
+    fx_index--;
   }
+  
   patternChanged = 1;
+  redraw_ui();
 }
 
 static void blendFbs(void) {
@@ -725,12 +738,64 @@ static THD_FUNCTION(effects_thread, arg) {
   return;
 }
 
-void effectsStart(void) {
+void listEffects(void) {
+  const OrchardEffects *curfx;
 
+  curfx = orchard_effects_start();
+  chprintf(stream, "max effects %d\n\r", fx_max );
+
+  while( curfx->name ) {
+    chprintf(stream, "%s\n\r", curfx->name );
+    curfx++;
+  }
+}
+
+
+static void redraw_ui(void) {
+  char tmp[20];
+  const OrchardEffects *curfx;
+  
+  coord_t width;
+  coord_t height;
+  coord_t header_height;
+  font_t font;
+
+  curfx = orchard_effects_start();
+  curfx += fx_index;
+  chsnprintf(tmp, sizeof(tmp), "%s", curfx->name);
+
+  font = gdispOpenFont("UI2");
+  width = gdispGetWidth();
+  height = gdispGetFontMetric(font, fontHeight);
+  header_height = height;
+
+  gdispClear(Black);
+  gdispFillArea(0, 0, width, height, White);
+  gdispDrawStringBox(0, 0, width, height,
+                     tmp, font, Black, justifyCenter);
+
+  font = gdispOpenFont("fixed_5x8");
+  width = gdispGetWidth();
+  height = gdispGetFontMetric(font, fontHeight);
+
+  gdispFlush();
+  
+}
+
+void effectsStart(void) {
+  const OrchardEffects *curfx;
+  
   fx_config.hwconfig = &led_config;
   fx_config.count = led_config.pixel_count;
   fx_config.loop = 0;
-  fx_config.pattern = patternWaveRainbow;
+
+  curfx = orchard_effects_start();
+  fx_max = 0;
+  fx_index = 0;
+  while( curfx->name ) {
+    fx_max++;
+    curfx++;
+  }
 
   draw_pattern();
   chThdCreateStatic(waEffectsThread, sizeof(waEffectsThread),

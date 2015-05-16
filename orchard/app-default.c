@@ -9,9 +9,15 @@ static uint32_t led_init(OrchardAppContext *context) {
 }
 
 static void led_start(OrchardAppContext *context) {
-
+  uint8_t i;
+  
   (void)context;
   chprintf(stream, "LED: Starting led app\r\n");
+
+  listEffects();
+  
+  effectsSetPattern(NULL);  // pick default pattern
+
 }
 
 static void led_event(OrchardAppContext *context, OrchardAppEvent *event) {
@@ -27,13 +33,13 @@ static void led_event(OrchardAppContext *context, OrchardAppEvent *event) {
     else if (event->key.code == keyCCW) {
       ; // something more
     }
-    else if (event->key.code == keyLeft) {
+    else if ((event->key.code == keyLeft)  && (event->key.flags == keyDown) ) {
       shift = getShift();
       shift++;
       if( shift > 6 )
 	shift = 0;
       setShift(shift);
-    } else if (event->key.code == keyRight)
+    } else if ( (event->key.code == keyRight) && (event->key.flags == keyDown))
       effectsNextPattern();
     else if (event->key.code == keySelect)
       ; // something

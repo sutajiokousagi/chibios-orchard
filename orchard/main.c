@@ -87,53 +87,56 @@ static void key_mod(eventid_t id) {
   uiColor.r = 200;
   uiColor.g = 200;
   uiColor.b = 0;
-  
-  if ((val & (1 << 7)))
+
+  // hex codes from top, going clockwise
+  // led numbering starts with 0 on top, going counter-clockwise
+  // 80 40 10 08 04 02 400 200 100 
+  if (val & 0x80)
     uiLedSet(0, uiColor);
 
-  if ((val & (1 << 8)) && (val & (1 << 7)))
+  if ((val & 0x80) && (val & 0x100))
     uiLedSet(1, uiColor);
 
-  if ((val & (1 << 8)))
+  if (val & 0x100)
     uiLedSet(2, uiColor);
 
-  if ((val & (1 << 8)) && (val & (1 << 9)))
+  if ((val & 0x200) && (val & 0x100))
     uiLedSet(3, uiColor);
 
-  if ((val & (1 << 9)))
+  if (val & 0x200)
     uiLedSet(4, uiColor);
 
-  if ((val & (1 << 10)) && (val & (1 << 9)))
-    uiLedSet(5, uiColor);
+  if (val & 0x400)
+    uiLedSet(5, uiColor);  
 
-  if ((val & (1 << 10)))
+  if ((val & 0x400) && (val & 0x02))
     uiLedSet(6, uiColor);
 
-  if ((val & (1 << 1)))
+  if ((val & 0x02))
     uiLedSet(7, uiColor);
 
-  if ((val & (1 << 1)) && (val & (1 << 2)))
+  if ((val & 0x02) && (val & 0x04))
     uiLedSet(8, uiColor);
 
-  if ((val & (1 << 2)))
+  if (val & 0x04)
     uiLedSet(9, uiColor);
 
-  if ((val & (1 << 3)) && (val & (1 << 2)))
+  if ((val & 0x04) && (val & 0x08))
     uiLedSet(10, uiColor);
 
-  if ((val & (1 << 3)))
+  if ((val & 0x08))
     uiLedSet(11, uiColor);
 
-  if ((val & (1 << 4)) && (val & (1 << 3)))
+  if ((val & 0x10))
     uiLedSet(12, uiColor);
 
-  if ((val & (1 << 4)))
+  if ((val & 0x10) && (val & 0x40))
     uiLedSet(13, uiColor);
 
-  if ((val & (1 << 4)) && (val & (1 << 6)))
+  if ((val & 0x40))
     uiLedSet(14, uiColor);
 
-  if ((val & (1 << 7)) && (val & (1 << 6)))
+  if ((val & 0x80) && (val & 0x40)) 
     uiLedSet(15, uiColor);
 
 }

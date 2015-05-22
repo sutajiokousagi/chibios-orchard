@@ -84,13 +84,14 @@ static void key_mod(eventid_t id) {
   for (i = 0; i < UI_LED_COUNT; i++)
     uiLedSet(i, uiColor);
 
-  uiColor.r = 200;
-  uiColor.g = 200;
+  uiColor.r = 100;
+  uiColor.g = 100;
   uiColor.b = 0;
 
   // hex codes from top, going clockwise
+  // 80 40 10 08 04 02 400 200 100
+  
   // led numbering starts with 0 on top, going counter-clockwise
-  // 80 40 10 08 04 02 400 200 100 
   if (val & 0x80)
     uiLedSet(0, uiColor);
 

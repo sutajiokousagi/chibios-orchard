@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -26,6 +27,19 @@ static struct orchard_app_instance {
   uint32_t              timer_usecs;
   bool                  timer_repeating;
 } instance;
+
+typedef enum _DirIntent {
+  dirNone = 0x0,
+  dirCW = 0x1,
+  dirCCW = 0x2,
+} DirIntent;
+
+static struct jogdial_state {
+  int8_t lastpos;
+  DirIntent direction_intent;
+  uint32_t lasttime;
+} jogdial_state;
+#define DWELL_THRESH  500  // time to spend in one state before direction intent is null
 
 event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
@@ -85,6 +99,131 @@ static void poke_run_launcher_timer(eventid_t id) {
   }
 }
 
+// hex codes from top, going clockwise
+// 80 40 10 08 04 02 400 200 100 
+static int8_t jog_raw_to_position(uint32_t raw) {
+  switch(raw) {
+  case 0x80:
+    return 0;
+  case (0x80 | 0x40):
+    return 1;
+  case 0x40:
+    return 2;
+  case (0x40 | 0x10):
+    return 3;
+  case 0x10:
+    return 4;
+  case (0x10 | 0x08):
+    return 5;
+  case 0x08:
+    return 6;
+  case (0x08 | 0x04):
+    return 7;
+  case 0x04:
+    return 8;
+  case (0x04 | 0x02):
+    return 9;
+  case 0x02:
+    return 10;
+  case (0x02 | 0x400):
+    return 11;
+  case 0x400:
+    return 12;
+  case (0x400 | 0x200):
+    return 13;
+  case 0x200:
+    return 14;
+  case (0x200 | 0x100):
+    return 15;
+  case 0x100:
+    return 16;
+  case (0x100 | 0x80):
+    return 17;
+    
+  default:
+    return -1; // error case
+  }
+}
+
+// current state + previous state => direction
+// problem is if we jitter back and forth, direction intent is wrong
+
+// so compute using:
+// current state + previous state + direction intent + time => new direction intent
+// direction intent can be none, CW, or CCW.
+
+// time is used to retire direction state, if you stay in a quadrant for
+// longer than a certain amount of time, direction intent should be reset to none
+
+// returns 0 if there is no dial tracking event
+static uint8_t track_dial(uint32_t raw) {
+  uint32_t curtime = chVTGetSystemTime();
+  int8_t curpos = jog_raw_to_position(raw);
+  int8_t posdif;
+
+  if( raw == 0 ) {
+    // reset to untouched state
+    jogdial_state.lastpos = -1;
+    jogdial_state.lasttime = curtime;
+    jogdial_state.direction_intent = dirNone;
+    return 0;
+  }
+  
+  if( curpos == -1 ) {
+    // still touched, but can't make sense of it. clear direction intent,
+    // set the time, but don't change from the last known position
+    jogdial_state.lasttime = curtime;
+    jogdial_state.direction_intent = dirNone;
+    return 0;
+  }
+
+  if( jogdial_state.lastpos == -1 ) {
+    // we're starting from untouched state
+    jogdial_state.lastpos = curpos;
+    jogdial_state.lasttime = curtime;
+    jogdial_state.direction_intent = dirNone;
+    return 0;
+  }
+  
+  posdif = curpos - jogdial_state.lastpos;
+  
+  // check to see if we've made a significant state change from before
+  if( abs(posdif) <= 1 ||
+      abs(posdif) == 17 ) {
+    // we haven't changed since before
+    if (curtime - jogdial_state.lasttime > DWELL_THRESH)
+      jogdial_state.direction_intent = dirNone;
+
+    // don't update lastpos either, so we can't "drift" around the clock
+    return 0; // no event update
+    
+  } else {
+    // now check if we're going CW or CCW
+    // (16 -> 17, 16 -> 0), (17 -> 0, 17 -> 1) are both CW
+    chprintf( stream, "%d ", posdif );
+    if( ((posdif > 1) && (posdif < 14)) ||
+	(posdif <= -14) ) {
+      chprintf( stream, "CW\r\n" );
+      jogdial_state.direction_intent = dirCW;
+      jogdial_state.lastpos = curpos;
+      jogdial_state.lasttime = curtime;
+      return 1;
+    }
+
+    if( (posdif < -1) ||
+	(posdif >= 14) ) {
+      chprintf( stream, "CCW\r\n" );
+      jogdial_state.direction_intent = dirCCW;
+      jogdial_state.lastpos = curpos;
+      jogdial_state.lasttime = curtime;
+      return 1;
+    }
+  }
+  
+  // all cases already handled with a return
+  return 0;
+}
+
 static void key_event(eventid_t id) {
 
   (void)id;
@@ -126,28 +265,16 @@ static void key_event(eventid_t id) {
       instance.app->event(instance.context, &evt);
     }
   }
-  {
-#define only_one_bit_set(x) (x && !(x & (x - 1)))
-  /* Super cheesy spin detection */
-    uint32_t this_spin = (val & ~((1 << 0) | (1 << 11) | (1 << 5)));
-    uint32_t last_spin = (instance.keymask & ~((1 << 0) | (1 << 11) | (1 << 5)));
-    if (only_one_bit_set(this_spin) && only_one_bit_set(last_spin)) {
-      evt.type = keyEvent;
-      evt.key.flags = keyDown;
-      if (this_spin < last_spin) {
-        if (!this_spin)
-          evt.key.code = keyCCW;
-        else
-          evt.key.code = keyCW;
-      }
-      else {
-        if (!this_spin)
-          evt.key.code = keyCW;
-        else
-          evt.key.code = keyCCW;
-      }
-      instance.app->event(instance.context, &evt);
-    }
+  
+  if( track_dial(val) ) {
+    evt.type = keyEvent;
+    evt.key.flags = keyDown;
+    if( jogdial_state.direction_intent == dirCW )
+      evt.key.code = keyCW;
+    else
+      evt.key.code = keyCCW;
+    
+    instance.app->event(instance.context, &evt);
   }
 
   instance.keymask = val;
@@ -304,6 +431,10 @@ void orchardAppInit(void) {
   /* Hook this outside of the app-specific runloop, so it runs even if
      the app isn't listening for events.*/
   evtTableHook(orchard_events, captouch_changed, poke_run_launcher_timer);
+
+  jogdial_state.lastpos = -1; 
+  jogdial_state.direction_intent = dirNone;
+  jogdial_state.lasttime = chVTGetSystemTime();
 }
 
 void orchardAppRestart(void) {

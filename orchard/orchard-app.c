@@ -200,10 +200,8 @@ static uint8_t track_dial(uint32_t raw) {
   } else {
     // now check if we're going CW or CCW
     // (16 -> 17, 16 -> 0), (17 -> 0, 17 -> 1) are both CW
-    chprintf( stream, "%d ", posdif );
     if( ((posdif > 1) && (posdif < 14)) ||
 	(posdif <= -14) ) {
-      chprintf( stream, "CW\r\n" );
       jogdial_state.direction_intent = dirCW;
       jogdial_state.lastpos = curpos;
       jogdial_state.lasttime = curtime;
@@ -212,7 +210,6 @@ static uint8_t track_dial(uint32_t raw) {
 
     if( (posdif < -1) ||
 	(posdif >= 14) ) {
-      chprintf( stream, "CCW\r\n" );
       jogdial_state.direction_intent = dirCCW;
       jogdial_state.lastpos = curpos;
       jogdial_state.lasttime = curtime;

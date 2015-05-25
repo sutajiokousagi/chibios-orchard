@@ -99,6 +99,10 @@ include $(GFXLIB)/drivers/gdisp/SSD1306/driver.mk
 LIBFIXMATH = $(CHIBIOS)/ext/libfixmath
 include $(LIBFIXMATH)/build.mk
 
+#C90TFS Freescale Flash drivers
+LIBC90TFS = $(CHIBIOS)/ext/C90TFS
+include $(LIBC90TFS)/build.mk
+
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
 
@@ -119,6 +123,7 @@ CSRC = main.c \
        orchard-math.c \
        radio.c \
        led.c \
+       flash.c \
        gitversion.c \
        $(STARTUPSRC) \
        $(PORTSRC) \
@@ -132,6 +137,7 @@ CSRC = main.c \
        $(CHIBIOS)/os/various/shell.c \
        $(GFXSRC) \
        $(LIBFIXMATHSRC) \
+       $(LIBC90TFSSRC) \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -161,6 +167,7 @@ TCPPSRC =
 ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM) ws2812b_ll.s
 
 INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) $(LIBFIXMATHINC) \
+         $(LIBC90TFSINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) $(GFXINC) \
          $(CHIBIOS)/os/hal/lib/streams $(CHIBIOS)/os/various
 

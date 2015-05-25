@@ -34,6 +34,7 @@
 #include "led.h"
 #include "oled.h"
 #include "radio.h"
+#include "flash.h"
 
 #include "gfx.h"
 
@@ -250,6 +251,8 @@ int main(void)
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
   effectsStart();
   orchardAppInit();
+
+  flashStart();
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);

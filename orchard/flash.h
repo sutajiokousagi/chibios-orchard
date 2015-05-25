@@ -157,9 +157,9 @@ int8_t flashErase(uint32_t offset, uint16_t sectorCount);
 int8_t flashProgram(uint8_t *src, uint8_t *dst, uint32_t count);
 
 // define limit for user-accessible sector
-// we get the top 8 sectors to play around in. This is a policy choice, tweak as needed.
-// basically, you need to make sure that ChibiOS doesn't put OS data there
-#define F_USER_SECTOR_START 120
+// we assume we have flash from the user sector all the way to the end of Flash
+// __storage_start__ comes from the linker
+#define F_USER_SECTOR_START ((uint32_t)__storage_start__ / (uint32_t)FTFx_PSECTOR_SIZE) 
 
 // chibios error codes -- they make more sense to me than Freescale's set of error codes
 #define F_ERR_OK  0

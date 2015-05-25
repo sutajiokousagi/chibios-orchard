@@ -262,9 +262,11 @@ int main(void)
   radioSetDefaultHandler(radioDriver, default_radio_handler);
 
   gfxInit();
-  
-  chprintf(stream, "Flash start: 0x%x  Flash end: 0x%x  Length: 0x%x\r\n",
+
+  // eventually get rid of this
+  chprintf(stream, "User flash start: 0x%x  user flash end: 0x%x  length: 0x%x\r\n",
       __storage_start__, __storage_end__, __storage_size__);
+  
   orchardShellRestart();
   orchardAppRestart();
 

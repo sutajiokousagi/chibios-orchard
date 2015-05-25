@@ -45,7 +45,7 @@ event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 
-#define DEBOUNCE_INTERVAL 5  // in ms
+#define DEBOUNCE_INTERVAL 1  // in ms
 static unsigned long debounce_time;
 
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))

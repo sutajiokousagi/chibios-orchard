@@ -198,24 +198,32 @@ static void strobePatternFB(struct effects_config *config) {
   
   uint16_t i;
   uint8_t oldshift = shift;
+  static uint32_t  nexttime = 0;
+  static uint8_t   strobemode = 1;
   
   shift = 0;
 
-  for( i = 0; i < count; i++ ) {
-    if( (rand() % (unsigned int) count) < ((unsigned int) count / 3) )
-      ledSetRGB(fb, i, 255, 255, 255, shift);
-    else
+  if( strobemode && (chVTGetSystemTime() > nexttime) ) {
+    for( i = 0; i < count; i++ ) {
+      if( (rand() % (unsigned int) count) < ((unsigned int) count / 3) )
+	ledSetRGB(fb, i, 255, 255, 255, shift);
+      else
+	ledSetRGB(fb, i, 0, 0, 0, shift);
+    }
+
+    nexttime = chVTGetSystemTime() + 30 + (rand() % 25);
+    strobemode = 0;
+  }
+
+  else if( !strobemode && (chVTGetSystemTime() > nexttime) ) {
+    for( i = 0; i < count; i++ ) {
       ledSetRGB(fb, i, 0, 0, 0, shift);
+    }
+    
+    nexttime = chVTGetSystemTime() + 30 + (rand() % 25);
+    strobemode = 1;
   }
 
-  chThdSleepMilliseconds(30 + (rand() % 25));
-
-  for( i = 0; i < count; i++ ) {
-    ledSetRGB(fb, i, 0, 0, 0, shift);
-  }
-
-  chThdSleepMilliseconds(30 + (rand() % 25));
-  
   shift = oldshift;
 }
 orchard_effects("strobe", strobePatternFB);
@@ -639,7 +647,7 @@ void bump(uint32_t amount) {
   }
 }
 
-static  draw_pattern(void) {
+static void draw_pattern(void) {
   const OrchardEffects *curfx;
   
   curfx = orchard_effects_start();

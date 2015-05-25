@@ -20,7 +20,7 @@ static void led_start(OrchardAppContext *context) {
 
 }
 
-static void led_event(OrchardAppContext *context, OrchardAppEvent *event) {
+void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   (void)context;
   uint8_t shift;
@@ -52,4 +52,6 @@ static void led_exit(OrchardAppContext *context) {
   chprintf(stream, "LED: Exiting led app\r\n");
 }
 
-orchard_app("Light display (default)", led_init, led_start, led_event, led_exit);
+orchard_app("Blinkies!", led_init, led_start, led_event, led_exit);
+
+

@@ -45,9 +45,12 @@ event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 
+static virtual_timer_t keycollect_timer;
+static event_source_t keycollect_timeout;
+static uint16_t  captouch_collected_state = 0;
+
 #define DEBOUNCE_INTERVAL 20  // time to debounce key press in ms
 #define TRACK_INTERVAL 1  // trackpad debounce in ms
-static unsigned long debounce_time;
 static unsigned long track_time;
 
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
@@ -223,13 +226,27 @@ static uint8_t track_dial(uint32_t raw) {
   return 0;
 }
 
-static void key_event(eventid_t id) {
+static void run_keycollect_timer(void *arg) {
+  (void)arg;
+  
+  chSysLockFromISR();
+  chEvtBroadcastI(&keycollect_timeout);
+  chSysUnlockFromISR();
+}
 
+static void key_event_timer(eventid_t id) {
   (void)id;
-  uint32_t val = captouchRead();
+  captouch_collected_state |= captouchRead(); // accumulate events
+
+  // set a timer to collect accumulated events...
+  chVTSet(&keycollect_timer, MS2ST(DEBOUNCE_INTERVAL), run_keycollect_timer, NULL);
+}
+
+static void key_event(eventid_t id) {
+  (void)id;
+  uint32_t val = captouch_collected_state;
   uint32_t i;
   OrchardAppEvent evt;
-  unsigned int curtime;
 
   if (!instance.app->event)
     return;
@@ -237,30 +254,6 @@ static void key_event(eventid_t id) {
   /* No key changed */
   if (instance.keymask == val)
     return;
-
-  curtime = chVTGetSystemTime();
-  // track dial above the debouncer for smooth scrolling
-  if( track_dial(val) ) {
-    // debounce this slightly, to avoid adding lag to the track dial responsivitiy
-    if( !((curtime - track_time) < TRACK_INTERVAL) ) {
-      track_time = curtime;
-    
-      evt.type = keyEvent;
-      evt.key.flags = keyDown;
-      if( jogdial_state.direction_intent == dirCW )
-	evt.key.code = keyCW;
-      else
-	evt.key.code = keyCCW;
-      
-      instance.app->event(instance.context, &evt);
-    }
-  }
-
-  // debounce following interactions with a longer delay
-  if( (curtime - debounce_time) < DEBOUNCE_INTERVAL ) {
-    return;
-  }
-  debounce_time = curtime;
 
   for (i = 0; i < 16; i++) {
     uint8_t code = captouch_to_key(i);
@@ -288,6 +281,42 @@ static void key_event(eventid_t id) {
   
   instance.keymask = val;
 
+  // reset the collective state to 0
+  captouch_collected_state = 0;
+}
+
+// handle jogdial events (in parallel to key events)
+static void dial_event(eventid_t id) {
+  (void)id;
+  uint32_t val = captouchRead();
+  unsigned int curtime;
+  OrchardAppEvent evt;
+
+  if (!instance.app->event)
+    return;
+
+  /* No key changed */
+  if (instance.keymask == val)
+    return;
+
+  curtime = chVTGetSystemTime();
+  // track dial above the debouncer for smooth scrolling
+  if( track_dial(val) ) {
+    // debounce this slightly, to avoid adding lag to the track dial responsivitiy
+    if( !((curtime - track_time) < TRACK_INTERVAL) ) {
+      track_time = curtime;
+    
+      evt.type = keyEvent;
+      evt.key.flags = keyDown;
+      if( jogdial_state.direction_intent == dirCW )
+	evt.key.code = keyCW;
+      else
+	evt.key.code = keyCCW;
+      
+      instance.app->event(instance.context, &evt);
+    }
+  }
+  
 }
 
 static void terminate(eventid_t id) {
@@ -366,7 +395,9 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   instance->keymask = captouchRead();
 
   evtTableInit(orchard_app_events, 32);
-  evtTableHook(orchard_app_events, captouch_changed, key_event);
+  evtTableHook(orchard_app_events, captouch_changed, key_event_timer);
+  evtTableHook(orchard_app_events, captouch_changed, dial_event);
+  evtTableHook(orchard_app_events, keycollect_timeout, key_event);
   evtTableHook(orchard_app_events, orchard_app_terminate, terminate);
   evtTableHook(orchard_app_events, timer_expired, timer_event);
 
@@ -417,7 +448,9 @@ static THD_FUNCTION(orchard_app_thread, arg) {
 
   evtTableUnhook(orchard_app_events, timer_expired, timer_event);
   evtTableUnhook(orchard_app_events, orchard_app_terminate, terminate);
-  evtTableUnhook(orchard_app_events, captouch_changed, key_event);
+  evtTableUnhook(orchard_app_events, keycollect_timeout, key_event);
+  evtTableUnhook(orchard_app_events, captouch_changed, dial_event);
+  evtTableUnhook(orchard_app_events, captouch_changed, key_event_timer);
 
   /* Atomically broadcasting the event source and terminating the thread,
      there is not a chSysUnlock() because the thread terminates upon return.*/
@@ -433,9 +466,8 @@ void orchardAppInit(void) {
   chEvtObjectInit(&orchard_app_terminated);
   chEvtObjectInit(&orchard_app_terminate);
   chEvtObjectInit(&timer_expired);
+  chEvtObjectInit(&keycollect_timeout);
   chVTReset(&instance.timer);
-
-  debounce_time = chVTGetSystemTime();
 
   /* Hook this outside of the app-specific runloop, so it runs even if
      the app isn't listening for events.*/

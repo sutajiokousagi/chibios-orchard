@@ -103,8 +103,12 @@ include $(LIBFIXMATH)/build.mk
 LIBC90TFS = $(CHIBIOS)/ext/C90TFS
 include $(LIBC90TFS)/build.mk
 
+# libfixmatrix
+LIBFIXMATRIX = $(CHIBIOS)/ext/libfixmatrix
+include $(LIBFIXMATRIX)/build.mk
+
 # Define linker script file here
-LDSCRIPT= $(STARTUPLD)/KL17Z128.ld
+LDSCRIPT= $(STARTUPLD)/KL16Z128.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -138,6 +142,7 @@ CSRC = main.c \
        $(GFXSRC) \
        $(LIBFIXMATHSRC) \
        $(LIBC90TFSSRC) \
+       $(LIBFIXMATRIXSRC) \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

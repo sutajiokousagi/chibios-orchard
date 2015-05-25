@@ -27,13 +27,18 @@ MEMORY
 {
   flash0   :  org = 0x00000000,  len = 0xc0
   flashcfg :  org = 0x00000400,  len = 0x10
-  flash    :  org = 0x00000410,  len = 128k - 0x410
+  flash    :  org = 0x00000410,  len = 128k - 0x410 - 8k
+  flashram :  org = 0x0001E000,  len = 8k
   ram      :  org = 0x1FFFF000,  len = 16k
 }
 
 __ram_start__           = ORIGIN(ram);
 __ram_size__            = LENGTH(ram);
 __ram_end__             = __ram_start__ + __ram_size__;
+
+__storage_start__       = ORIGIN(flashram);
+__storage_size__        = LENGTH(flashram);
+__storage_end__         = __storage_start__ + __storage_size__ - 1;
 
 SECTIONS
 {

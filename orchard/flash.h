@@ -167,7 +167,6 @@ int8_t flashProgram(uint8_t *src, uint8_t *dst, uint32_t count);
 #define F_ERR_NOTALIGN  -2   // attempting to program a block of data that's not 4-byte aligned
 #define F_ERR_LOWLEVEL  -3   // low level error (e.g. margin fail, etc.)
 #define F_ERR_RANGE     -4   // attempting to manipulate a block outside the user range
-#define F_ERR_NOTRAM    -5   // source for programming is not RAM (can't program flash to flash)
 #define F_ERR_U_MARGIN  -6   // failed verification at user margin levels -- worry a little
 #define F_ERR_N_MARGIN  -7   // failed verification at normal margin levels -- worry a lot
 #define F_ERR_F_MARGIN  -8   // failed verification at factory margin levels -- don't worry too much

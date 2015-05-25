@@ -124,12 +124,6 @@ int8_t flashProgram(uint8_t *src, uint8_t *dest, uint32_t count) {
   uint32_t ret;
   uint32_t failaddr;
   
-  // check if source is in RAM. There is probably a clever chibiOS macro
-  // I'm missing to do this.
-  if( ((uint32_t) src < 0x1FFFE000) || ((uint32_t) src > 0x20005FFF) ) {
-    return F_ERR_NOTRAM;
-  }
-
   // check if dest, dest+count is in the user-designated area of FLASH
   if( ((uint32_t) dest < (F_USER_SECTOR_START * FTFx_PSECTOR_SIZE)) ||
       (((uint32_t) dest + count) > (flashSSDConfig.PFlashBase + flashSSDConfig.PFlashSize)) ) {

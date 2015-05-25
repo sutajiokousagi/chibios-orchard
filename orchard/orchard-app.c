@@ -49,7 +49,7 @@ static virtual_timer_t keycollect_timer;
 static event_source_t keycollect_timeout;
 static uint16_t  captouch_collected_state = 0;
 
-#define DEBOUNCE_INTERVAL 20  // time to debounce key press in ms
+#define COLLECT_INTERVAL 50  // time to collect events for multi-touch gesture
 #define TRACK_INTERVAL 1  // trackpad debounce in ms
 static unsigned long track_time;
 
@@ -238,8 +238,9 @@ static void key_event_timer(eventid_t id) {
   (void)id;
   captouch_collected_state |= captouchRead(); // accumulate events
 
-  // set a timer to collect accumulated events...
-  chVTSet(&keycollect_timer, MS2ST(DEBOUNCE_INTERVAL), run_keycollect_timer, NULL);
+  // (re)set a timer to collect accumulated events...
+  chVTReset(&keycollect_timer);
+  chVTSet(&keycollect_timer, MS2ST(COLLECT_INTERVAL), run_keycollect_timer, NULL);
 }
 
 static void key_event(eventid_t id) {
@@ -248,13 +249,23 @@ static void key_event(eventid_t id) {
   uint32_t i;
   OrchardAppEvent evt;
 
-  if (!instance.app->event)
+  if (!instance.app->event) {
+    captouch_collected_state = 0;
     return;
+  }
 
   /* No key changed */
-  if (instance.keymask == val)
+  if (instance.keymask == val) {
+    captouch_collected_state = 0;
     return;
+  }
 
+  // don't send main menu requests on to the app
+  if( (val & MAIN_MENU_MASK) == MAIN_MENU_VALUE ) { 
+    captouch_collected_state = 0;
+    return;
+  }
+    
   for (i = 0; i < 16; i++) {
     uint8_t code = captouch_to_key(i);
 
@@ -262,9 +273,6 @@ static void key_event(eventid_t id) {
     if (code < 0x80)
       continue;
 
-    if( (val & MAIN_MENU_MASK) == MAIN_MENU_VALUE ) // don't send main menu requests on to the app
-      continue;
-    
     if ((val & (1 << i)) && !(instance.keymask & (1 << i))) {
       evt.type = keyEvent;
       evt.key.code = code;

@@ -20,15 +20,20 @@ struct launcher_list {
 static void redraw_list(struct launcher_list *list) {
 
   char tmp[20];
-  unsigned int i;
+  uint8_t i;
 
-  chsnprintf(tmp, sizeof(tmp), "%d apps", list->total);
+  chsnprintf(tmp, sizeof(tmp), "%d of %d apps", list->selected + 1, list->total);
 
   coord_t width;
   coord_t height;
+  coord_t totalheight;
   coord_t header_height;
   font_t font;
+  uint8_t visible_apps;
+  uint8_t app_modulus;
+  uint8_t max_list;
 
+  // draw title bar
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
@@ -39,17 +44,30 @@ static void redraw_list(struct launcher_list *list) {
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyCenter);
 
+  // draw app list
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
 
-  for (i = 0; i < list->total; i++) {
+  totalheight = gdispGetHeight();
+  visible_apps = (uint8_t) (totalheight - header_height) / height;
+  
+  app_modulus = (uint8_t) list->selected / visible_apps;
+  
+  max_list = (app_modulus + 1) * visible_apps;
+  if( max_list > list->total )
+    max_list = list->total;
+  
+  for (i = app_modulus * visible_apps; i < max_list; i++) {
     color_t draw_color = White;
+    
     if (i == list->selected) {
-      gdispFillArea(0, header_height + i * height, width, height, White);
+      gdispFillArea(0, header_height + (i - app_modulus * visible_apps) * height,
+		    width, height, White);
       draw_color = Black;
     }
-    gdispDrawStringBox(0, header_height + i * height,
+    
+    gdispDrawStringBox(0, header_height + (i - app_modulus * visible_apps) * height,
                        width, height,
                        list->items[i].name, font, draw_color, justifyCenter);
   }
@@ -88,7 +106,7 @@ static void launcher_start(OrchardAppContext *context) {
     current++;
   }
 
-  list->selected = 2;
+  list->selected = 3;
 
   redraw_list(list);
 }

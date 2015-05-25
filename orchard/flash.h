@@ -157,9 +157,11 @@ int8_t flashErase(uint32_t offset, uint16_t sectorCount);
 int8_t flashProgram(uint8_t *src, uint8_t *dst, uint32_t count);
 
 // define limit for user-accessible sector
-#define F_USER_SECTOR_START 120  // we get the top 8 sectors to play around in
+// we get the top 8 sectors to play around in. This is a policy choice, tweak as needed.
+// basically, you need to make sure that ChibiOS doesn't put OS data there
+#define F_USER_SECTOR_START 120
 
-// chibios error codes
+// chibios error codes -- they make more sense to me than Freescale's set of error codes
 #define F_ERR_OK  0
 #define F_ERR_NOTBLANK  -1   // attempting to program a programmed section
 #define F_ERR_NOTALIGN  -2   // attempting to program a block of data that's not 4-byte aligned

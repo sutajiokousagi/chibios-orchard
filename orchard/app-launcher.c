@@ -29,7 +29,7 @@ static void redraw_list(struct launcher_list *list) {
   coord_t header_height;
   font_t font;
 
-  font = gdispOpenFont("UI2");
+  font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
   header_height = height;

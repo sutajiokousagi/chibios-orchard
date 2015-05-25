@@ -35,6 +35,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  extern uint32_t __storage_start__[];
+  extern uint32_t __storage_size__[];
+  extern uint32_t __storage_end__[];
+
   void boardInit(void);
 #ifdef __cplusplus
 }

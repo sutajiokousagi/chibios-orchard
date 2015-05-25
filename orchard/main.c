@@ -263,6 +263,8 @@ int main(void)
 
   gfxInit();
   
+  chprintf(stream, "Flash start: 0x%x  Flash end: 0x%x  Length: 0x%x\r\n",
+      __storage_start__, __storage_end__, __storage_size__);
   orchardShellRestart();
   orchardAppRestart();
 

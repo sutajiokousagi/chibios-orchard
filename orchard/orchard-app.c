@@ -45,8 +45,10 @@ event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 
-#define DEBOUNCE_INTERVAL 1  // in ms
+#define DEBOUNCE_INTERVAL 20  // time to debounce key press in ms
+#define TRACK_INTERVAL 1  // trackpad debounce in ms
 static unsigned long debounce_time;
+static unsigned long track_time;
 
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
@@ -237,6 +239,24 @@ static void key_event(eventid_t id) {
     return;
 
   curtime = chVTGetSystemTime();
+  // track dial above the debouncer for smooth scrolling
+  if( track_dial(val) ) {
+    // debounce this slightly, to avoid adding lag to the track dial responsivitiy
+    if( !((curtime - track_time) < TRACK_INTERVAL) ) {
+      track_time = curtime;
+    
+      evt.type = keyEvent;
+      evt.key.flags = keyDown;
+      if( jogdial_state.direction_intent == dirCW )
+	evt.key.code = keyCW;
+      else
+	evt.key.code = keyCCW;
+      
+      instance.app->event(instance.context, &evt);
+    }
+  }
+
+  // debounce following interactions with a longer delay
   if( (curtime - debounce_time) < DEBOUNCE_INTERVAL ) {
     return;
   }
@@ -249,6 +269,9 @@ static void key_event(eventid_t id) {
     if (code < 0x80)
       continue;
 
+    if( (val & MAIN_MENU_MASK) == MAIN_MENU_VALUE ) // don't send main menu requests on to the app
+      continue;
+    
     if ((val & (1 << i)) && !(instance.keymask & (1 << i))) {
       evt.type = keyEvent;
       evt.key.code = code;
@@ -263,17 +286,6 @@ static void key_event(eventid_t id) {
     }
   }
   
-  if( track_dial(val) ) {
-    evt.type = keyEvent;
-    evt.key.flags = keyDown;
-    if( jogdial_state.direction_intent == dirCW )
-      evt.key.code = keyCW;
-    else
-      evt.key.code = keyCCW;
-    
-    instance.app->event(instance.context, &evt);
-  }
-
   instance.keymask = val;
 
 }

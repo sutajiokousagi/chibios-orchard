@@ -18,23 +18,7 @@ static virtual_timer_t run_launcher_timer;
 static bool run_launcher_timer_engaged;
 #define RUN_LAUNCHER_TIMEOUT MS2ST(500)
 
-// add UI element entry here
-// if UI element is not null, dispatch events to UI element
-// UI element's event loop will then handle redraw
-// return value goes into this structure as well.
-static struct orchard_app_instance {
-  const OrchardApp      *app;
-  const OrchardApp      *next_app;
-  OrchardAppContext     *context;
-  thread_t              *thr;
-  uint32_t              keymask;
-  virtual_timer_t       timer;
-  uint32_t              timer_usecs;
-  bool                  timer_repeating;
-  OrchardUi             *ui;
-  OrchardUiContext      *uicontext;
-  uint32_t              ui_result;
-} instance;
+orchard_app_instance instance;  // the one and in fact only instance of any orchard app
 
 typedef enum _DirIntent {
   dirNone = 0x0,

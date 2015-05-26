@@ -115,6 +115,7 @@ LDSCRIPT= $(STARTUPLD)/KL16Z128.ld
 CSRC = main.c \
        orchard-shell.c \
        orchard-app.c \
+       orchard-ui.c \
        orchard-vectors.c \
        $(wildcard cmd-*.c) \
        $(wildcard app-*.c) \

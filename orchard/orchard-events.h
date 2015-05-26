@@ -71,4 +71,60 @@ extern event_source_t rf_pkt_rdy;
 
 void orchardEventsStart(void);
 
+/// Orchard App events
+
+typedef enum _OrchardAppEventType {
+  keyEvent,
+  appEvent,
+  timerEvent,
+} OrchardAppEventType;
+
+/* ------- */
+
+typedef enum _OrchardAppEventKeyFlag {
+  keyUp = 0,
+  keyDown = 1,
+} OrchardAppEventKeyFlag;
+
+typedef enum _OrchardAppEventKeyCode {
+  keyLeft = 0x80,
+  keyRight = 0x81,
+  keySelect = 0x82,
+  keyCW = 0x83,
+  keyCCW = 0x84,
+} OrchardAppEventKeyCode;
+
+typedef struct _OrchardAppKeyEvent {
+  uint8_t   code;
+  uint8_t   flags;
+} OrchardAppKeyEvent;
+
+/* ------- */
+
+typedef enum _OrchardAppLifeEventFlag {
+  appStart,
+  appTerminate,
+} OrchardAppLifeEventFlag;
+
+typedef struct _OrchardAppLifeEvent {
+  uint8_t   event;
+} OrchardAppLifeEvent;
+
+/* ------- */
+
+typedef struct _OrchardAppTimerEvent {
+  uint32_t  usecs;
+} OrchardAppTimerEvent;
+
+/* ------- */
+
+typedef struct _OrchardAppEvent {
+  OrchardAppEventType     type;
+  union {
+    OrchardAppKeyEvent    key;
+    OrchardAppLifeEvent   app;
+    OrchardAppTimerEvent  timer;
+  };
+} OrchardAppEvent;
+
 #endif /* __ORCHARD_EVENTS__ */

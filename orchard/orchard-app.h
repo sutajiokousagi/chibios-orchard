@@ -7,6 +7,8 @@
 #include "shell.h"
 #include "orchard.h"
 #include "gfx.h"
+#include "orchard-ui.h"
+#include "orchard-events.h"
 
 struct _OrchardApp;
 typedef struct _OrchardApp OrchardApp;
@@ -34,60 +36,6 @@ typedef struct _OrchardAppContext {
   void                        *priv;
 } OrchardAppContext;
 
-typedef enum _OrchardAppEventType {
-  keyEvent,
-  appEvent,
-  timerEvent,
-} OrchardAppEventType;
-
-/* ------- */
-
-typedef enum _OrchardAppEventKeyFlag {
-  keyUp = 0,
-  keyDown = 1,
-} OrchardAppEventKeyFlag;
-
-typedef enum _OrchardAppEventKeyCode {
-  keyLeft = 0x80,
-  keyRight = 0x81,
-  keySelect = 0x82,
-  keyCW = 0x83,
-  keyCCW = 0x84,
-} OrchardAppEventKeyCode;
-
-typedef struct _OrchardAppKeyEvent {
-  uint8_t   code;
-  uint8_t   flags;
-} OrchardAppKeyEvent;
-
-/* ------- */
-
-typedef enum _OrchardAppLifeEventFlag {
-  appStart,
-  appTerminate,
-} OrchardAppLifeEventFlag;
-
-typedef struct _OrchardAppLifeEvent {
-  uint8_t   event;
-} OrchardAppLifeEvent;
-
-/* ------- */
-
-typedef struct _OrchardAppTimerEvent {
-  uint32_t  usecs;
-} OrchardAppTimerEvent;
-
-/* ------- */
-
-typedef struct _OrchardAppEvent {
-  OrchardAppEventType     type;
-  union {
-    OrchardAppKeyEvent    key;
-    OrchardAppLifeEvent   app;
-    OrchardAppTimerEvent  timer;
-  };
-} OrchardAppEvent;
-
 typedef struct _OrchardApp {
   char *name;
   uint32_t (*init)(OrchardAppContext *context);
@@ -95,6 +43,20 @@ typedef struct _OrchardApp {
   void (*event)(OrchardAppContext *context, const OrchardAppEvent *event);
   void (*exit)(OrchardAppContext *context);
 } OrchardApp;
+
+typedef struct orchard_app_instance {
+  const OrchardApp      *app;
+  const OrchardApp      *next_app;
+  OrchardAppContext     *context;
+  thread_t              *thr;
+  uint32_t              keymask;
+  virtual_timer_t       timer;
+  uint32_t              timer_usecs;
+  bool                  timer_repeating;
+  const OrchardUi       *ui;
+  OrchardUiContext      *uicontext;
+  uint32_t              ui_result;
+} orchard_app_instance;
 
 #define orchard_app_start()                                                   \
 ({                                                                            \

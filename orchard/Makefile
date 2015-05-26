@@ -118,6 +118,7 @@ CSRC = main.c \
        orchard-vectors.c \
        $(wildcard cmd-*.c) \
        $(wildcard app-*.c) \
+       $(wildcard ui-*.c) \
        accel.c \
        charger.c \
        captouch.c \

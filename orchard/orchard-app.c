@@ -9,6 +9,7 @@
 #include "orchard-app.h"
 #include "orchard-events.h"
 #include "captouch.h"
+#include "orchard-ui.h"
 
 orchard_app_end();
 
@@ -17,6 +18,10 @@ static virtual_timer_t run_launcher_timer;
 static bool run_launcher_timer_engaged;
 #define RUN_LAUNCHER_TIMEOUT MS2ST(500)
 
+// add UI element entry here
+// if UI element is not null, dispatch events to UI element
+// UI element's event loop will then handle redraw
+// return value goes into this structure as well.
 static struct orchard_app_instance {
   const OrchardApp      *app;
   const OrchardApp      *next_app;
@@ -26,6 +31,9 @@ static struct orchard_app_instance {
   virtual_timer_t       timer;
   uint32_t              timer_usecs;
   bool                  timer_repeating;
+  OrchardUi             *ui;
+  OrchardUiContext      *uicontext;
+  uint32_t              ui_result;
 } instance;
 
 typedef enum _DirIntent {
@@ -277,13 +285,19 @@ static void key_event(eventid_t id) {
       evt.type = keyEvent;
       evt.key.code = code;
       evt.key.flags = keyDown;
-      instance.app->event(instance.context, &evt);
+      if( instance.ui == NULL )
+	instance.app->event(instance.context, &evt);
+      else
+	instance.ui->event(instance.uicontext, &evt);
     }
     if (!(val & (1 << i)) && (instance.keymask & (1 << i))) {
       evt.type = keyEvent;
       evt.key.code = code;
       evt.key.flags = keyUp;
-      instance.app->event(instance.context, &evt);
+      if( instance.ui == NULL )
+	instance.app->event(instance.context, &evt);
+      else
+	instance.ui->event(instance.uicontext, &evt);
     }
   }
   
@@ -320,8 +334,11 @@ static void dial_event(eventid_t id) {
 	evt.key.code = keyCW;
       else
 	evt.key.code = keyCCW;
-      
-      instance.app->event(instance.context, &evt);
+
+      if( instance.ui == NULL )
+	instance.app->event(instance.context, &evt);
+      else
+	instance.ui->event(instance.uicontext, &evt);
     }
   }
   
@@ -397,6 +414,11 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   memset(&app_context, 0, sizeof(app_context));
   instance->context = &app_context;
   app_context.instance = instance;
+  
+  // set UI elements to null
+  instance->ui = NULL;
+  instance->uicontext = NULL;
+  instance->ui_result = 0;
 
   chRegSetThreadName("Orchard App");
 

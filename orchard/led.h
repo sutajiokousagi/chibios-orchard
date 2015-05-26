@@ -12,6 +12,23 @@ struct Color {
   uint8_t b;
 };
 
+typedef struct HsvColor {
+  uint8_t h;
+  uint8_t s;
+  uint8_t v;
+} HsvColor;
+
+typedef struct RgbColor {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+} RgbColor;
+
+RgbColor HsvToRgb(HsvColor hsv);
+HsvColor RgbToHsv(RgbColor rgb);
+uint8_t gray_encode(uint8_t n);
+uint8_t gray_decode(uint8_t n);
+
 void ledStart(uint32_t leds, uint8_t *o_fb, uint32_t ui_leds, uint8_t *o_ui_fb);
 
 void effectsStart(void);

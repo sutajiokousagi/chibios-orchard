@@ -127,6 +127,7 @@ CSRC = main.c \
        orchard-math.c \
        radio.c \
        led.c \
+       hsvrgb.c \
        flash.c \
        gitversion.c \
        $(STARTUPSRC) \

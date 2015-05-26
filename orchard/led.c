@@ -192,6 +192,40 @@ static Color Wheel(uint8_t wheelPos) {
   return c;
 }
 
+static void lightGeneFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  uint8_t loop = config->loop & 0xFF;
+  HsvColor hsvC;
+  RgbColor rgbC;
+  
+  int i;
+  int count_mask;
+
+  for (i = 0; i < count; i++) {
+    fix16_t omega = fix16_div( fix16_from_int(loop), fix16_from_int(255) );
+    fix16_t phi = fix16_div( fix16_from_int(i), fix16_from_int(count) );
+
+    fix16_t satval = fix16_mul( fix16_from_int(44), fix16_sin( fix16_sub( fix16_mul( omega, fix16_mul( fix16_pi, fix16_from_int(8)) ), fix16_mul( phi, fix16_mul( fix16_pi, fix16_from_int(4)))) ) );
+  
+    fix16_t valval = fix16_mul( fix16_from_int(127), fix16_sin( fix16_add( fix16_mul( omega, fix16_mul( fix16_pi, fix16_from_int(4)) ), fix16_mul( phi, fix16_mul( fix16_pi, fix16_from_int(8)))) ) );
+
+    hsvC.h = loop + (i * (512 / count));
+ #if 0
+    hsvC.s = 192 + (uint8_t) (63.0 * sin(4.0 * 3.14159 * ((float)loop / 255.0) -
+					  (6.0 * 3.14159 * (float) i / 16.0) ) );
+    hsvC.v = 128 + (uint8_t) (127.0 * sin(2.0 * 3.14159 * ((float)loop / 255.0) -
+					  (2.0 * 3.14159 * (float) i / 16.0) ) );
+#endif
+    hsvC.s = 210 + fix16_to_int(satval);
+    hsvC.v = 128 + fix16_to_int(valval);
+    
+    rgbC = HsvToRgb(hsvC);
+    ledSetRGB(fb, i, rgbC.r, rgbC.g, rgbC.b, shift);
+  }
+}
+orchard_effects("lightgene", lightGeneFB);
+
 static void strobePatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   int count = config->count;

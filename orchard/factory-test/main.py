@@ -25,6 +25,13 @@ memory (after): ['0x00000001', '0x00000000', '0xaaaaaaaa', '0x00000023',
 """
 import socket
 
+import sys
+sys.path.append("./python-gdb-mi") 
+sys.path.append("./factory-test/python-gdb-mi") 
+sys.path.append("./factory-test/python-gdb-mi") 
+import gdbmi
+import logging
+
 def strToHex(data):
     return map(strToHex, data) if isinstance(data, list) else int(data, 16)
 
@@ -112,11 +119,16 @@ class OpenOcd:
 
 if __name__ == "__main__":
 
+    gdb = None
     def show(*args):
         print(*args, end="\n")
 
-    def do_test(a, b):
+    def do_test(bpnum, obj):
         print("!!!! ~~~~ Doing test")
+        logging.error(['##### DUMP:', bpnum, obj])
+        token = gdb.send("call gpiox_get(1)")
+        gdb.wait_for(token)
+        gdb.wait_for(token)
 
     with OpenOcd() as ocd:
         show(ocd.send("klx.cpu curstate"))
@@ -136,7 +148,6 @@ if __name__ == "__main__":
         print("Echoing stuff\n")
         show(ocd.send("ocd_echo \"echo says hi!\"")[:-1])
 
-
         # Print out SDID
         show("SDID: %s" % (hexify(ocd.readVariable(0x40048024))))
 
@@ -151,7 +162,23 @@ if __name__ == "__main__":
 
         ocd.send("flash write_image build/orchard.elf")
 
-#        s = gdbmi.Session("build/orchard.elf")
-#        s.set_gdb("unwindonsignal", "on")
-#        s.target("remote", "localhost:3333")
-#        s.send("monitor reset halt")
+
+        logging.basicConfig(
+            #level=logging.INFO,
+            level=logging.DEBUG,
+            #level=logging.ERROR,
+            format='%(asctime)s '\
+            '%(levelname)s '\
+            '%(pathname)s:%(lineno)s '\
+            '%(message)s')
+
+        gdb = gdbmi.Session("build/orchard.elf")
+        gdb.send("set unwindonsignal on")
+        gdb.wait_for(gdb.send("target remote localhost:3333"))
+        gdb.wait_for(gdb.add_breakpoint("orchardShellRestart", do_test))
+        gdb.wait_for(gdb.send("monitor reset halt"))
+        token = gdb.wait_for(gdb.send("continue"))
+
+        gdb.wait_for(token)
+        while True:
+            gdb.wait_for(token)

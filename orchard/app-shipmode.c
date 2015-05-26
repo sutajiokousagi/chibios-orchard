@@ -16,7 +16,7 @@ static void shipmode_start(OrchardAppContext *context) {
   chargerShipMode();
 }
 
-static void shipmode_event(OrchardAppContext *context, OrchardAppEvent *event) {
+static void shipmode_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   (void)context;
   chprintf(stream, "SHIPMODE: Received %d event\r\n", event->type);

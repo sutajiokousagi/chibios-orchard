@@ -69,6 +69,10 @@
 void captouchStart(I2CDriver *i2cp);
 uint16_t captouchRead(void);
 
+void captouchDebug(void);
+void captouchPrint(uint8_t reg);
+void captouchSet(uint8_t adr, uint8_t dat);
+
 extern event_source_t captouch_changed;
 
 #endif /* __CAPTOUCH_H__ */

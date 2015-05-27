@@ -28,3 +28,21 @@ static void cmd_touch(BaseSequentialStream *buf, int argc, char **argv) {
 }
 
 orchard_command("touch", cmd_touch);
+
+static void cmd_tdbg(BaseSequentialStream *buf, int argc, char **argv) {
+  uint8_t adr;
+  uint8_t dat;
+
+  if(argc == 1 ) {
+    adr = (uint8_t ) strtoul(argv[0], NULL, 16);
+    captouchPrint(adr);
+  } else if( argc == 2 ) {
+    adr = (uint8_t ) strtoul(argv[0], NULL, 16);
+    dat = (uint8_t ) strtoul(argv[1], NULL, 16);
+    captouchSet(adr, dat);
+  } else {
+    captouchDebug();
+  }
+}
+
+orchard_command("td", cmd_tdbg);

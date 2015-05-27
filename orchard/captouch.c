@@ -10,6 +10,8 @@
 #include "captouch.h"
 #include "gpiox.h"
 
+#include <stdlib.h>
+
 static I2CDriver *driver;
 event_source_t captouch_changed;
 static uint16_t captouch_state;
@@ -22,6 +24,17 @@ static void captouch_set(uint8_t reg, uint8_t val) {
                            tx, sizeof(tx),
                            NULL, 0,
                            TIME_INFINITE);
+}
+
+static uint8_t captouch_get(uint8_t reg) {
+
+  uint8_t val;
+
+  i2cMasterTransmitTimeout(driver, touchAddr,
+                           &reg, 1,
+                           (void *)&val, 1,
+                           TIME_INFINITE);
+  return val;
 }
 
 static uint16_t captouch_read(void) {
@@ -99,6 +112,7 @@ static void captouch_config(void) {
   captouch_set(ATO_CFG_USL, 196);  // USL
   captouch_set(ATO_CFG_LSL, 127);  // LSL
   captouch_set(ATO_CFG_TGT, 176);  // target level
+
 }
 
 static void captouch_keychange(eventid_t id) {
@@ -137,3 +151,96 @@ void captouchStart(I2CDriver *i2cp) {
   gpioxSetPadMode(GPIOX, 7, GPIOX_IN | GPIOX_IRQ_FALLING | GPIOX_PULL_UP);
   evtTableHook(orchard_events, gpiox_falling[7], captouch_keychange);
 }
+
+static void dump(uint8_t *byte, uint32_t count) {
+  uint32_t i;
+
+  for( i = 0; i < count; i++ ) {
+    if( (i % 16) == 0 ) {
+      chprintf(stream, "\n\r%08x: ", i );
+    }
+    chprintf(stream, "%02x ", byte[i] );
+  }
+  chprintf(stream, "\n\r" );
+}
+
+void captouchPrint(uint8_t reg) {
+  uint8_t val;
+
+  i2cAcquireBus(driver);
+  val = captouch_get(reg);
+  i2cReleaseBus(driver);
+  
+  chprintf( stream, "Value at %02x: %02x\n\r", reg, val );
+}
+
+void captouchSet(uint8_t adr, uint8_t dat) {
+  chprintf( stream, "Writing %02x into %02x\n\r", dat, adr );
+
+  i2cAcquireBus(driver);
+  captouch_set(adr, dat);
+  i2cReleaseBus(driver);
+}
+
+void captouchDebug(void) {
+  uint8_t i;
+  uint8_t val[128];
+
+  i2cAcquireBus(driver);
+  captouch_set(ATO_CFG_CTL0, 0x0B);
+
+  captouch_set(ATO_CFG_USL, 196);  // USL
+  captouch_set(ATO_CFG_LSL, 127);  // LSL
+  captouch_set(ATO_CFG_TGT, 176);  // target level
+  i2cReleaseBus(driver);
+
+  for( i = 0; i < 128; i++ ) {
+    i2cAcquireBus(driver);
+    val[i] = captouch_get(i);
+    i2cReleaseBus(driver);
+  }
+  dump( val, 128 );
+
+#if 0
+  chprintf( stream, "ELE OOR/TCH:\n\r" );
+  for( i= 0; i < 4; i++ ) {
+    i2cAcquireBus(driver);
+    val = captouch_get(i);
+    i2cReleaseBus(driver);
+    chprintf( stream, "%02x: %d\n\r", i, val );
+  }
+
+  chprintf( stream, "HD/CL/DL/HD:\n\r" );
+  for( i= 0x2B; i < 0x33; i++ ) {
+    i2cAcquireBus(driver);
+    val = captouch_get(i);
+    i2cReleaseBus(driver);
+    chprintf( stream, "%02x: %d\n\r", i, val );
+  }
+
+  chprintf( stream, "ELE T/R:\n\r" );
+  for( i= 0x41; i < 0x59; i++ ) {
+    i2cAcquireBus(driver);
+    val = captouch_get(i);
+    i2cReleaseBus(driver);
+    chprintf( stream, "%d ", val );
+  }
+
+  chprintf( stream, "\n\rCFG:\n\r" );
+  for( i= 0x5D; i < 0x5F; i++ ) {
+    i2cAcquireBus(driver);
+    val = captouch_get(i);
+    i2cReleaseBus(driver);
+    chprintf( stream, "%02x: %d\n\r", i, val );
+  }
+
+  chprintf( stream, "ATO:\n\r" );
+  for( i= 0x7B; i < 0x80; i++ ) {
+    i2cAcquireBus(driver);
+    val = captouch_get(i);
+    i2cReleaseBus(driver);
+    chprintf( stream, "%02x: %d\n\r", i, val );
+  }
+#endif
+}
+

@@ -269,7 +269,11 @@ void gpioxPollInt(void *port) {
   uint8_t irq_state;
   int pal_level;
 
+#ifdef REV_EVT1
   pal_level = palReadPad(GPIOB, 0);
+#else
+  pal_level = palReadPad(GPIOD, 4);
+#endif
 
   if (pal_level)
     goto out;

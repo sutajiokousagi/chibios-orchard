@@ -11,11 +11,19 @@
 static SPIDriver *driver;
 
 static void oled_command_mode(void) {
+#ifdef REV_EVT1
   palClearPad(GPIOD, 4);
+#else
+  palClearPad(GPIOB, 0);
+#endif
 }
 
 static void oled_data_mode(void) {
+#ifdef REV_EVT1
   palSetPad(GPIOD, 4);
+#else
+  palSetPad(GPIOB, 0);
+#endif
 }
 
 static void oled_select(void) {

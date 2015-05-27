@@ -228,7 +228,11 @@ CPPWARN = -Wall -Wextra
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DREV_EVT1    # -DREV_EVT1B
+UDEFS = -DREV_EVT1B -DREV_BC1KEYS
+# -DREV_EVT1 for 1st-gen orchard hardware
+# -DREV_EVT1B for 1st-gen bootcamp hardware
+# -DREV_BMKEYS for burning man key layout
+# -DREV_BC1KEYS for bootcamp key layout v1
 
 # Define ASM defines here
 UADEFS =

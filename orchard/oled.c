@@ -13,16 +13,20 @@ static SPIDriver *driver;
 static void oled_command_mode(void) {
 #ifdef REV_EVT1
   palClearPad(GPIOD, 4);
-#else
+#elif REV_EVT1B
   palClearPad(GPIOB, 0);
+#else
+#error "Please specify a board rev in the Makfile"
 #endif
 }
 
 static void oled_data_mode(void) {
 #ifdef REV_EVT1
   palSetPad(GPIOD, 4);
-#else
+#elif REV_EVT1B
   palSetPad(GPIOB, 0);
+#else
+#error "Please specify a board rev in the Makefile"
 #endif
 }
 

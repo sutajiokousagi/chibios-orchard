@@ -120,33 +120,52 @@ class OpenOcd:
 if __name__ == "__main__":
 
     gdb = None
+    should_exit = False
+    run_function_results = {}
+
     def show(*args):
         print(*args, end="\n")
 
+    def exit_on_connect_error(token, obj):
+        logging.error(['Get result.  Token, obj', obj.what, token, obj])
+
+    def print_status(token, obj):
+        logging.error(['Get result.  Token, obj', obj.what, token, obj])
+
+    def run_function_get_result(token, obj):
+        logging.error(['Get result.  Token, obj', obj.what, token, obj])
+        if obj.what != '"\\n"':
+            res = obj.what
+            # Remove the "$1 = " at the front
+            res = '='.join(res.split('=')[1:]).lstrip()
+            run_function_results[token] = res
+
+    def run_function(descr):
+        token = gdb.send("call " + descr, None, run_function_get_result)
+        gdb.wait_for(token)
+        gdb.wait_for(token)
+        return run_function_results[token]
+
     def do_test(bpnum, obj):
-        print("!!!! ~~~~ Doing test")
-        logging.error(['##### DUMP:', bpnum, obj])
-        token = gdb.send("call gpiox_get(1)")
-        gdb.wait_for(token)
-        gdb.wait_for(token)
+        prot = "gpiox_get(1)"
+        logging.error(['Result of calling ', prot, run_function(prot)])
+        should_exit = True
 
     with OpenOcd() as ocd:
-        show(ocd.send("klx.cpu curstate"))
-        print ("Doing mass erase\n")
-        show(ocd.send("kinetis mdm mass_erase"))
+        ocd.send("klx.cpu curstate")
 
-        print ("Trying to halt\n")
+        print("Doing mass erase...")
+        ocd.send("kinetis mdm mass_erase")
+
+        print ("Trying to halt SOC")
         while True:
-            show(ocd.send("sleep 10"))
+            ocd.send("sleep 1000")
             state = ocd.send("klx.cpu curstate")
             if state == "halted":
-                print ("State is halted: " + state)
+                print("State is halted: " + state)
                 break
-            print ("Trying to halt again")
-            show(ocd.send("reset halt"))
-
-        print("Echoing stuff\n")
-        show(ocd.send("ocd_echo \"echo says hi!\"")[:-1])
+            print("Trying to halt again")
+            ocd.send("reset halt")
 
         # Print out SDID
         show("SDID: %s" % (hexify(ocd.readVariable(0x40048024))))
@@ -160,8 +179,10 @@ if __name__ == "__main__":
         show("UIDML: %s" % (hexify(ocd.readVariable(0x4004805C))))
         show("UIDL: %s" % (hexify(ocd.readVariable(0x40048060))))
 
+        print("Rewriting flash...")
         ocd.send("flash write_image build/orchard.elf")
 
+        print("Starting GDB")
 
         logging.basicConfig(
             #level=logging.INFO,
@@ -173,12 +194,21 @@ if __name__ == "__main__":
             '%(message)s')
 
         gdb = gdbmi.Session("build/orchard.elf")
-        gdb.send("set unwindonsignal on")
-        gdb.wait_for(gdb.send("target remote localhost:3333"))
-        gdb.wait_for(gdb.add_breakpoint("orchardShellRestart", do_test))
-        gdb.wait_for(gdb.send("monitor reset halt"))
-        token = gdb.wait_for(gdb.send("continue"))
-
+        token = gdb.send("set unwindonsignal on")
+        logging.debug(["Set window", token])
         gdb.wait_for(token)
-        while True:
-            gdb.wait_for(token)
+
+        token = gdb.send("target remote localhost:3333", print_status, exit_on_connect_error)
+        logging.debug(["Connect to localhost", token])
+        gdb.wait_for(token)
+
+        token = gdb.send("monitor reset halt", print_status, exit_on_connect_error)
+        logging.debug(["Reset board", token])
+        gdb.wait_for(token)
+
+        # When orchardShellRestart is to be called, run the testcase instead
+        gdb.wait_for(gdb.add_breakpoint("orchardShellRestart", do_test))
+        token = gdb.send("continue")
+
+        while not should_exit:
+            gdb.wait_for(None)

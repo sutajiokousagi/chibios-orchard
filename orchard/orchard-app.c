@@ -36,6 +36,7 @@ static struct jogdial_state {
 event_source_t orchard_app_terminated;
 event_source_t orchard_app_terminate;
 event_source_t timer_expired;
+event_source_t ui_completed;
 
 static virtual_timer_t keycollect_timer;
 static event_source_t keycollect_timeout;
@@ -218,6 +219,19 @@ static uint8_t track_dial(uint32_t raw) {
   return 0;
 }
 
+static void ui_complete_cleanup(eventid_t id) {
+  (void)id;
+  OrchardAppEvent evt;
+  
+  // unhook the UI patch so key & dial events pass into the app
+  instance.ui = NULL;
+
+  evt.type = uiEvent;
+  evt.ui.code = uiComplete;
+  evt.ui.flags = uiOK;
+  instance.app->event(instance.context, &evt);  
+}
+
 static void run_keycollect_timer(void *arg) {
   (void)arg;
   
@@ -272,7 +286,7 @@ static void key_event(eventid_t id) {
       if( instance.ui == NULL )
 	instance.app->event(instance.context, &evt);
       else
-	instance.ui->event(instance.uicontext, &evt);
+	instance.ui->event(instance.context, &evt);
     }
     if (!(val & (1 << i)) && (instance.keymask & (1 << i))) {
       evt.type = keyEvent;
@@ -281,7 +295,7 @@ static void key_event(eventid_t id) {
       if( instance.ui == NULL )
 	instance.app->event(instance.context, &evt);
       else
-	instance.ui->event(instance.uicontext, &evt);
+	instance.ui->event(instance.context, &evt);
     }
   }
   
@@ -322,7 +336,7 @@ static void dial_event(eventid_t id) {
       if( instance.ui == NULL )
 	instance.app->event(instance.context, &evt);
       else
-	instance.ui->event(instance.uicontext, &evt);
+	instance.ui->event(instance.context, &evt);
     }
   }
   
@@ -372,6 +386,12 @@ void orchardAppRun(const OrchardApp *app) {
   chEvtBroadcast(&orchard_app_terminate);
 }
 
+void orchardAppExit(void) {
+  instance.next_app = orchard_app_start();  // the first app is the launcher
+  chThdTerminate(instance.thr);
+  chEvtBroadcast(&orchard_app_terminate);
+}
+
 void orchardAppTimer(const OrchardAppContext *context,
                      uint32_t usecs,
                      bool repeating) {
@@ -409,6 +429,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   instance->keymask = captouchRead();
 
   evtTableInit(orchard_app_events, 32);
+  evtTableHook(orchard_app_events, ui_completed, ui_complete_cleanup);
   evtTableHook(orchard_app_events, captouch_changed, key_event_timer);
   evtTableHook(orchard_app_events, captouch_changed, dial_event);
   evtTableHook(orchard_app_events, keycollect_timeout, key_event);
@@ -465,6 +486,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   evtTableUnhook(orchard_app_events, keycollect_timeout, key_event);
   evtTableUnhook(orchard_app_events, captouch_changed, dial_event);
   evtTableUnhook(orchard_app_events, captouch_changed, key_event_timer);
+  evtTableUnhook(orchard_app_events, ui_completed, ui_complete_cleanup);
 
   /* Atomically broadcasting the event source and terminating the thread,
      there is not a chSysUnlock() because the thread terminates upon return.*/
@@ -481,6 +503,7 @@ void orchardAppInit(void) {
   chEvtObjectInit(&orchard_app_terminate);
   chEvtObjectInit(&timer_expired);
   chEvtObjectInit(&keycollect_timeout);
+  chEvtObjectInit(&ui_completed);
   chVTReset(&instance.timer);
 
   /* Hook this outside of the app-specific runloop, so it runs even if

@@ -102,8 +102,6 @@ static void textentry_start(OrchardAppContext *context) {
 
 static void textentry_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
-  (void)context;
-
   //// note to self -- once the text entry is complete, the UI widget should
   //// send an event back to the instance app indicating UI routine is complete
   
@@ -113,37 +111,29 @@ static void textentry_event(OrchardAppContext *context, const OrchardAppEvent *e
 	entry_selection++;
 	if( entry_selection >= sizeof(entry_list) )
 	  entry_selection--;
+	
       } else if( event->key.code == keyCCW) {
 	if( entry_selection > 0 )
 	  entry_selection--;
+	
       } else if( event->key.code == keySelect ) {
 	if( entry_position < TEXTENTRY_MAXLEN )
 	  entry[entry_position] = entry_list[entry_selection];
 	entry_position++;
 	if( entry_position > TEXTENTRY_MAXLEN )
 	  entry_position--;
+	
       } else if( event->key.code == keyLeft ) {
-	entry[entry_position] = '\0';
 	if( entry_position > 0 )
 	  entry_position--;
+	entry[entry_position] = '\0';
+	
+      } else if( event->key.code == keyRight ) {
+	context->instance->ui_result = (uint32_t) entry;
+	chEvtBroadcast(&ui_completed);
       }
     }
-    else if (event->key.flags == keyUp)
-      chprintf(stream, "Got keyup for %d\r\n", event->key.code);
-    else
-      chprintf(stream, "Got unknown event for %d\r\n", event->key.code);
   }
-  else if (event->type == appEvent) {
-    chprintf(stream, "App lifetime event: ");
-    if (event->app.event == appTerminate)
-      chprintf(stream, "Terminating\r\n");
-    else if (event->app.event == appStart)
-      chprintf(stream, "Starting up\r\n");
-    else
-      chprintf(stream, "Unknown event\r\n");
-  }
-  else
-    chprintf(stream, "Unrecognized event\r\n");
 
   textentry_redraw();
 }

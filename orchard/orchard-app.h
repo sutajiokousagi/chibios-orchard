@@ -22,10 +22,14 @@ extern event_source_t orchard_app_terminate;
 /* Emitted to the system after the app has terminated */
 extern event_source_t orchard_app_terminated;
 
+// Emitted to the system after a UI dialog is completed
+extern event_source_t ui_completed;
+
 void orchardAppInit(void);
 void orchardAppRestart(void);
 void orchardAppWatchdog(void);
 void orchardAppRun(const OrchardApp *app);
+void orchardAppExit(void);
 void orchardAppTimer(const OrchardAppContext *context,
                      uint32_t usecs,
                      bool repeating);

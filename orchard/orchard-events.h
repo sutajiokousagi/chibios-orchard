@@ -77,6 +77,7 @@ typedef enum _OrchardAppEventType {
   keyEvent,
   appEvent,
   timerEvent,
+  uiEvent,
 } OrchardAppEventType;
 
 /* ------- */
@@ -93,6 +94,21 @@ typedef enum _OrchardAppEventKeyCode {
   keyCW = 0x83,
   keyCCW = 0x84,
 } OrchardAppEventKeyCode;
+
+typedef struct _OrchardUiEvent {
+  uint8_t   code;
+  uint8_t   flags;
+} OrchardUiEvent;
+
+typedef enum _OrchardUiEventCode {
+  uiComplete = 0x01,
+} OrchardUiEventCode;
+
+typedef enum _OrchardUiEventFlags {
+  uiOK = 0x01,
+  uiCancel,
+  uiError,
+} OrchardUiEventFlags;
 
 typedef struct _OrchardAppKeyEvent {
   uint8_t   code;
@@ -124,6 +140,7 @@ typedef struct _OrchardAppEvent {
     OrchardAppKeyEvent    key;
     OrchardAppLifeEvent   app;
     OrchardAppTimerEvent  timer;
+    OrchardUiEvent        ui;
   };
 } OrchardAppEvent;
 

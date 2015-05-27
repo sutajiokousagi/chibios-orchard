@@ -1,8 +1,11 @@
 #include "orchard-app.h"
 #include "orchard-ui.h"
+#include <string.h>
 
 struct OrchardUiContext textUiContext;
 
+static char myname[TEXTENTRY_MAXLEN + 1];
+  
 static void redraw_ui(void) {
   char tmp[] = "Enter your name";
   
@@ -23,18 +26,42 @@ static void redraw_ui(void) {
   gdispFlush();
 }
 
+static void draw_confirmation(void) {
+  coord_t width;
+  coord_t height;
+  font_t font;
+  char tmp[] = "Your name is now:";
+  char tmp2[] = "Press select to continue.";
+
+  redraw_ui();  // clear the text entry area
+  
+  font = gdispOpenFont("fixed_5x8");
+  width = gdispGetWidth();
+  height = gdispGetFontMetric(font, fontHeight);
+
+  gdispDrawStringBox(0, height, width, height,
+                     tmp, font, White, justifyCenter);
+
+  gdispDrawStringBox(0, height * 2, width, height,
+                     myname, font, White, justifyCenter);
+  
+  gdispDrawStringBox(0, height * 4, width, height,
+                     tmp2, font, White, justifyCenter);
+  
+  gdispFlush();
+  
+}
+
 static uint32_t name_init(OrchardAppContext *context) {
 
   (void)context;
-  chprintf(stream, "NAME: Initializing name app\r\n");
+
   return 0;
 }
 
 static void name_start(OrchardAppContext *context) {
   const OrchardUi *textUi;
   
-  chprintf(stream, "NAME: Starting name app\r\n");
-
   redraw_ui();
   // all this app does is launch a text entry box and store the name
   textUi = getUiByName("textentry");
@@ -52,31 +79,23 @@ void name_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   (void)context;
   uint8_t shift;
   
-  chprintf(stream, "NAME: Received %d event\r\n", event->type);
-
   if (event->type == keyEvent) {
-    if (event->key.code == keyCW)
-      ; // something
-    else if (event->key.code == keyCCW) {
-      ; // something more
+    if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
+      orchardAppExit();
     }
-    else if ((event->key.code == keyLeft)  && (event->key.flags == keyDown) ) {
-      shift = getShift();
-      shift++;
-      if( shift > 6 )
-	shift = 0;
-      setShift(shift);
-    } else if ( (event->key.code == keyRight) && (event->key.flags == keyDown))
-      effectsNextPattern();
-    else if (event->key.code == keySelect)
-      ; // something
+  } else if( event->type == uiEvent ) {
+    if(( event->ui.code == uiComplete ) && ( event->ui.flags == uiOK )) {
+      strncpy(myname, (char *) context->instance->ui_result, TEXTENTRY_MAXLEN + 1);
+    }
+    chprintf( stream, "My name is: %s\n\r", myname );
+
+    draw_confirmation();
   }
 }
 
 static void name_exit(OrchardAppContext *context) {
 
   (void)context;
-  chprintf(stream, "NAME: Exiting name app\r\n");
 }
 
 orchard_app("Set your name", name_init, name_start, name_event, name_exit);

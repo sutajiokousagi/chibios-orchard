@@ -72,6 +72,7 @@ uint16_t captouchRead(void);
 void captouchDebug(void);
 void captouchPrint(uint8_t reg);
 void captouchSet(uint8_t adr, uint8_t dat);
+void captouchRecal(void);
 
 extern event_source_t captouch_changed;
 

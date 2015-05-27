@@ -54,8 +54,15 @@ static int captouch_to_key(uint8_t code) {
     return keyLeft;
   if (code == 0)
     return keyRight;
+#ifdef REV_BMKEYS
   if (code == 5)
     return keySelect;
+#elif REV_BC1KEYS  // EVT1B, bootcamp hardware
+  if (code == 2)
+    return keySelect;
+#else
+#error "Please specify a key layout in the Makefile"
+#endif
   return code;
 }
 
@@ -97,9 +104,10 @@ static void poke_run_launcher_timer(eventid_t id) {
   }
 }
 
-// hex codes from top, going clockwise
-// 80 40 10 08 04 02 400 200 100 
 static int8_t jog_raw_to_position(uint32_t raw) {
+#ifdef REV_BMKEYS
+  // hex codes from top, going clockwise
+  // 80 40 10 08 04 02 400 200 100 
   switch(raw) {
   case 0x80:
     return 0;
@@ -141,6 +149,53 @@ static int8_t jog_raw_to_position(uint32_t raw) {
   default:
     return -1; // error case
   }
+#elif REV_BC1KEYS  // EVT1B, bootcamp hardware
+  // hex codes from top, going clockwise
+  // 
+  switch(raw) {
+  case 0x200:
+    return 0;
+  case (0x200 | 0x2):
+    return 1;
+  case 0x2:
+    return 2;
+  case (0x2 | 0x8):
+    return 3;
+  case 0x8:
+    return 4;
+  case (0x08 | 0x10):
+    return 5;
+  case 0x10:
+    return 6;
+  case (0x10 | 0x20):
+    return 7;
+  case 0x20:
+    return 8;
+  case (0x20 | 0x40):
+    return 9;
+  case 0x40:
+    return 10;
+  case (0x40 | 0x80):
+    return 11;
+  case 0x80:
+    return 12;
+  case (0x80 | 0x100):
+    return 13;
+  case 0x100:
+    return 14;
+  case (0x100 | 0x400):
+    return 15;
+  case 0x400:
+    return 16;
+  case (0x400 | 0x200):
+    return 17;
+    
+  default:
+    return -1; // error case
+  }
+#else
+#error "Please specify a key layout in the Makefile"
+#endif
 }
 
 // current state + previous state => direction

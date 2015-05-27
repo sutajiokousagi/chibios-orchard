@@ -6,6 +6,8 @@
 #include "orchard-shell.h"
 #include "captouch.h"
 
+#include <stdlib.h>
+
 static int should_stop(void) {
   uint8_t bfr[1];
   return chnReadTimeout(serialDriver, bfr, sizeof(bfr), 1);
@@ -30,6 +32,7 @@ static void cmd_touch(BaseSequentialStream *buf, int argc, char **argv) {
 orchard_command("touch", cmd_touch);
 
 static void cmd_tdbg(BaseSequentialStream *buf, int argc, char **argv) {
+  (void)buf;
   uint8_t adr;
   uint8_t dat;
 
@@ -44,5 +47,14 @@ static void cmd_tdbg(BaseSequentialStream *buf, int argc, char **argv) {
     captouchDebug();
   }
 }
-
 orchard_command("td", cmd_tdbg);
+
+
+static void cmd_tcal(BaseSequentialStream *buf, int argc, char **argv) {
+  (void)buf;
+  (void)argc;
+  (void)argv;
+
+  captouchRecal();
+}
+orchard_command("tcal", cmd_tcal);

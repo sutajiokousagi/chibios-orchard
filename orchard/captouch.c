@@ -184,17 +184,21 @@ void captouchSet(uint8_t adr, uint8_t dat) {
   i2cReleaseBus(driver);
 }
 
-void captouchDebug(void) {
-  uint8_t i;
-  uint8_t val[128];
-
+void captouchRecal(void) {
   i2cAcquireBus(driver);
-  captouch_set(ATO_CFG_CTL0, 0x0B);
+  captouch_set(ATO_CFG_CTL0, 0x00);
 
   captouch_set(ATO_CFG_USL, 196);  // USL
   captouch_set(ATO_CFG_LSL, 127);  // LSL
   captouch_set(ATO_CFG_TGT, 176);  // target level
+
+  captouch_set(ATO_CFG_CTL0, 0x0B);
   i2cReleaseBus(driver);
+}
+
+void captouchDebug(void) {
+  uint8_t i;
+  uint8_t val[128];
 
   for( i = 0; i < 128; i++ ) {
     i2cAcquireBus(driver);
@@ -203,46 +207,18 @@ void captouchDebug(void) {
   }
   dump( val, 128 );
 
-#if 0
-  chprintf( stream, "ELE OOR/TCH:\n\r" );
-  for( i= 0; i < 4; i++ ) {
-    i2cAcquireBus(driver);
-    val = captouch_get(i);
-    i2cReleaseBus(driver);
-    chprintf( stream, "%02x: %d\n\r", i, val );
-  }
-
-  chprintf( stream, "HD/CL/DL/HD:\n\r" );
-  for( i= 0x2B; i < 0x33; i++ ) {
-    i2cAcquireBus(driver);
-    val = captouch_get(i);
-    i2cReleaseBus(driver);
-    chprintf( stream, "%02x: %d\n\r", i, val );
-  }
-
-  chprintf( stream, "ELE T/R:\n\r" );
-  for( i= 0x41; i < 0x59; i++ ) {
-    i2cAcquireBus(driver);
-    val = captouch_get(i);
-    i2cReleaseBus(driver);
-    chprintf( stream, "%d ", val );
-  }
-
-  chprintf( stream, "\n\rCFG:\n\r" );
-  for( i= 0x5D; i < 0x5F; i++ ) {
-    i2cAcquireBus(driver);
-    val = captouch_get(i);
-    i2cReleaseBus(driver);
-    chprintf( stream, "%02x: %d\n\r", i, val );
-  }
-
-  chprintf( stream, "ATO:\n\r" );
-  for( i= 0x7B; i < 0x80; i++ ) {
-    i2cAcquireBus(driver);
-    val = captouch_get(i);
-    i2cReleaseBus(driver);
-    chprintf( stream, "%02x: %d\n\r", i, val );
-  }
-#endif
 }
 
+/*
+This cal set works through the touch surface:
+
+00000000: 00 00 00 00 D9 02 C8 02 C4 02 C5 02 C7 02 CB 02 
+00000010: CA 02 C7 02 C4 02 CF 02 C5 02 C4 02 00 00 B6 B1 
+00000020: B0 B1 B1 B2 B2 B1 B0 B3 B1 B0 00 01 01 00 00 01 
+00000030: 01 FF 02 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00000040: 00 0F 2A 0F 2A 0F 2A 0F 2A 0F 2A 0F 2A 0F 2A 0F 
+00000050: 2A 0F 2A 0F 2A 0F 2A 0F 2A 00 00 00 10 04 0C 27 
+00000060: 2D 2A 28 28 2F 2F 28 29 2E 2E 27 00 11 11 11 11 
+00000070: 11 11 00 00 00 00 00 00 00 00 00 0B 00 C4 7F B0 
+
+ */

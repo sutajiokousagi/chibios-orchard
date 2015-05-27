@@ -152,7 +152,9 @@ if __name__ == "__main__":
         should_exit = True
 
     with OpenOcd() as ocd:
+        print("Halting CPU")
         ocd.send("klx.cpu curstate")
+        ocd.send("reset halt")
 
         print("Doing mass erase...")
         ocd.send("kinetis mdm mass_erase")

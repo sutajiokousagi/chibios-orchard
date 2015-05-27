@@ -42,39 +42,56 @@
 
 #define ROTATE_AMOUNT 15
 
+#define BOARD_TOP_X 15
+#define BOARD_TOP_Y 15
+#define BOARD_BOTTOM_X (gdispGetWidth() - 15)
+#define BOARD_BOTTOM_Y (gdispGetHeight() - 15)
+
 static const int ship[] = {
-  4, 0,
+   4,  0,
   -4, -3,
-  -3, 0,
-  -4, 3,
+  -3,  0,
+  -4,  3,
+};
+
+static const int jet[] = {
+  -4, -2,
+  -7,  0,
+  -4,  2,
 };
 
 struct pew_context {
   int             x;
   int             y;
-  long            rotation;
+  int             rotation;
+  fix16_t         x_vel;
+  fix16_t         y_vel;
+  fix16_t         rotation_f;
+  int             max_x;
+  int             min_x;
   int             max_y;
   int             min_y;
+  int             width;
+  int             height;
   unsigned long   score;
   unsigned long   game_speed;
+  bool            engines;
   font_t          font16;
   font_t          font12;
 };
 
-static int rotx(int x, int y, int rotation) {
+static int rotx(int x, int y, fix16_t fr) {
   fix16_t fx = fix16_from_int(x);
   fix16_t fy = fix16_from_int(y);
-  fix16_t fr = fix16_deg_to_rad(fix16_from_int(rotation));
 
   return fix16_to_int(fix16_sub(
         fix16_mul(fx, fix16_cos(fr)),
         fix16_mul(fy, fix16_sin(fr))));
 }
 
-static int roty(int x, int y, int rotation) {
+static int roty(int x, int y, fix16_t fr) {
   fix16_t fx = fix16_from_int(x);
   fix16_t fy = fix16_from_int(y);
-  fix16_t fr = fix16_deg_to_rad(fix16_from_int(rotation));
 
   return fix16_to_int(fix16_add(
         fix16_mul(fx, fix16_sin(fr)),
@@ -89,27 +106,44 @@ static void pew_draw_ship(struct pew_context *pew) {
   unsigned int i;
 
   // Calculate the actual draw point by rotating and then translating.
-  px = rotx(ship[6], ship[7], pew->rotation) + pew->x;
-  py = roty(ship[6], ship[7], pew->rotation) + pew->y;
+  px = rotx(ship[6], ship[7], pew->rotation_f) + pew->x;
+  py = roty(ship[6], ship[7], pew->rotation_f) + pew->y;
          
   // Loop through the other points---note that this therefore begins at point 1, not 0!
   for (i = 0; i < ARRAY_SIZE(ship); i += 2) {
-    cx = rotx(ship[i], ship[i + 1], pew->rotation) + pew->x;
-    cy = roty(ship[i], ship[i + 1], pew->rotation) + pew->y;
+    cx = rotx(ship[i], ship[i + 1], pew->rotation_f) + pew->x;
+    cy = roty(ship[i], ship[i + 1], pew->rotation_f) + pew->y;
 
-    gdispDrawLine(px, py, cx, cy, White);
+    gdispDrawLine(px + 5, py + 5, cx + 5, cy + 5, White);
 
     px = cx;
     py = cy;
   }
+
+  if (pew->engines) {
+    // Calculate the actual draw point by rotating and then translating.
+    px = rotx(jet[4], jet[5], pew->rotation_f) + pew->x;
+    py = roty(jet[4], jet[5], pew->rotation_f) + pew->y;
+           
+    // Loop through the other points---note that this therefore begins at point 1, not 0!
+    for (i = 0; i < ARRAY_SIZE(jet); i += 2) {
+      cx = rotx(jet[i], jet[i + 1], pew->rotation_f) + pew->x;
+      cy = roty(jet[i], jet[i + 1], pew->rotation_f) + pew->y;
+
+      gdispDrawLine(px + 5, py + 5, cx + 5, cy + 5, White);
+
+      px = cx;
+      py = cy;
+    }
+  }
 }
 
-static void pew_tick(struct pew_context *pew) {
+static void pew_redraw(struct pew_context *pew){
 
   gdispClear(Black);
-  gdispDrawBox(0,
+  gdispDrawBox(pew->min_x,
                pew->min_y,
-               gdispGetWidth(),
+               pew->max_x,
                pew->max_y,
                White);
   pew_draw_ship(pew);
@@ -119,6 +153,33 @@ static void pew_tick(struct pew_context *pew) {
                   pew->font16,
                   White);
   gdispFlush();
+}
+
+static void pew_tick(struct pew_context *pew) {
+
+  fix16_t stepsize = fix16_div(fix16_from_int(20), fix16_from_int(1000));
+
+  if (pew->engines) {
+    pew->x_vel += fix16_mul(fix16_cos(pew->rotation_f), fix16_from_int(1));
+    pew->y_vel += fix16_mul(fix16_sin(pew->rotation_f), fix16_from_int(1));
+  }
+
+  pew->x += fix16_to_int(fix16_mul(pew->x_vel, stepsize));
+  pew->y += fix16_to_int(fix16_mul(pew->y_vel, stepsize));
+
+  while (pew->x > pew->max_x)
+    pew->x -= pew->width;
+
+  while (pew->x < pew->min_x)
+    pew->x += pew->width;
+
+  while (pew->y > pew->max_y)
+    pew->y -= pew->height;
+
+  while (pew->y < pew->min_y)
+    pew->y += pew->height;
+
+  pew_redraw(pew);
 }
 
 static uint32_t pew_init(OrchardAppContext *context) {
@@ -132,30 +193,25 @@ static void pew_start(OrchardAppContext *context) {
   pew->font16 = gdispOpenFont("DejaVuSans16");
   pew->font12 = gdispOpenFont("DejaVuSans12");
 
-  pew->min_y = 15;
-  pew->max_y = gdispGetHeight() - 15;
+  pew->min_x = BOARD_TOP_X;
+  pew->max_x = BOARD_BOTTOM_X;
+  pew->min_y = BOARD_TOP_Y;
+  pew->max_y = BOARD_BOTTOM_Y;
 
-  pew->x = gdispGetWidth() / 2;
-  pew->y = gdispGetHeight() / 2;
+  pew->width = pew->max_x - pew->min_x;
+  pew->height = pew->max_y - pew->min_y;
 
-  // Draw the board
-  gdispClear(Black);
-  gdispDrawBox(0,
-               pew->min_y,
-               gdispGetWidth(),
-               pew->max_y,
-               White);
-  gdispDrawString(20,
-                  (pew->min_y + pew->max_y) / 2,
-                  "PEW",
-                  pew->font16,
-                  White);
+  pew->x = (pew->width / 2) + pew->min_x;
+  pew->y = (pew->height / 2) + pew->min_y;
 
   pew->game_speed = 20 * 1000;
+  pew->engines = false;
+  pew->x_vel = 0;
+  pew->y_vel = 0;
+
+  pew_redraw(pew);
 
   orchardAppTimer(context, pew->game_speed, true);
-
-  gdispFlush();
 }
 
 static void pew_exit(OrchardAppContext *context) {
@@ -176,14 +232,20 @@ static void pew_event(OrchardAppContext *context, const OrchardAppEvent *event) 
       pew->rotation += ROTATE_AMOUNT;
       while (pew->rotation > 360)
         pew->rotation -= 360;
+      pew->rotation_f = fix16_deg_to_rad(fix16_from_int(pew->rotation));
     }
     else if (event->key.code == keyCCW) {
       pew->rotation -= ROTATE_AMOUNT;
       while (pew->rotation < 0)
         pew->rotation += 360;
+      pew->rotation_f = fix16_deg_to_rad(fix16_from_int(pew->rotation));
     }
 
     else if (event->key.code == keyLeft) {
+      if (event->key.flags == keyDown)
+        pew->engines = true;
+      else
+        pew->engines = false;
     }
   }
 

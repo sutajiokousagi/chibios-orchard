@@ -160,8 +160,11 @@ static void pew_tick(struct pew_context *pew) {
   fix16_t stepsize = fix16_div(fix16_from_int(20), fix16_from_int(1000));
 
   if (pew->engines) {
-    pew->x_vel += fix16_mul(fix16_cos(pew->rotation_f), fix16_from_int(1));
-    pew->y_vel += fix16_mul(fix16_sin(pew->rotation_f), fix16_from_int(1));
+    fix16_t scale = fix16_from_int(4);
+    pew->x_vel = 
+      fix16_add(pew->x_vel, fix16_mul(fix16_cos(pew->rotation_f), scale));
+    pew->y_vel = 
+      fix16_add(pew->y_vel, fix16_mul(fix16_sin(pew->rotation_f), scale));
   }
 
   pew->x += fix16_to_int(fix16_mul(pew->x_vel, stepsize));

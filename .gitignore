@@ -5,3 +5,5 @@ debug/
 *.swp
 *.swo
 *~
+__pycache__
+*.pyc

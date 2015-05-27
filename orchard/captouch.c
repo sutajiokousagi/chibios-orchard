@@ -53,6 +53,8 @@ static uint16_t captouch_read(void) {
 // Configure all registers as described in AN3944
 static void captouch_config(void) {
 
+  captouch_set(ELE_CFG, 0x00);  // register updates only allowed when in stop mode
+
   // Section A
   // This group controls filtering when data is > baseline.
   captouch_set(MHD_R, 0x01);
@@ -99,19 +101,19 @@ static void captouch_config(void) {
   // Set ESI2
   captouch_set(FIL_CFG, 0x04);
 
+  // Section F
+  // Enable Auto Config and auto Reconfig
+  captouch_set(ATO_CFG_CTL0, 0x0B);
+
+  captouch_set(ATO_CFG_USL, 0xC4);  // USL 196
+  captouch_set(ATO_CFG_LSL, 0x7F);  // LSL 127
+  captouch_set(ATO_CFG_TGT, 0xB0);  // target level 176
+
   // Section E
   // Electrode Configuration
   // Enable 6 Electrodes and set to run mode
   // Set ELE_CFG to 0x00 to return to standby mode
   captouch_set(ELE_CFG, 0x0C);  // Enables all 12 Electrodes
-
-  // Section F
-  // Enable Auto Config and auto Reconfig
-  captouch_set(ATO_CFG_CTL0, 0x0B);
-
-  captouch_set(ATO_CFG_USL, 196);  // USL
-  captouch_set(ATO_CFG_LSL, 127);  // LSL
-  captouch_set(ATO_CFG_TGT, 176);  // target level
 
 }
 

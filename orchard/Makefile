@@ -122,6 +122,7 @@ CSRC = main.c \
        $(wildcard ui-*.c) \
        accel.c \
        charger.c \
+       gasgauge.c \
        captouch.c \
        gpiox.c \
        oled.c \

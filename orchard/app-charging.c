@@ -2,6 +2,7 @@
 #include "orchard-ui.h"
 
 #include "analog.h"
+#include "gasgauge.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -81,6 +82,36 @@ static void redraw_ui(uint8_t firsttime) {
 		       uiStr, font, White, justifyRight);
 
   }
+  
+  // 4th line left
+  chsnprintf(uiStr, sizeof(uiStr), "Draw: %dmA", ggAvgCurrent());
+  gdispDrawStringBox(0, height*4, width, height,
+		     uiStr, font, White, justifyLeft);
+
+  // 4th line right
+  chsnprintf(uiStr, sizeof(uiStr), "Volt: %dmV", ggVoltage());
+  gdispDrawStringBox(width/2, height*4, width/2, height,
+		     uiStr, font, White, justifyRight);
+
+  // 5th line left
+  chsnprintf(uiStr, sizeof(uiStr), "Pwr: %dmW", ggAvgPower());
+  gdispDrawStringBox(0, height*5, width, height,
+		     uiStr, font, White, justifyLeft);
+
+  // 5th line right
+  chsnprintf(uiStr, sizeof(uiStr), "Tank: %dmAh", ggRemainingCapacity());
+  gdispDrawStringBox(width/2, height*5, width/2, height,
+		     uiStr, font, White, justifyRight);
+
+  // 6th line left
+  chsnprintf(uiStr, sizeof(uiStr), "Capacity: %d%%", ggStateofCharge());
+  gdispDrawStringBox(0, height*6, width, height,
+		     uiStr, font, White, justifyLeft);
+
+  // 6th line right
+  //  chsnprintf(uiStr, sizeof(uiStr), "Cap: %d\%", ggRemainingCapacity());
+  //  gdispDrawStringBox(width/2, height*6, width/2, height,
+  //		     uiStr, font, White, justifyRight);
 
   gdispFlush();
 }

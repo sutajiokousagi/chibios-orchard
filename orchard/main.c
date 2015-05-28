@@ -36,6 +36,7 @@
 #include "radio.h"
 #include "flash.h"
 #include "analog.h"
+#include "gasgauge.h"
 
 #include "gfx.h"
 
@@ -253,6 +254,7 @@ int main(void)
 
   accelStart(i2cDriver);
   chargerStart(i2cDriver);
+  ggStart(i2cDriver);
   captouchStart(i2cDriver);
   radioStart(&KRADIO1, &SPID1);
   oledStart(&SPID2);

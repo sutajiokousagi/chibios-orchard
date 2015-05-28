@@ -25,6 +25,7 @@ static void ble_rdyn_cb(EXTDriver *extp, expchannel_t channel) {
   chSysUnlockFromISR();
 }
 
+#if ORCHARD_BOARD_REV != ORCHARD_REV_EVT1
 static void gpiox_rdy_cb(EXTDriver *extp, expchannel_t channel) {
 
   (void)extp;
@@ -34,6 +35,7 @@ static void gpiox_rdy_cb(EXTDriver *extp, expchannel_t channel) {
   chEvtBroadcastI(&gpiox_rdy);
   chSysUnlockFromISR();
 }
+#endif
 
 static const EXTConfig ext_config = {
   {

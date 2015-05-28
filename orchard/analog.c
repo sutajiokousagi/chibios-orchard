@@ -100,7 +100,7 @@ static void adc_mic_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   }
 
   chSysLockFromISR();
-  chBSemSignalI(&mic_semaphore); // release sampling buffer
+  chBSemSignalI(&mic_semaphore); // release the microphone mutex
   chEvtBroadcastI(&mic_rdy);
   chSysUnlockFromISR();
 }
@@ -126,7 +126,7 @@ static const ADCConversionGroup adcgrpmic = {
 };
 
 void analogUpdateMic(void) {
-  chBSemWait(&mic_semaphore);  // indicate that we're sampling
+  chBSemWait(&mic_semaphore);  // grab the mutex on the microphone
   adcConvert(&ADCD1, &adcgrpmic, mic_sample, MIC_SAMPLE_DEPTH);
 }
 

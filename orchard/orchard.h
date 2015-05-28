@@ -23,4 +23,11 @@ extern void *stream;
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 #endif
 
+#define LAYOUT_BM                     1 /* Burning Man hardware */
+#define LAYOUT_BC1                    2 /* EVT1B, bootcamp hardware */
+
+#ifndef KEY_LAYOUT
+#error "Must define a keylayout.  Set KEY_LAYOUT in Makefile."
+#endif
+
 #endif /* __ORCHARD_H__ */

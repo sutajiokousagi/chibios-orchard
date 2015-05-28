@@ -11,22 +11,20 @@
 static SPIDriver *driver;
 
 static void oled_command_mode(void) {
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
+  /* EVT1 swapped GPIOX and OLED_DC pins */
   palClearPad(GPIOD, 4);
-#elif REV_EVT1B
-  palClearPad(GPIOB, 0);
 #else
-#error "Please specify a board rev in the Makfile"
+  palClearPad(GPIOB, 0);
 #endif
 }
 
 static void oled_data_mode(void) {
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
+  /* EVT1 swapped GPIOX and OLED_DC pins */
   palSetPad(GPIOD, 4);
-#elif REV_EVT1B
-  palSetPad(GPIOB, 0);
 #else
-#error "Please specify a board rev in the Makefile"
+  palSetPad(GPIOB, 0);
 #endif
 }
 

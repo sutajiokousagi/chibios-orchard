@@ -68,6 +68,7 @@ struct evt_table {
 
 extern event_source_t ble_rdy;
 extern event_source_t rf_pkt_rdy;
+extern event_source_t gpiox_rdy;
 
 void orchardEventsStart(void);
 

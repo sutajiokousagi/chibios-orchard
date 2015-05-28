@@ -92,12 +92,11 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT2,  // PORTB
       .pads = {
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /* PTB0*/ PAL_MODE_INPUT_PULLUP,    /* PTB1*/ PAL_MODE_ALTERNATIVE_3,   /* PTB2*/ PAL_MODE_ALTERNATIVE_3,
-#elif REV_EVT1B 
-        /* PTB0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTB1*/ PAL_MODE_ALTERNATIVE_3,   /* PTB2*/ PAL_MODE_ALTERNATIVE_3, // ECO9: B0/D4 DC/INT swap
 #else
-#error "Please specify a board revision in the Makefile"
+  /* ECO9: Swap B0/D4 DC/INT to allow GPIOX to fire interrupts */
+        /* PTB0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTB1*/ PAL_MODE_ALTERNATIVE_3,   /* PTB2*/ PAL_MODE_ALTERNATIVE_3,
 #endif
         /* PTB3*/ PAL_MODE_UNCONNECTED,     /* PTB4*/ PAL_MODE_UNCONNECTED,     /* PTB5*/ PAL_MODE_UNCONNECTED,
         /* PTB6*/ PAL_MODE_UNCONNECTED,     /* PTB7*/ PAL_MODE_UNCONNECTED,     /* PTB8*/ PAL_MODE_UNCONNECTED,
@@ -130,20 +129,18 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT4,  // PORTD
       .pads = {
-#ifdef REV_EVT1	
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_UNCONNECTED,     /* PTD2*/ PAL_MODE_UNCONNECTED,
-#elif REV_EVT1B 
-        /* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_INPUT,     /* PTD2*/ PAL_MODE_UNCONNECTED, // ECO10: allow fast Tx filling of radio packets
 #else
-#error "Please specify a board revision in the Makefile"
+        /* ECO10: allow fast Tx filling of radio packets by wiring D1 to PTD1 */
+        /* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_INPUT,           /* PTD2*/ PAL_MODE_UNCONNECTED,
 #endif
 
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /* PTD3*/ PAL_MODE_UNCONNECTED,     /* PTD4*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD5*/ PAL_MODE_ALTERNATIVE_2,
-#elif REV_EVT1B 
-        /* PTD3*/ PAL_MODE_UNCONNECTED,     /* PTD4*/ PAL_MODE_INPUT_PULLUP,    /* PTD5*/ PAL_MODE_ALTERNATIVE_2, // ECO9: B0/D4 DC/INT swap
 #else
-#error "Please specify a board revision in the Makefile"
+  /* ECO9: Swap B0/D4 DC/INT to allow GPIOX to fire interrupts */
+        /* PTD3*/ PAL_MODE_UNCONNECTED,     /* PTD4*/ PAL_MODE_INPUT_PULLUP,    /* PTD5*/ PAL_MODE_ALTERNATIVE_2,
 #endif
         /* PTD6*/ PAL_MODE_ALTERNATIVE_3,   /* PTD7*/ PAL_MODE_ALTERNATIVE_3,   /* PTD8*/ PAL_MODE_UNCONNECTED,
         /* PTD9*/ PAL_MODE_UNCONNECTED,     /*PTD10*/ PAL_MODE_UNCONNECTED,     /*PTD11*/ PAL_MODE_UNCONNECTED,
@@ -165,22 +162,20 @@ const PALConfig pal_default_config =
         /* PTE9*/ PAL_MODE_UNCONNECTED,     /*PTE10*/ PAL_MODE_UNCONNECTED,     /*PTE11*/ PAL_MODE_UNCONNECTED,
         /*PTE12*/ PAL_MODE_UNCONNECTED,     /*PTE13*/ PAL_MODE_UNCONNECTED,     /*PTE14*/ PAL_MODE_UNCONNECTED,
         /*PTE15*/ PAL_MODE_UNCONNECTED,     /*PTE16*/ PAL_MODE_INPUT_ANALOG,    /*PTE17*/ PAL_MODE_OUTPUT_PUSHPULL,
-#ifdef REV_EVT1	
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /*PTE18*/ PAL_MODE_INPUT,           /*PTE19*/ PAL_MODE_INPUT_ANALOG,    /*PTE20*/ PAL_MODE_UNCONNECTED,
-#elif REV_EVT1B 
-        /*PTE18*/ PAL_MODE_INPUT,           /*PTE19*/ PAL_MODE_OUTPUT_PUSHPULL,    /*PTE20*/ PAL_MODE_UNCONNECTED, // ECO7: E19 RESET/DAC swap 
 #else
-#error "Please specify a board rev in the Makefile"
+        /* ECO7: E19 RESET/DAC swap  */
+        /*PTE18*/ PAL_MODE_INPUT,           /*PTE19*/ PAL_MODE_OUTPUT_PUSHPULL, /*PTE20*/ PAL_MODE_UNCONNECTED,
 #endif
         /*PTE21*/ PAL_MODE_UNCONNECTED,     /*PTE22*/ PAL_MODE_UNCONNECTED,     /*PTE23*/ PAL_MODE_UNCONNECTED,
         /*PTE24*/ PAL_MODE_UNCONNECTED,     /*PTE25*/ PAL_MODE_UNCONNECTED,     /*PTE26*/ PAL_MODE_UNCONNECTED,
         /*PTE27*/ PAL_MODE_UNCONNECTED,     /*PTE28*/ PAL_MODE_UNCONNECTED,     /*PTE29*/ PAL_MODE_UNCONNECTED,
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /*PTE30*/ PAL_MODE_OUTPUT_PUSHPULL, /*PTE31*/ PAL_MODE_UNCONNECTED,
-#elif REV_EVT1B 
-        /*PTE30*/ PAL_MODE_INPUT_ANALOG, /*PTE31*/ PAL_MODE_UNCONNECTED, // ECO7: E30 DAC/RESET swap
 #else
-#error "Please specify a board rev in the Makefile"
+        /* ECO7: E30 DAC/RESET swap */
+        /*PTE30*/ PAL_MODE_INPUT_ANALOG,    /*PTE31*/ PAL_MODE_UNCONNECTED,
 #endif
       },
     },
@@ -190,7 +185,7 @@ const PALConfig pal_default_config =
 
 static void radio_reset(void)
 {
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
   GPIOE->PSOR = (1 << 30);
 #else
   GPIOE->PSOR = (1 << 19);
@@ -199,7 +194,7 @@ static void radio_reset(void)
 
 static void radio_enable(void)
 {
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
   GPIOE->PCOR = (1 << 30);
 #else
   GPIOE->PCOR = (1 << 19);

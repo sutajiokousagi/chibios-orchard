@@ -227,12 +227,13 @@ CPPWARN = -Wall -Wextra
 # Start of user section
 #
 
+# Keypad layout selection:
+#     BM      burning man key layout
+#     BC1     bootcamp key layout v1
+KEY_LAYOUT = BM
+
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DREV_EVT1B -DREV_BC1KEYS
-# -DREV_EVT1 for 1st-gen orchard hardware
-# -DREV_EVT1B for 1st-gen bootcamp hardware
-# -DREV_BMKEYS for burning man key layout
-# -DREV_BC1KEYS for bootcamp key layout v1
+UDEFS = -DKEY_LAYOUT=LAYOUT_$(KEY_LAYOUT)
 
 # Define ASM defines here
 UADEFS =

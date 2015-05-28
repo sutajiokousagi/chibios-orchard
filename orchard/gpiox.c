@@ -24,6 +24,8 @@ static I2CDriver *driver;
 static uint8_t gpiox_pal_mode[GPIOX_NUM_PADS];
 static uint8_t regcache[10];
 
+static void gpiox_poll_int(int ign);
+
 static void gpiox_set(uint8_t reg, uint8_t val) {
 
   uint8_t tx[2] = {reg, val};
@@ -57,6 +59,8 @@ static uint8_t gpiox_read_pad(void *port, int pad) {
   return !!(gpiox_get(REG_IN) & (1 << pad));
 }
 
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
+/* Fake a GPIO by polling the GPIO pin */
 static THD_WORKING_AREA(waGpioxPollThread, 192);
 static THD_FUNCTION(gpiox_poll_thread, arg) {
 
@@ -65,11 +69,12 @@ static THD_FUNCTION(gpiox_poll_thread, arg) {
   chRegSetThreadName("GPIOX poll thread");
   while (1) {
     chThdSleepMilliseconds(30);
-    gpioxPollInt(NULL);
+    gpiox_poll_int(0);
   }
 
   return;
 }
+#endif
 
 void gpioxStart(I2CDriver *i2cp) {
 
@@ -91,8 +96,12 @@ void gpioxStart(I2CDriver *i2cp) {
   while (!(gpiox_get(REG_ID) & (1 << 1)));
   i2cReleaseBus(driver);
 
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
   chThdCreateStatic(waGpioxPollThread, sizeof(waGpioxPollThread),
                     ORCHARD_APP_PRIO, gpiox_poll_thread, NULL);
+#else
+  evtTableHook(orchard_events, gpiox_rdy, gpiox_poll_int);
+#endif
 }
 
 void gpioxSetPad(void *port, int pad) {
@@ -262,14 +271,15 @@ static void irq_check_and_broadcast(uint8_t state, int gpio) {
 
 static uint32_t false_interrupts;
 static uint32_t real_interrupts;
-void gpioxPollInt(void *port) {
+static void gpiox_poll_int(int ign) {
 
-  (void)port;
+  (void)ign;
   int pad;
   uint8_t irq_state;
   int pal_level;
 
-#ifdef REV_EVT1
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
+  /* Original board rev had the GPIO connected to a non-IRQ line */
   pal_level = palReadPad(GPIOB, 0);
 #else
   pal_level = palReadPad(GPIOD, 4);

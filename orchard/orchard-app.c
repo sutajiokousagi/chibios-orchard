@@ -49,6 +49,11 @@ static unsigned long track_time;
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
 
+static void handle_charge_state(eventid_t id) {
+  (void)id;
+  // fill this in once I've figured out this code
+}
+
 static int captouch_to_key(uint8_t code) {
   if (code == 11)
     return keyLeft;
@@ -318,6 +323,15 @@ static void adc_mic_event(eventid_t id) {
   instance.app->event(instance.context, &evt);
 }
 
+static void adc_usb_event(eventid_t id) {
+  (void) id;
+  OrchardAppEvent evt;
+
+  evt.type = adcEvent;
+  evt.adc.code = adcCodeUsbdet;
+  instance.app->event(instance.context, &evt);
+}
+
 static void key_event(eventid_t id) {
   (void)id;
   uint32_t val = captouch_collected_state;
@@ -506,6 +520,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   evtTableHook(orchard_app_events, timer_expired, timer_event);
   evtTableHook(orchard_app_events, celcius_rdy, adc_temp_event);
   evtTableHook(orchard_app_events, mic_rdy, adc_mic_event);
+  evtTableHook(orchard_app_events, usbdet_rdy, adc_usb_event);
 
   if (instance->app->init)
     app_context.priv_size = instance->app->init(&app_context);
@@ -552,6 +567,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   chVTReset(&run_launcher_timer);
   run_launcher_timer_engaged = false;
 
+  evtTableUnhook(orchard_app_events, usbdet_rdy, adc_usb_event);
   evtTableUnhook(orchard_app_events, mic_rdy, adc_mic_event);
   evtTableUnhook(orchard_app_events, celcius_rdy, adc_temp_event);
   evtTableUnhook(orchard_app_events, timer_expired, timer_event);
@@ -582,9 +598,9 @@ void orchardAppInit(void) {
   /* Hook this outside of the app-specific runloop, so it runs even if
      the app isn't listening for events.*/
   evtTableHook(orchard_events, captouch_changed, poke_run_launcher_timer);
-
-  ///// TODO: write this hook here
-  //  evtTableHook(orchard_events, usbdet_rdy, handle_charge_state);
+  
+  // usb detection and charge state management is also meta to the apps
+  evtTableHook(orchard_events, usbdet_rdy, handle_charge_state);
 
   jogdial_state.lastpos = -1; 
   jogdial_state.direction_intent = dirNone;

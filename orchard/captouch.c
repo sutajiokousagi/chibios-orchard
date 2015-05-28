@@ -186,15 +186,10 @@ void captouchSet(uint8_t adr, uint8_t dat) {
 
 void captouchRecal(void) {
   i2cAcquireBus(driver);
-  captouch_set(0x80, 0x63);
+  captouch_set(0x80, 0x63); // resets the chip
+  captouch_set(0x80, 0x00); // is this necessary??
 
-  captouch_set(ATO_CFG_CTL0, 0x00);
-
-  captouch_set(ATO_CFG_USL, 196);  // USL
-  captouch_set(ATO_CFG_LSL, 127);  // LSL
-  captouch_set(ATO_CFG_TGT, 176);  // target level
-
-  captouch_set(ATO_CFG_CTL0, 0x0B);
+  captouch_config();
   i2cReleaseBus(driver);
 }
 

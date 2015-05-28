@@ -186,6 +186,8 @@ void captouchSet(uint8_t adr, uint8_t dat) {
 
 void captouchRecal(void) {
   i2cAcquireBus(driver);
+  captouch_set(0x80, 0x63);
+
   captouch_set(ATO_CFG_CTL0, 0x00);
 
   captouch_set(ATO_CFG_USL, 196);  // USL

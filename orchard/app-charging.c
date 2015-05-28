@@ -47,7 +47,7 @@ static uint32_t charging_init(OrchardAppContext *context) {
 
 static void charging_start(OrchardAppContext *context) {
   
-  adcUpdateTemperature(); 
+  analogUpdateTemperature(); 
   orchardAppTimer(context, 500 * 1000 * 1000, true); // update UI every 500 ms
   
   redraw_ui(1);
@@ -63,11 +63,11 @@ void charging_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       orchardAppExit();
     }
   } else if (event->type == timerEvent) {
-    adcUpdateTemperature(); // the actual value won't update probably until the UI is redrawn...
+    analogUpdateTemperature(); // the actual value won't update probably until the UI is redrawn...
     redraw_ui(0);
   } else if( event->type == adcEvent) {
     if( event->adc.code == adcCodeTemp ) {
-      celcius = adcReadTemperature();
+      celcius = analogReadTemperature();
     }
   }
 }

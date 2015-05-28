@@ -35,6 +35,7 @@
 #include "oled.h"
 #include "radio.h"
 #include "flash.h"
+#include "analog.h"
 
 #include "gfx.h"
 
@@ -244,6 +245,7 @@ int main(void)
   spiStart(&SPID1, &spi_config);
   spiStart(&SPID2, &spi_config);
   adcStart(&ADCD1, &adccfg1);
+  analogStart();
 
   orchardEventsStart();
 

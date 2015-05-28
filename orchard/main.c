@@ -56,6 +56,11 @@ static const SPIConfig spi_config = {
   0,
 };
 
+static const ADCConfig adccfg1 = {
+  /* Perform initial calibration */
+  true
+};
+
 static void shell_termination_handler(eventid_t id) {
   static int i = 1;
   (void)id;
@@ -238,6 +243,7 @@ int main(void)
   i2cStart(i2cDriver, &i2c_config);
   spiStart(&SPID1, &spi_config);
   spiStart(&SPID2, &spi_config);
+  adcStart(&ADCD1, &adccfg1);
 
   orchardEventsStart();
 

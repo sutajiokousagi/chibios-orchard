@@ -70,6 +70,11 @@ extern event_source_t ble_rdy;
 extern event_source_t rf_pkt_rdy;
 extern event_source_t gpiox_rdy;
 
+// adc-related events
+extern event_source_t celcius_rdy;
+extern event_source_t mic_rdy;
+extern event_source_t usbdet_rdy;
+
 void orchardEventsStart(void);
 
 /// Orchard App events
@@ -79,6 +84,7 @@ typedef enum _OrchardAppEventType {
   appEvent,
   timerEvent,
   uiEvent,
+  adcEvent,
 } OrchardAppEventType;
 
 /* ------- */
@@ -111,6 +117,19 @@ typedef enum _OrchardUiEventFlags {
   uiError,
 } OrchardUiEventFlags;
 
+typedef struct _OrchardAdcEvent {
+  uint8_t   code;
+  uint8_t   flags;
+} OrchardAdcEvent;
+
+typedef enum _OrchardAdcEventCode {
+  adcCodeTemp = 0x01,
+  adcCodeMic,
+  adcCodeUsbdet,
+} OrchardAdcEventCode;
+
+// note: no ADC flags yet
+
 typedef struct _OrchardAppKeyEvent {
   uint8_t   code;
   uint8_t   flags;
@@ -142,6 +161,7 @@ typedef struct _OrchardAppEvent {
     OrchardAppLifeEvent   app;
     OrchardAppTimerEvent  timer;
     OrchardUiEvent        ui;
+    OrchardAdcEvent       adc;
   };
 } OrchardAppEvent;
 

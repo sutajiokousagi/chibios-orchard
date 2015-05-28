@@ -300,6 +300,24 @@ static void key_event_timer(eventid_t id) {
   chVTSet(&keycollect_timer, MS2ST(COLLECT_INTERVAL), run_keycollect_timer, NULL);
 }
 
+static void adc_temp_event(eventid_t id) {
+  (void) id;
+  OrchardAppEvent evt;
+
+  evt.type = adcEvent;
+  evt.adc.code = adcCodeTemp;
+  instance.app->event(instance.context, &evt);
+}
+
+static void adc_mic_event(eventid_t id) {
+  (void) id;
+  OrchardAppEvent evt;
+
+  evt.type = adcEvent;
+  evt.adc.code = adcCodeMic;
+  instance.app->event(instance.context, &evt);
+}
+
 static void key_event(eventid_t id) {
   (void)id;
   uint32_t val = captouch_collected_state;
@@ -486,6 +504,8 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   evtTableHook(orchard_app_events, keycollect_timeout, key_event);
   evtTableHook(orchard_app_events, orchard_app_terminate, terminate);
   evtTableHook(orchard_app_events, timer_expired, timer_event);
+  evtTableHook(orchard_app_events, celcius_rdy, adc_temp_event);
+  evtTableHook(orchard_app_events, mic_rdy, adc_mic_event);
 
   if (instance->app->init)
     app_context.priv_size = instance->app->init(&app_context);
@@ -532,6 +552,8 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   chVTReset(&run_launcher_timer);
   run_launcher_timer_engaged = false;
 
+  evtTableUnhook(orchard_app_events, mic_rdy, adc_mic_event);
+  evtTableUnhook(orchard_app_events, celcius_rdy, adc_temp_event);
   evtTableUnhook(orchard_app_events, timer_expired, timer_event);
   evtTableUnhook(orchard_app_events, orchard_app_terminate, terminate);
   evtTableUnhook(orchard_app_events, keycollect_timeout, key_event);
@@ -560,6 +582,9 @@ void orchardAppInit(void) {
   /* Hook this outside of the app-specific runloop, so it runs even if
      the app isn't listening for events.*/
   evtTableHook(orchard_events, captouch_changed, poke_run_launcher_timer);
+
+  ///// TODO: write this hook here
+  //  evtTableHook(orchard_events, usbdet_rdy, handle_charge_state);
 
   jogdial_state.lastpos = -1; 
   jogdial_state.direction_intent = dirNone;

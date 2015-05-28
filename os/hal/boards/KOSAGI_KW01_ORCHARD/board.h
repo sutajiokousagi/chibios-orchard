@@ -32,11 +32,10 @@
 #define KINETIS_MCG_MODE            KINETIS_MCG_MODE_PEE
 
 /*
- * Board revisions.
+ * Check for board revision specification.
  */
 #define ORCHARD_REV_EVT1            1
 #define ORCHARD_REV_EVT1B           2
-#define ORCHARD_BOARD_REV           ORCHARD_REV_EVT1B
 
 #if !defined(ORCHARD_BOARD_REV)
 #error "Must define an orchard board revision"

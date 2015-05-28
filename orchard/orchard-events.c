@@ -8,6 +8,10 @@ event_source_t ble_rdy;
 event_source_t rf_pkt_rdy;
 event_source_t gpiox_rdy;
 
+event_source_t celcius_rdy;
+event_source_t mic_rdy;
+event_source_t usbdet_rdy;
+
 static void ble_rdyn_cb(EXTDriver *extp, expchannel_t channel) {
 
   (void)extp;
@@ -41,5 +45,11 @@ void orchardEventsStart(void) {
   chEvtObjectInit(&ble_rdy);
   chEvtObjectInit(&rf_pkt_rdy);
   chEvtObjectInit(&gpiox_rdy);
+
+  // ADC-related events
+  chEvtObjectInit(&celcius_rdy);
+  chEvtObjectInit(&mic_rdy);
+  chEvtObjectInit(&usbdet_rdy);
+
   extStart(&EXTD1, &ext_config);
 }

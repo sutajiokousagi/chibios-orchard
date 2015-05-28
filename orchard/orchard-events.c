@@ -41,5 +41,5 @@ void orchardEventsStart(void) {
   chEvtObjectInit(&ble_rdy);
   chEvtObjectInit(&rf_pkt_rdy);
   chEvtObjectInit(&gpiox_rdy);
-	extStart(&EXTD1, &ext_config);
+  extStart(&EXTD1, &ext_config);
 }

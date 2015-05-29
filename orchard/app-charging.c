@@ -3,6 +3,7 @@
 
 #include "analog.h"
 #include "gasgauge.h"
+#include "charger.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -11,13 +12,27 @@ static int32_t celcius;
 static uint16_t usbn, usbp;
 static usbStat usbStatus = usbStatNC;
 
-static void redraw_ui(uint8_t firsttime) {
+typedef enum chargerOverrideType {
+  chargerNoOverride = 0,
+  charger500 = 1,
+  charger1500 = 2,
+  chargerOverrideTotal = 3,
+} chargerOverrideType;
+
+static chargerOverrideType override = chargerNoOverride;
+
+// flag argument should probably be turned into an enum in a refactor
+// flag = 0 means normal UI
+// flag = 1 means first-time UI (indicate ADC is measuring)
+// flag = 2 means confirm override
+static void redraw_ui(uint8_t flag) {
   char tmp[] = "Charger status";
   char uiStr[32];
   
   coord_t width;
   coord_t height;
   font_t font;
+  color_t draw_color = White;
 
   // draw the title bar
   font = gdispOpenFont("fixed_5x8");
@@ -30,7 +45,7 @@ static void redraw_ui(uint8_t firsttime) {
                      tmp, font, Black, justifyCenter);
 
   // 1st line: CPU temp
-  if( firsttime ) {
+  if( flag == 1 ) {
     chsnprintf(uiStr, sizeof(uiStr), "CPU Temp: measuring...");
   } else {
     chsnprintf(uiStr, sizeof(uiStr), "CPU Temp: %d.%dC", celcius / 1000, 
@@ -40,7 +55,7 @@ static void redraw_ui(uint8_t firsttime) {
 		     uiStr, font, White, justifyLeft);
 
   // 2nd line left: USB-
-  if( firsttime ) {
+  if( flag == 1 ) {
     chsnprintf(uiStr, sizeof(uiStr), "USB-: measuring...");
   } else {
     chsnprintf(uiStr, sizeof(uiStr), "USB-: 0x%04x", usbn);
@@ -49,7 +64,7 @@ static void redraw_ui(uint8_t firsttime) {
 		     uiStr, font, White, justifyLeft);
 
   // 3rd line left: USB+
-  if( firsttime ) {
+  if( flag == 1) {
     chsnprintf(uiStr, sizeof(uiStr), "USB+: measuring...");
   } else {
     chsnprintf(uiStr, sizeof(uiStr), "USB+: 0x%04x", usbp);
@@ -58,7 +73,7 @@ static void redraw_ui(uint8_t firsttime) {
 		     uiStr, font, White, justifyLeft);
 
 
-  if( !firsttime ) {
+  if( !(flag == 1) ) {
     // 2nd line right
     chsnprintf(uiStr, sizeof(uiStr), "Detected:");
     gdispDrawStringBox(width / 2, height*2, width / 2, height,
@@ -113,6 +128,34 @@ static void redraw_ui(uint8_t firsttime) {
   //  gdispDrawStringBox(width/2, height*6, width/2, height,
   //		     uiStr, font, White, justifyRight);
 
+  // 7th line left
+  if( flag != 2 ) 
+    chsnprintf(uiStr, sizeof(uiStr), "Override:");
+  else
+    chsnprintf(uiStr, sizeof(uiStr), "Overriding!!");
+  gdispDrawStringBox(0, height*7, width, height,
+		     uiStr, font, White, justifyLeft);
+
+  chsnprintf(uiStr, sizeof(uiStr), "500");
+  if( override == charger500 ) {
+    gdispFillArea(width/2, height*7, width/4, height, White);
+    draw_color = Black;
+  } else {
+    draw_color = White;
+  }
+  gdispDrawStringBox(width/2, height*7, width/4, height,
+		     uiStr, font, draw_color, justifyCenter);
+
+  chsnprintf(uiStr, sizeof(uiStr), "1500");
+  if( override == charger1500 ) {
+    gdispFillArea(width/2 + width/4, height*7, width/4, height, White);
+    draw_color = Black;
+  } else {
+    draw_color = White;
+  }
+  gdispDrawStringBox(width/2 + width/4, height*7, width/4, height,
+		     uiStr, font, draw_color, justifyCenter);
+  
   gdispFlush();
 }
 
@@ -141,6 +184,27 @@ void charging_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   if (event->type == keyEvent) {
     if ( (event->key.flags == keyDown) && (event->key.code == keyLeft) ) {
       orchardAppExit();
+    } else if ((event->key.flags == keyDown) && (event->key.code == keyCW)) {
+      override = (override + 1) % chargerOverrideTotal;
+
+      redraw_ui(0);
+    } else if ((event->key.flags == keyDown) && (event->key.code == keyCCW)) {
+      if( override > 0 )
+	override = override - 1;
+      else
+	override = chargerOverrideTotal - 1;
+
+      redraw_ui(0);
+    } else if ((event->key.flags == keyDown) && (event->key.code == keySelect)) {
+      if( override == charger500 ) {
+	chargerForce500();
+	chargerSetTargetCurrent(500);
+      } else if( override == charger1500 ) {
+	chargerForce1500();
+	chargerSetTargetCurrent(1500);
+      }
+      if( override != chargerNoOverride )
+	redraw_ui(2);
     }
   } else if (event->type == timerEvent) {
     analogUpdateTemperature(); // the actual value won't update probably until the UI is redrawn...

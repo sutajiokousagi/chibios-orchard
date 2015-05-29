@@ -4,8 +4,12 @@ int16_t ggAvgCurrent(void);
 int16_t ggAvgPower(void);
 int16_t ggRemainingCapacity(void);
 int16_t ggStateofCharge(void);
+
+uint16_t setDesignCapacity(uint16_t mAh);
+
 void ggStart(I2CDriver *i2cp);
 
+// word-width commands
 #define GG_CMD_CNTL  0x00
 #define GG_CMD_TEMP  0x02     // 0.1 degrees K, of battery
 #define GG_CMD_VOLT  0x04     // (mV)
@@ -22,3 +26,17 @@ void ggStart(I2CDriver *i2cp);
 #define GG_CMD_INTTEMP  0x1E  // temperature of gg IC
 #define GG_CMD_SOH      0x20  // state of health, num / %
 
+// single-byte extended commands
+#define GG_EXT_BLKDATACTL  0x61  // block data control
+#define GG_EXT_BLKDATACLS  0x3E  // block data class
+#define GG_EXT_BLKDATAOFF  0x3F  // block data offset
+#define GG_EXT_BLKDATACHK  0x60  // block data checksum
+#define GG_EXT_BLKDATABSE  0x40  // block data base
+
+// control command codes
+#define GG_CODE_CTLSTAT 0x0000
+#define GG_CODE_DEVTYPE 0x0001
+#define GG_CODE_UNSEAL  0x8000
+#define GG_CODE_SEAL    0x0020
+#define GG_CODE_CFGUPDATE 0x0013
+#define GG_CODE_RESET   0x0042

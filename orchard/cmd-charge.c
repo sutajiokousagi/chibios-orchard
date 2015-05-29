@@ -64,9 +64,6 @@ orchard_command("boost", cmd_boost);
 void cmd_charge(BaseSequentialStream *chp, int argc, char *argv[])
 {
 
-  (void)argv;
-  (void)argc;
-  
   if( argc != 1 ) {
     chprintf(chp, "charge [on|off]\r\n" );
     return;
@@ -158,3 +155,23 @@ void cmd_chgstat(BaseSequentialStream *chp, int argc, char *argv[])
 }
 
 orchard_command("chgstat", cmd_chgstat);
+
+void cmd_chgcap(BaseSequentialStream *chp, int argc, char *argv[]) {
+  uint16_t capacity;
+
+  if( argc != 1 ) {
+    chprintf(chp, "chgcap [capacity] where capacity is in mAh\r\n" );
+    return;
+  }
+
+  capacity = strtoul(argv[0], NULL, 0);
+  
+  if( (capacity < 300) || (capacity > 6000) ) {
+    chprintf(chp, "Capacity value is suspicious, aborting.\n\r" );
+    return;
+  }
+  
+  setDesignCapacity( capacity );
+}
+
+orchard_command("chgcap", cmd_chgcap);

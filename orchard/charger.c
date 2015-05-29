@@ -5,6 +5,7 @@
 
 #include "charger.h"
 #include "orchard.h"
+#include "string.h"
 
 static I2CDriver *driver;
 static chargerIntent chgIntent = CHG_IDLE;
@@ -81,6 +82,9 @@ void chargerStart(I2CDriver *i2cp) {
   charger_set(CHG_REG_CTL, 0x2c);
   charger_set(CHG_REG_BATTV, 0x64);
 
+  // ... and let's overwrite those with the proper callbacks
+  chargerSetTargetVoltage(4200);
+
   chThdCreateStatic(waChargerWatchdogThread, sizeof(waChargerWatchdogThread),
                     LOWPRIO + 1, charger_watchdog_thread, NULL);
 }
@@ -109,7 +113,7 @@ msg_t chargerBoostIntent(uint8_t enable) {
   return MSG_OK;
 }
 
-// this function sets charge intent with sane defaults for the bm15 board
+// this function sets charge intent 
 // enable = 1 turn on charge intent
 // enable = 0 turn off charge intent
 msg_t chargerChargeIntent(uint8_t enable) {
@@ -142,11 +146,18 @@ chargerStat chargerGetStat(void) {
   return (chargerStat) ((data >> 4) & 0x3);
 }
 
+void chargerForceDetect(void) {
+  uint8_t data;
+  charger_get(CHG_REG_DPM, &data);
+  data |= 10;
+  charger_set(CHG_REG_DPM, data);
+}
+
 void chargerForce500(void) {
   uint8_t data;
 
   charger_get(CHG_REG_CTL, &data);
-  data &= 0x8F;
+  data &= 0x0F;
   data |= 0x20;
   charger_set(CHG_REG_CTL, data);
 }
@@ -155,7 +166,7 @@ void chargerForce900(void) {
   uint8_t data;
 
   charger_get(CHG_REG_CTL, &data);
-  data &= 0x8F;
+  data &= 0x0F;
   data |= 0x30;
   charger_set(CHG_REG_CTL, data);
 }
@@ -164,7 +175,7 @@ void chargerForce1500(void) {
   uint8_t data;
 
   charger_get(CHG_REG_CTL, &data);
-  data &= 0x8F;
+  data &= 0x0F;
   data |= 0x40;
   charger_set(CHG_REG_CTL, data);
 }

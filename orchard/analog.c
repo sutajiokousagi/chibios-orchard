@@ -59,6 +59,7 @@ static void adc_temperature_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t 
   celcius = 25000 - delta;
 
   chSysLockFromISR();
+  chBSemSignalI(&mic_semaphore); // release the adc mutex
   chEvtBroadcastI(&celcius_rdy);
   chSysUnlockFromISR();
 }
@@ -86,6 +87,7 @@ static const ADCConversionGroup adcgrpcelcius = {
 };
 
 void analogUpdateTemperature(void) {
+  chBSemWait(&mic_semaphore);  // grab the mutex on the adc
   adcConvert(&ADCD1, &adcgrpcelcius, celcius_samples, ADC_GRPCELCIUS_BUF_DEPTH);
 }
 
@@ -160,6 +162,7 @@ static void adc_usb_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   }
   
   chSysLockFromISR();
+  chBSemSignalI(&mic_semaphore); // release the adc mutex
   chEvtBroadcastI(&usbdet_rdy);
   chSysUnlockFromISR();
 }
@@ -183,6 +186,7 @@ static const ADCConversionGroup adcgrpusb = {
 };
 
 void analogUpdateUsbStatus(void) {
+  chBSemWait(&mic_semaphore);  // grab the mutex on the adc
   adcConvert(&ADCD1, &adcgrpusb, usb_samples, ADC_GRPUSB_BUF_DEPTH);
 }
 

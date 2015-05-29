@@ -10,6 +10,8 @@
 #include "orchard-events.h"
 #include "captouch.h"
 #include "orchard-ui.h"
+#include "analog.h"
+#include "charger.h"
 
 orchard_app_end();
 
@@ -46,12 +48,56 @@ static uint16_t  captouch_collected_state = 0;
 #define TRACK_INTERVAL 1  // trackpad debounce in ms
 static unsigned long track_time;
 
+#define CHARGECHECK_INTERVAL 1000 // time between checking state of USB pins
+static virtual_timer_t chargecheck_timer;
+static event_source_t chargecheck_timeout;
+
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
 
+static usbStat lastUSBstatus = usbStatUnknown;
+
 static void handle_charge_state(eventid_t id) {
   (void)id;
-  // fill this in once I've figured out this code
+  usbStat usbStatus;
+  // this was dispatched because a usbdet_rdy event was received
+
+  usbStatus = analogReadUsbStatus();
+  if( lastUSBstatus != usbStatus ) {
+    lastUSBstatus = usbStatus;
+    switch(usbStatus) {
+    case usbStatNC:
+      // not connected. Let's turn on the boost subsystem.
+      // chprintf(stream, "DEBUG: going boost\n\r" );
+      chargerChargeIntent(0);
+      chargerBoostIntent(1);
+      break;
+    case usbStat500:
+      // chprintf(stream, "DEBUG: charging at 500mA\n\r" );
+      chargerBoostIntent(0);
+      chargerForce500();
+      chargerSetTargetCurrent(500);
+      chargerChargeIntent(1);
+      break;
+    case usbStat1500:
+      // chprintf(stream, "DEBUG: charging at 1500mA\n\r" );
+      chargerBoostIntent(0);
+      chargerForce1500();
+      chargerSetTargetCurrent(1500);
+      chargerChargeIntent(1);
+      break;
+    default:
+      ;
+      // this is an internal error but what can we do about it? strings are expensive in 128k
+    }
+  } 
+}
+
+static void handle_chargecheck_timeout(eventid_t id) {
+  (void)id;
+
+  // this kicks off an asynchronous ADC request that results in a usbdet_rdy event
+  analogUpdateUsbStatus();
 }
 
 static int captouch_to_key(uint8_t code) {
@@ -293,6 +339,15 @@ static void run_keycollect_timer(void *arg) {
   
   chSysLockFromISR();
   chEvtBroadcastI(&keycollect_timeout);
+  chSysUnlockFromISR();
+}
+
+static void run_chargecheck(void *arg) {
+  (void)arg;
+
+  chSysLockFromISR();
+  chEvtBroadcastI(&chargecheck_timeout);
+  chVTSetI(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);
   chSysUnlockFromISR();
 }
 
@@ -592,6 +647,7 @@ void orchardAppInit(void) {
   chEvtObjectInit(&orchard_app_terminate);
   chEvtObjectInit(&timer_expired);
   chEvtObjectInit(&keycollect_timeout);
+  chEvtObjectInit(&chargecheck_timeout);
   chEvtObjectInit(&ui_completed);
   chVTReset(&instance.timer);
 
@@ -600,7 +656,25 @@ void orchardAppInit(void) {
   evtTableHook(orchard_events, captouch_changed, poke_run_launcher_timer);
   
   // usb detection and charge state management is also meta to the apps
+  // sequence of events:
+  // 0. timer chargecheck_timer is set for CHARGECHECK_INTERVAL
+  // 1. timer chargecheck_timer times out, and run_chargecheck callback is executed
+  // 2. run_chargecheck callback issues a chargecheck_timeout event and re-schedules itself
+  // 3. event sytsem receives chargecheck_timeout event and  dispatches handle_chargecheck_timeout
+  // 4. handle_chargecheck_timeout issues an analogUpdateUsbStatus() call and exits
+  // 5. analogUpdateUsbStatus() eventually results in a usbdet_rdy event
+  // 6. usbdet_rdy event dispatches into the handle_charge_state event handler
+  // 7. handle_charge_state runs all the logic for managing charge state
+
+  // Steps 0-7 create a periodic timer that polls the USB D+/D- pin state so we can
+  // make a determination of how to correctly set the charger/boost state
+  // It's complicated because both the timer and the D+/D- detetion are asynchronous
+  // and you have to use events to poke operations that can't happen in interrupt contexts!
   evtTableHook(orchard_events, usbdet_rdy, handle_charge_state);
+  evtTableHook(orchard_events, chargecheck_timeout, handle_chargecheck_timeout);
+
+  chVTReset(&chargecheck_timer);
+  chVTSet(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);
 
   jogdial_state.lastpos = -1; 
   jogdial_state.direction_intent = dirNone;

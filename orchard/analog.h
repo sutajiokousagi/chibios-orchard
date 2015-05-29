@@ -4,6 +4,7 @@ typedef enum usbStat {
   usbStatNC = 0,
   usbStat500,   // if we see any USB, let's assume 500 mA charging level
   usbStat1500,  // if we can detect a CDP, let's use it
+  usbStatUnknown,
 } usbStat;
 
 void analogUpdateTemperature(void);

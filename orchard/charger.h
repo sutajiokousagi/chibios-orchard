@@ -48,6 +48,7 @@ void chargerSetTargetCurrent(uint16_t current);
 void chargerForce500(void);
 void chargerForce900(void);
 void chargerForce1500(void);
+void chargerForceDetect(void);
 
 #define CHG_REG_STATUS  0
 #define CHG_REG_CTL     1

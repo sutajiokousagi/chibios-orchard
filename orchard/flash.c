@@ -123,6 +123,9 @@ int8_t flashProgram(uint8_t *src, uint8_t *dest, uint32_t count) {
   uint32_t i;
   uint32_t ret;
   uint32_t failaddr;
+
+  if( count == 0 )  // do nothing if our count is 0
+    return retval;
   
   // check if dest, dest+count is in the user-designated area of FLASH
   if( ((uint32_t) dest < (F_USER_SECTOR_START * FTFx_PSECTOR_SIZE)) ||

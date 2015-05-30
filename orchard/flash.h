@@ -170,5 +170,6 @@ int8_t flashProgram(uint8_t *src, uint8_t *dst, uint32_t count);
 #define F_ERR_U_MARGIN  -6   // failed verification at user margin levels -- worry a little
 #define F_ERR_N_MARGIN  -7   // failed verification at normal margin levels -- worry a lot
 #define F_ERR_F_MARGIN  -8   // failed verification at factory margin levels -- don't worry too much
-
+#define F_ERR_GENERAL   -9   // general error code
+#define F_ERR_JOURNAL_OVER   -10   // journalingy overflow -- we don't handle it
 #endif /* _FLASH_H_ */

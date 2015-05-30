@@ -133,6 +133,7 @@ CSRC = main.c \
        led.c \
        hsvrgb.c \
        flash.c \
+       storage.c \
        gitversion.c \
        $(STARTUPSRC) \
        $(PORTSRC) \
@@ -232,12 +233,12 @@ CPPWARN = -Wall -Wextra
 # Keypad layout selection:
 #     BM      burning man key layout
 #     BC1     bootcamp key layout v1
-KEY_LAYOUT = BC1
+KEY_LAYOUT = BM
 
 # ORCHARD_REV_EVT1   is the burning man 1st rev board
 # ORCHARD_REV_EVT1B  is the bootcamp 1st rev board
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DKEY_LAYOUT=LAYOUT_$(KEY_LAYOUT) -DORCHARD_BOARD_REV=ORCHARD_REV_EVT1B
+UDEFS = -DKEY_LAYOUT=LAYOUT_$(KEY_LAYOUT) -DORCHARD_BOARD_REV=ORCHARD_REV_EVT1
 
 # Define ASM defines here
 UADEFS =

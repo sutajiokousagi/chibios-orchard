@@ -20,7 +20,7 @@ void cmd_storage_test(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   (void)argv;
   if (argc != 1) {
-    chprintf(chp, "Usage: storetest 3. Warning: this will erase all memory\r\n");
+    chprintf(chp, "Usage: storetest 3. You must pass the argument 3 to confirm the test. Warning: this will erase all user storage.\r\n");
     return;
   }
   if( strtoul(argv[0], NULL, 0) != 3 ) {

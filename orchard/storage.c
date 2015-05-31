@@ -76,7 +76,7 @@ static uint32_t find_empty_sector(void) {
   return SECTOR_INVALID;
 }
 
-const uint32_t *storageGetData(uint32_t block) {
+const void *storageGetData(uint32_t block) {
   uint32_t *foundData = NULL;
   uint32_t journalrev = JOURNAL_YOUNGEST;
   uint32_t i;
@@ -101,7 +101,7 @@ const uint32_t *storageGetData(uint32_t block) {
 
 // return the journal entry number for a block
 // if the block doesn't exist, create it
-uint32_t storageGetJournal(uint32_t block) {
+static uint32_t storage_get_journal(uint32_t block) {
   uint32_t *foundData = NULL;
   uint32_t journalrev = JOURNAL_YOUNGEST;
   uint32_t i;
@@ -168,7 +168,7 @@ int8_t storagePatchData(uint32_t block, uint32_t *data, uint32_t offset, uint32_
     // allocate a new sector
     // decrement the journal number
     // program in the patched data
-    journalrev = storageGetJournal(block);
+    journalrev = storage_get_journal(block);
     destSector = find_empty_sector();
     
     osalDbgAssert(destSector != SECTOR_INVALID, "ORFS general error, couldn't find the empty sector (there should always be exactly one)\n\r");

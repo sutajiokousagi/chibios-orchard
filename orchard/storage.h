@@ -51,9 +51,7 @@ typedef struct orfs_head {
 
 // returns a read-only pointer to the data of the current sector
 // the data is directly in FLASH so you can't write to it
-const uint32_t *storageGetData(uint32_t block);
-
-uint32_t storageGetJournal(uint32_t block);
+const void *storageGetData(uint32_t block);
 
 // updating a sector happens by "patching"
 // the function automatically handles migrating the non-patch data to the new sector copy

@@ -1,5 +1,9 @@
 #include "orchard-app.h"
 #include "orchard-ui.h"
+
+#include "storage.h"
+#include "genes.h"
+
 #include <string.h>
 
 struct OrchardUiContext textUiContext;
@@ -12,6 +16,8 @@ static void redraw_ui(void) {
   coord_t width;
   coord_t height;
   font_t font;
+  const struct genes *family;
+  struct genes newFamily;
 
   // draw the title bar
   font = gdispOpenFont("fixed_5x8");
@@ -22,6 +28,13 @@ static void redraw_ui(void) {
   gdispFillArea(0, 0, width, height, White);
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyCenter);
+
+  family = (const struct genes *) storageGetData(GENE_BLOCK);
+  memcpy(&newFamily, family, sizeof(struct genes));
+  strncpy(newFamily.name, myname, GENE_NAMELENGTH);
+  newFamily.name[GENE_NAMELENGTH - 1] = '\0'; // enforce the null terminator
+  
+  storagePatchData(GENE_BLOCK, (uint32_t *) &newFamily, GENE_OFFSET, sizeof(struct genes));
 
   gdispFlush();
 }
@@ -77,7 +90,6 @@ static void name_start(OrchardAppContext *context) {
 void name_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   (void)context;
-  uint8_t shift;
   
   if (event->type == keyEvent) {
     if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {

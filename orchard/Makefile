@@ -134,6 +134,7 @@ CSRC = main.c \
        hsvrgb.c \
        flash.c \
        storage.c \
+       genes.c \
        gitversion.c \
        $(STARTUPSRC) \
        $(PORTSRC) \

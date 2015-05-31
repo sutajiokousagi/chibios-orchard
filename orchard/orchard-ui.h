@@ -58,7 +58,7 @@ typedef struct _OrchardUi {
      { NULL, NULL, NULL, NULL }
 
 
-#define TEXTENTRY_MAXLEN  16  // maximum length of any entered text, not including null char
+#define TEXTENTRY_MAXLEN  15  // maximum length of any entered text, not including null char
 
 const OrchardUi *getUiByName(const char *name);
 

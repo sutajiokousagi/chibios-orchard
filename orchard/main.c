@@ -37,6 +37,7 @@
 #include "flash.h"
 #include "analog.h"
 #include "gasgauge.h"
+#include "genes.h"
 
 #include "gfx.h"
 
@@ -263,6 +264,8 @@ int main(void)
   orchardAppInit();
 
   flashStart();
+
+  geneStart();
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);

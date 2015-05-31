@@ -155,7 +155,7 @@ static void adc_usb_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   usb_status = usbStatNC;
   if( (usbn > 0xE000) && (usbn < 0xF800) && (usbp < 0x400) ) {
     usb_status = usbStat500;
-  } else if( (usbn > 0xFE80) ) {
+  } else if( (usbn > 0xFE80) && (usbp < 0xF000) ) {
     usb_status = usbStatNC;
   } else if( (usbn > 0xF000) && (usbp > 0xF000) ) {
     usb_status = usbStat1500;

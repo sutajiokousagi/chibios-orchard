@@ -59,7 +59,6 @@ static void adc_temperature_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t 
   celcius = 25000 - delta;
 
   chSysLockFromISR();
-  adcReleaseBus(adcp);
   chEvtBroadcastI(&celcius_rdy);
   chSysUnlockFromISR();
 }
@@ -89,6 +88,7 @@ static const ADCConversionGroup adcgrpcelcius = {
 void analogUpdateTemperature(void) {
   adcAcquireBus(&ADCD1);
   adcConvert(&ADCD1, &adcgrpcelcius, celcius_samples, ADC_GRPCELCIUS_BUF_DEPTH);
+  adcReleaseBus(&ADCD1);
 }
 
 int32_t analogReadTemperature() {
@@ -107,7 +107,6 @@ static void adc_mic_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   }
 
   chSysLockFromISR();
-  adcReleaseBus(adcp);
   chEvtBroadcastI(&mic_rdy);
   chSysUnlockFromISR();
 }
@@ -135,6 +134,7 @@ static const ADCConversionGroup adcgrpmic = {
 void analogUpdateMic(void) {
   adcAcquireBus(&ADCD1);
   adcConvert(&ADCD1, &adcgrpmic, mic_sample, MIC_SAMPLE_DEPTH);
+  adcReleaseBus(&ADCD1);
 }
 
 uint8_t *analogReadMic() {
@@ -162,7 +162,6 @@ static void adc_usb_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   }
   
   chSysLockFromISR();
-  adcReleaseBus(adcp);
   chEvtBroadcastI(&usbdet_rdy);
   chSysUnlockFromISR();
 }
@@ -188,6 +187,7 @@ static const ADCConversionGroup adcgrpusb = {
 void analogUpdateUsbStatus(void) {
   adcAcquireBus(&ADCD1);
   adcConvert(&ADCD1, &adcgrpusb, usb_samples, ADC_GRPUSB_BUF_DEPTH);
+  adcReleaseBus(&ADCD1);
 }
 
 usbStat analogReadUsbStatus(void) {

@@ -47,25 +47,8 @@ static void redraw_ui(void) {
   orchardGfxEnd();
 }
 
-static void radio_message_received(uint8_t type, uint8_t src, uint8_t dst,
-                                   uint8_t length, void *data) {
-
-  (void)length;
-  (void)type;
-  chprintf(stream, "Received %s message from %02x: %s\r\n",
-      (dst == RADIO_BROADCAST_ADDRESS) ? "broadcast" : "direct", src, data);
-
-  strncpy(message, data, MSG_MAXLEN);
-  message[MSG_MAXLEN - 1] = '\0'; // force a null termination (by truncation) if there isn't one
-  rxseq++;
-
-  redraw_ui();
-}
-
 static uint32_t messenger_init(OrchardAppContext *context) {
-
   (void)context;
-  radioSetHandler(radioDriver, 1, radio_message_received);
   return 0;
 }
 
@@ -92,7 +75,6 @@ void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 }
 
 static void messenger_exit(OrchardAppContext *context) {
-
   (void)context;
 }
 

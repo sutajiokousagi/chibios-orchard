@@ -38,6 +38,7 @@
 #include "analog.h"
 #include "gasgauge.h"
 #include "genes.h"
+#include "paging.h"
 
 #include "gfx.h"
 
@@ -267,6 +268,7 @@ int main(void)
   flashStart();
 
   geneStart();
+  pagingStart();
 
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);

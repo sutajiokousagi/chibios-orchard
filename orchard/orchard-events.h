@@ -75,6 +75,10 @@ extern event_source_t celcius_rdy;
 extern event_source_t mic_rdy;
 extern event_source_t usbdet_rdy;
 
+// BM radio protocol events
+extern event_source_t radio_page;
+extern event_source_t radio_sex;
+
 void orchardEventsStart(void);
 
 /// Orchard App events

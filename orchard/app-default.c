@@ -16,7 +16,7 @@ static void led_start(OrchardAppContext *context) {
 
   listEffects();
   
-  effectsSetPattern(NULL);  // pick default pattern
+  effectsSetPattern(0);  // pick default pattern
 
 }
 

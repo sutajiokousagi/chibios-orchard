@@ -9,6 +9,7 @@
 #include "stdlib.h"
 #include "orchard-math.h"
 #include "fixmath.h"
+#include "orchard-ui.h"
 
 #include <string.h>
 #include <math.h>
@@ -698,27 +699,35 @@ static void draw_pattern(void) {
   curfx->computeEffect(&fx_config);
 }
 
-void effectsSetPattern(char *name) {
+void effectsSetPattern(uint8_t index) {
+  if(index > fx_max) {
+    fx_index = 0;
+    redraw_ui();
+    return;
+  }
+
+  fx_index = index;
+  patternChanged = 1;
+  redraw_ui();
+}
+
+uint8_t effectsNameLookup(const char *name) {
   uint8_t i;
   const OrchardEffects *curfx;
 
   curfx = orchard_effects_start();
   if( name == NULL ) {
-    fx_index = 0;
-    redraw_ui();
-    return;
+    return 0;
   }
-  
   
   for( i = 0; i < fx_max; i++ ) {
     if( strcmp(name, curfx->name) == 0 ) {
-      fx_index = i;
-      patternChanged = 1;
-      redraw_ui();
-      break;
+      return i;
     }
     curfx++;
   }
+  
+  return 0;  // name not found returns default effect
 }
 
 uint8_t effectsGetPattern(void) {
@@ -807,7 +816,7 @@ static void redraw_ui(void) {
   chsnprintf(tmp, sizeof(tmp), "%s", curfx->name);
 
   orchardGfxStart();
-  font = gdispOpenFont("UI2");
+  font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
   header_height = height;
@@ -816,10 +825,7 @@ static void redraw_ui(void) {
   gdispFillArea(0, 0, width, height, White);
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyCenter);
-
-  font = gdispOpenFont("fixed_5x8");
-  width = gdispGetWidth();
-  height = gdispGetFontMetric(font, fontHeight);
+  gdispCloseFont(font);
 
   gdispFlush();
   orchardGfxEnd();

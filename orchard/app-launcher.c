@@ -46,7 +46,6 @@ static void redraw_list(struct launcher_list *list) {
                      tmp, font, Black, justifyCenter);
 
   // draw app list
-  font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
 
@@ -72,6 +71,7 @@ static void redraw_list(struct launcher_list *list) {
                        width, height,
                        list->items[i].name, font, draw_color, justifyCenter);
   }
+  gdispCloseFont(font);
   gdispFlush();
   orchardGfxEnd();
 }

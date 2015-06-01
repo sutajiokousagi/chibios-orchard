@@ -12,6 +12,8 @@
 #include "orchard-ui.h"
 #include "analog.h"
 #include "charger.h"
+#include "paging.h"
+#include "led.h"
 
 orchard_app_end();
 
@@ -56,6 +58,22 @@ static event_source_t chargecheck_timeout;
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
 
 static usbStat lastUSBstatus = usbStatUnknown;
+
+static void handle_radio_page(eventid_t id) {
+  (void) id;
+  uint8_t oldfx;
+
+  oldfx = effectsGetPattern();
+  effectsSetPattern(effectsNameLookup("strobe"));
+  chThdSleepMilliseconds(PAGE_DISPLAY_MS);
+  radioPagePopup();
+  effectsSetPattern(oldfx);
+}
+
+static void handle_radio_sex(eventid_t id) {
+  (void) id;
+  // TODO
+}
 
 static void handle_charge_state(eventid_t id) {
   (void)id;
@@ -672,6 +690,9 @@ void orchardAppInit(void) {
   // and you have to use events to poke operations that can't happen in interrupt contexts!
   evtTableHook(orchard_events, usbdet_rdy, handle_charge_state);
   evtTableHook(orchard_events, chargecheck_timeout, handle_chargecheck_timeout);
+
+  evtTableHook(orchard_events, radio_page, handle_radio_page);
+  evtTableHook(orchard_events, radio_sex, handle_radio_sex);
 
   chVTReset(&chargecheck_timer);
   chVTSet(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);

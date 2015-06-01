@@ -12,6 +12,9 @@ event_source_t celcius_rdy;
 event_source_t mic_rdy;
 event_source_t usbdet_rdy;
 
+event_source_t radio_page;
+event_source_t radio_sex;
+
 static void ble_rdyn_cb(EXTDriver *extp, expchannel_t channel) {
 
   (void)extp;
@@ -50,6 +53,10 @@ void orchardEventsStart(void) {
   chEvtObjectInit(&celcius_rdy);
   chEvtObjectInit(&mic_rdy);
   chEvtObjectInit(&usbdet_rdy);
+
+  // radio protocol events
+  chEvtObjectInit(&radio_page);
+  chEvtObjectInit(&radio_sex);
 
   extStart(&EXTD1, &ext_config);
 }

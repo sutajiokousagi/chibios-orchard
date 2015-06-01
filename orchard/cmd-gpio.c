@@ -15,7 +15,6 @@
 */
 
 #include <stdlib.h>
-#include <ctype.h>
 
 #include "orchard-shell.h"
 

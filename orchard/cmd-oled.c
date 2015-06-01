@@ -26,6 +26,7 @@
 #include "led.h"
 #include "accel.h"
 #include "captouch.h"
+#include "orchard-ui.h"
 
 #define TILT_THRESH 100
 #define TILT_RATE   128

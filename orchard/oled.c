@@ -5,6 +5,7 @@
 
 #include "orchard.h"
 #include "gpiox.h"
+#include "orchard-ui.h"
 
 #include "gfx.h"
 

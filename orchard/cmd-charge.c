@@ -18,12 +18,15 @@
 #include "hal.h"
 #include "shell.h"
 #include "chprintf.h"
-#include "string.h"
 
 #include "orchard.h"
 #include "orchard-shell.h"
 
 #include "charger.h"
+#include "gasgauge.h"
+
+#include <string.h>
+#include <stdlib.h>
 
 void cmd_shipmode(BaseSequentialStream *chp, int argc, char *argv[])
 {

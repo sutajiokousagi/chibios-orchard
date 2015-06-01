@@ -4,6 +4,7 @@
 #include "spi.h"
 
 #include "orchard.h"
+#include "orchard-app.h"  // has the mutex for gfx
 #include "gpiox.h"
 
 #include "gfx.h"
@@ -73,6 +74,7 @@ void oledOrchardBanner(void) {
   coord_t width;
   font_t font;
   
+  osalMutexLock(&orchard_gfxMutex);
   width = gdispGetWidth();
   font = gdispOpenFont("UI2");
   
@@ -80,4 +82,6 @@ void oledOrchardBanner(void) {
   gdispDrawStringBox(0, 0, width, gdispGetFontMetric(font, fontHeight),
                      "Orchard EVT1", font, White, justifyCenter);
   gdispFlush();
+  gdispCloseFont(font);
+  osalMutexUnlock(&orchard_gfxMutex);
 }

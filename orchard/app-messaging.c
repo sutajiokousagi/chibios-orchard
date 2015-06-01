@@ -17,7 +17,7 @@ static void redraw_ui(void) {
   char title[] = "Messenger test";
   char seqstr[16];
 
-  chSysLock();
+  osalMutexLock(&orchard_gfxMutex);
   // draw the title bar
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
@@ -43,8 +43,8 @@ static void redraw_ui(void) {
   gdispDrawStringBox(0, height * 4, width, height,
                      message, font, White, justifyCenter);
   
-  chSysUnlock();
   gdispFlush();
+  osalMutexUnlock(&orchard_gfxMutex);
 }
 
 static void radio_message_received(uint8_t type, uint8_t src, uint8_t dst,

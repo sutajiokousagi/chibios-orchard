@@ -50,13 +50,14 @@ static void redraw_ui(uint8_t *samples) {
   uint8_t i;
   uint8_t scale;
 
+  scale = 256 / height;
+  agc( samples );
+
+  osalMutexLock(&orchard_gfxMutex);
   width = gdispGetWidth();
   height = gdispGetHeight();
 
   gdispClear(Black);
-
-  scale = 256 / height;
-  agc( samples );
 
   for( i = 1; i < MIC_SAMPLE_DEPTH; i++ ) {
     if( samples != NULL ) {
@@ -70,6 +71,7 @@ static void redraw_ui(uint8_t *samples) {
   }
 
   gdispFlush();
+  osalMutexUnlock(&orchard_gfxMutex);
 }
 
 static uint32_t oscope_init(OrchardAppContext *context) {

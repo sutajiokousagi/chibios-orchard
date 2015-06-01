@@ -34,6 +34,7 @@ static void redraw_ui(uint8_t flag) {
   font_t font;
   color_t draw_color = White;
 
+  osalMutexLock(&orchard_gfxMutex);
   // draw the title bar
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
@@ -157,6 +158,7 @@ static void redraw_ui(uint8_t flag) {
 		     uiStr, font, draw_color, justifyCenter);
   
   gdispFlush();
+  osalMutexUnlock(&orchard_gfxMutex);
 }
 
 static uint32_t charging_init(OrchardAppContext *context) {

@@ -30,41 +30,48 @@
 #include "orchard-app.h"
 
 static void mandelbrot(float x1, float y1, float x2, float y2) {
-	unsigned int i,j, width, height;
-	uint16_t iter;
-	color_t color;
-	float fwidth, fheight;
+  unsigned int i,j, width, height;
+  uint16_t iter;
+  color_t color;
+  float fwidth, fheight;
+  
+  float sy = y2 - y1;
+  float sx = x2 - x1;
+  const int MAX = 512;
+  
+  osalMutexLock(&orchard_gfxMutex);
+  width = (unsigned int)gdispGetWidth();
+  height = (unsigned int)gdispGetHeight();
+  osalMutexUnlock(&orchard_gfxMutex);
 	
-	float sy = y2 - y1;
-	float sx = x2 - x1;
-	const int MAX = 512;
+  fwidth = width;
+  fheight = height;
 	
-	width = (unsigned int)gdispGetWidth();
-	height = (unsigned int)gdispGetHeight();
-	fwidth = width;
-	fheight = height;
-	
-	for (i = 0; i < width; i++) {
-		for (j = 0; j < height; j++) {
-			float cy = j * sy / fheight + y1;
-			float cx = i * sx / fwidth + x1;
-			float x = 0.0f, y = 0.0f, xx = 0.0f, yy = 0.0f;
-			for (iter = 0; iter <= MAX && xx + yy < 4.0f; iter++) {
-				xx = x*x;
-				yy = y*y;
-				y = 2.0f * x * y + cy;
-				x = xx - yy + cx;
-			}
+  for (i = 0; i < width; i++) {
+    for (j = 0; j < height; j++) {
+      float cy = j * sy / fheight + y1;
+      float cx = i * sx / fwidth + x1;
+      float x = 0.0f, y = 0.0f, xx = 0.0f, yy = 0.0f;
+      for (iter = 0; iter <= MAX && xx + yy < 4.0f; iter++) {
+	xx = x*x;
+	yy = y*y;
+	y = 2.0f * x * y + cy;
+	x = xx - yy + cx;
+      }
       if (iter > 64)
         color = White;
       else
         color = Black;
-			gdispDrawPixel(i, j, color);
-		}
+      osalMutexLock(&orchard_gfxMutex);
+      gdispDrawPixel(i, j, color);
+      osalMutexUnlock(&orchard_gfxMutex);
+    }
+    osalMutexLock(&orchard_gfxMutex);
     gdispFlush();
+    osalMutexUnlock(&orchard_gfxMutex);
     if (chThdShouldTerminateX())
       return;
-	}
+  }
 }
 
 static void mandelbrot_start(OrchardAppContext *context) {

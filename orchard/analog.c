@@ -9,7 +9,7 @@
 
 static adcsample_t mic_sample[MIC_SAMPLE_DEPTH];
 static uint8_t mic_return[MIC_SAMPLE_DEPTH];
-binary_semaphore_t mic_semaphore;
+mutex_t adc_mutex;
 
 #define ADC_GRPCELCIUS_NUM_CHANNELS   2
 #define ADC_GRPCELCIUS_BUF_DEPTH      1
@@ -59,7 +59,7 @@ static void adc_temperature_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t 
   celcius = 25000 - delta;
 
   chSysLockFromISR();
-  chBSemSignalI(&mic_semaphore); // release the adc mutex
+  adcReleaseBus(adcp);
   chEvtBroadcastI(&celcius_rdy);
   chSysUnlockFromISR();
 }
@@ -87,7 +87,7 @@ static const ADCConversionGroup adcgrpcelcius = {
 };
 
 void analogUpdateTemperature(void) {
-  chBSemWait(&mic_semaphore);  // grab the mutex on the adc
+  adcAcquireBus(&ADCD1);
   adcConvert(&ADCD1, &adcgrpcelcius, celcius_samples, ADC_GRPCELCIUS_BUF_DEPTH);
 }
 
@@ -107,7 +107,7 @@ static void adc_mic_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   }
 
   chSysLockFromISR();
-  chBSemSignalI(&mic_semaphore); // release the microphone mutex
+  adcReleaseBus(adcp);
   chEvtBroadcastI(&mic_rdy);
   chSysUnlockFromISR();
 }
@@ -133,7 +133,7 @@ static const ADCConversionGroup adcgrpmic = {
 };
 
 void analogUpdateMic(void) {
-  chBSemWait(&mic_semaphore);  // grab the mutex on the microphone
+  adcAcquireBus(&ADCD1);
   adcConvert(&ADCD1, &adcgrpmic, mic_sample, MIC_SAMPLE_DEPTH);
 }
 
@@ -162,7 +162,7 @@ static void adc_usb_end_cb(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
   }
   
   chSysLockFromISR();
-  chBSemSignalI(&mic_semaphore); // release the adc mutex
+  adcReleaseBus(adcp);
   chEvtBroadcastI(&usbdet_rdy);
   chSysUnlockFromISR();
 }
@@ -186,7 +186,7 @@ static const ADCConversionGroup adcgrpusb = {
 };
 
 void analogUpdateUsbStatus(void) {
-  chBSemWait(&mic_semaphore);  // grab the mutex on the adc
+  adcAcquireBus(&ADCD1);
   adcConvert(&ADCD1, &adcgrpusb, usb_samples, ADC_GRPUSB_BUF_DEPTH);
 }
 
@@ -200,5 +200,5 @@ adcsample_t *analogReadUsbRaw(void) {
 
 
 void analogStart() {
-  chBSemObjectInit(&mic_semaphore, 0);
+  
 }

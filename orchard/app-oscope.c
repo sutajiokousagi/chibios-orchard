@@ -53,7 +53,7 @@ static void redraw_ui(uint8_t *samples) {
   scale = 256 / height;
   agc( samples );
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   width = gdispGetWidth();
   height = gdispGetHeight();
 
@@ -71,7 +71,7 @@ static void redraw_ui(uint8_t *samples) {
   }
 
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 }
 
 static uint32_t oscope_init(OrchardAppContext *context) {

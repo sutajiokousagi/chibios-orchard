@@ -19,7 +19,7 @@ static void redraw_ui(void) {
   const struct genes *family;
   struct genes newFamily;
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   // draw the title bar
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
@@ -38,7 +38,7 @@ static void redraw_ui(void) {
   storagePatchData(GENE_BLOCK, (uint32_t *) &newFamily, GENE_OFFSET, sizeof(struct genes));
 
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 }
 
 static void draw_confirmation(void) {
@@ -64,7 +64,7 @@ static void draw_confirmation(void) {
                      tmp2, font, White, justifyCenter);
   
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
   
 }
 

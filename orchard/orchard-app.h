@@ -25,9 +25,6 @@ extern event_source_t orchard_app_terminated;
 // Emitted to the system after a UI dialog is completed
 extern event_source_t ui_completed;
 
-// mutex to lock the graphics subsystem for safe multi-threaded drawing
-extern mutex_t orchard_gfxMutex;
-
 void orchardAppInit(void);
 void orchardAppRestart(void);
 void orchardAppWatchdog(void);

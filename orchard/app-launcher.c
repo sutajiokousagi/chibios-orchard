@@ -33,7 +33,7 @@ static void redraw_list(struct launcher_list *list) {
   uint8_t app_modulus;
   uint8_t max_list;
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   // draw title bar
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
@@ -73,7 +73,7 @@ static void redraw_list(struct launcher_list *list) {
                        list->items[i].name, font, draw_color, justifyCenter);
   }
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 }
 
 static uint32_t launcher_init(OrchardAppContext *context) {

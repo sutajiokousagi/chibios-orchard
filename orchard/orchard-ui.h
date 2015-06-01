@@ -62,4 +62,8 @@ typedef struct _OrchardUi {
 
 const OrchardUi *getUiByName(const char *name);
 
+void uiStart(void);
+void orchardGfxStart(void);
+void orchardGfxEnd(void);
+
 #endif /* __ORCHARD_UI_H__ */

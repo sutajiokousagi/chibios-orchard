@@ -140,7 +140,7 @@ static void pew_draw_ship(struct pew_context *pew) {
 
 static void pew_redraw(struct pew_context *pew){
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   gdispClear(Black);
   gdispDrawBox(pew->min_x,
                pew->min_y,
@@ -154,7 +154,7 @@ static void pew_redraw(struct pew_context *pew){
                   pew->font16,
                   White);
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 }
 
 static void pew_tick(struct pew_context *pew) {

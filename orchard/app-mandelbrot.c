@@ -39,10 +39,10 @@ static void mandelbrot(float x1, float y1, float x2, float y2) {
   float sx = x2 - x1;
   const int MAX = 512;
   
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   width = (unsigned int)gdispGetWidth();
   height = (unsigned int)gdispGetHeight();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 	
   fwidth = width;
   fheight = height;
@@ -62,13 +62,13 @@ static void mandelbrot(float x1, float y1, float x2, float y2) {
         color = White;
       else
         color = Black;
-      osalMutexLock(&orchard_gfxMutex);
+      orchardGfxStart();
       gdispDrawPixel(i, j, color);
-      osalMutexUnlock(&orchard_gfxMutex);
+      orchardGfxEnd();
     }
-    osalMutexLock(&orchard_gfxMutex);
+    orchardGfxStart();
     gdispFlush();
-    osalMutexUnlock(&orchard_gfxMutex);
+    orchardGfxEnd();
     if (chThdShouldTerminateX())
       return;
   }

@@ -9,7 +9,6 @@
 #include "stdlib.h"
 #include "orchard-math.h"
 #include "fixmath.h"
-#include "orchard-app.h"  // has the mutex for gfx
 
 #include <string.h>
 #include <math.h>
@@ -807,7 +806,7 @@ static void redraw_ui(void) {
   curfx += fx_index;
   chsnprintf(tmp, sizeof(tmp), "%s", curfx->name);
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   font = gdispOpenFont("UI2");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
@@ -823,7 +822,7 @@ static void redraw_ui(void) {
   height = gdispGetFontMetric(font, fontHeight);
 
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
   
 }
 

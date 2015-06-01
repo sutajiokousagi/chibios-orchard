@@ -40,8 +40,6 @@ event_source_t orchard_app_terminate;
 event_source_t timer_expired;
 event_source_t ui_completed;
 
-mutex_t orchard_gfxMutex;
-
 static virtual_timer_t keycollect_timer;
 static event_source_t keycollect_timeout;
 static uint16_t  captouch_collected_state = 0;
@@ -643,8 +641,6 @@ static THD_FUNCTION(orchard_app_thread, arg) {
 
 void orchardAppInit(void) {
 
-  osalMutexObjectInit(&orchard_gfxMutex);
-  
   orchard_app_list = orchard_app_start();
   instance.app = orchard_app_list;
   chEvtObjectInit(&orchard_app_terminated);

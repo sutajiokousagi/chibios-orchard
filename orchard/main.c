@@ -261,6 +261,7 @@ int main(void)
   oledStart(&SPID2);
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
   effectsStart();
+  uiStart();
   orchardAppInit();
 
   flashStart();

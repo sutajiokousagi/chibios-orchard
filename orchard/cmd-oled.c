@@ -21,7 +21,6 @@
 
 #include "orchard.h"
 #include "orchard-shell.h"
-#include "orchard-app.h"  // has the mutex for gfx
 
 #include "gfx.h"
 #include "led.h"
@@ -48,10 +47,10 @@ void cmd_oled(BaseSequentialStream *chp, int argc, char *argv[])
   coord_t width, height;
   uint16_t val;
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   width = gdispGetWidth();
   height = gdispGetHeight();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 
   accelPoll(&dref);  // seed accelerometer values
   dref.x = (dref.x + 2048) & 0xFFF;
@@ -99,15 +98,15 @@ void cmd_oled(BaseSequentialStream *chp, int argc, char *argv[])
     
     if( changed ) {
       changed  = 0;
-      osalMutexLock(&orchard_gfxMutex);
+      orchardGfxStart();
       gdispFillCircle(xo, yo, BALL_SIZE, Black);
-      osalMutexUnlock(&orchard_gfxMutex);
+      orchardGfxEnd();
     }
     
-    osalMutexLock(&orchard_gfxMutex);
+    orchardGfxStart();
     gdispFillCircle(x, y, BALL_SIZE, White);
     gdispFlush();
-    osalMutexUnlock(&orchard_gfxMutex);
+    orchardGfxEnd();
   }
   chprintf(chp, "\r\n");
 

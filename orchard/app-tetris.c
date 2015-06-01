@@ -508,7 +508,7 @@ static void tetris_start(OrchardAppContext *context) {
 
 
   // Draw the board
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   gdispClear(Black);
   gdispDrawBox(0,
                gdispGetHeight()-(TETRIS_FIELD_HEIGHT*TETRIS_CELL_HEIGHT)-5,
@@ -521,7 +521,7 @@ static void tetris_start(OrchardAppContext *context) {
   tetris->game_over = FALSE;
   print_game_over(tetris); // removes "Game Over!" if tetrisGameOver == FALSE
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
   
   tetris->previous_game_time = gfxSystemTicks();
   orchardAppTimer(context, tetris->game_speed, true);
@@ -538,7 +538,7 @@ static void tetris_exit(OrchardAppContext *context) {
 static void tetris_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   struct tetris_context *tetris = context->priv;
 
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   if (event->type == timerEvent) {
     go_down(tetris);
   }
@@ -559,7 +559,7 @@ static void tetris_event(OrchardAppContext *context, const OrchardAppEvent *even
   }
 
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 #if 0
 static DECLARE_THREAD_FUNCTION(thdTetris, arg) {
   (void)arg;

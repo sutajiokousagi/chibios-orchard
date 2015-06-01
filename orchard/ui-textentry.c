@@ -22,7 +22,7 @@ static void textentry_redraw(void) {
 
   str[0] = '\0'; str[1] = '\0';
   
-  osalMutexLock(&orchard_gfxMutex);
+  orchardGfxStart();
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetHeight();
@@ -88,7 +88,7 @@ static void textentry_redraw(void) {
   }
   
   gdispFlush();
-  osalMutexUnlock(&orchard_gfxMutex);
+  orchardGfxEnd();
 }
 
 static void textentry_start(OrchardAppContext *context) {

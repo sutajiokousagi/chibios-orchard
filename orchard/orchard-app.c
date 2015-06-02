@@ -65,9 +65,10 @@ static void handle_radio_page(eventid_t id) {
 
   oldfx = effectsGetPattern();
   effectsSetPattern(effectsNameLookup("strobe"));
-  chThdSleepMilliseconds(PAGE_DISPLAY_MS);
   radioPagePopup();
+  chThdSleepMilliseconds(PAGE_DISPLAY_MS);
   effectsSetPattern(oldfx);
+  radioPagePopup();
 }
 
 static void handle_radio_sex(eventid_t id) {

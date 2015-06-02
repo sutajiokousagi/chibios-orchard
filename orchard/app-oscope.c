@@ -50,12 +50,12 @@ static void redraw_ui(uint8_t *samples) {
   uint8_t i;
   uint8_t scale;
 
-  scale = 256 / height;
   agc( samples );
 
   orchardGfxStart();
   width = gdispGetWidth();
   height = gdispGetHeight();
+  scale = 256 / height;
 
   gdispClear(Black);
 

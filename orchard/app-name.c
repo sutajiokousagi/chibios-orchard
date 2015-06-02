@@ -50,6 +50,7 @@ static void draw_confirmation(void) {
 
   redraw_ui();  // clear the text entry area
   
+  orchardGfxStart();
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);

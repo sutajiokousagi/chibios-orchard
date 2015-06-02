@@ -412,7 +412,7 @@ void radioStart(KRadioDevice *radio, SPIDriver *spip) {
 
   radio_set_output_power_dbm(radio, 13); /* Max output with PA0 is 13 dBm */
 
-  radio_set_encoding(radio, encoding_manchester);
+  radio_set_encoding(radio, encoding_whitening);
   radio_set_modulation(radio, modulation_fsk_gaussian_bt_0p3);
   radio_set_packet_mode(radio);
   radio_set_broadcast_address(radio, 255);

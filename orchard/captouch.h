@@ -46,6 +46,7 @@
 #define	ELE10_R	0x56
 #define	ELE11_T	0x57
 #define	ELE11_R	0x58
+#define TCH_DBNC 0x5B
 #define	FIL_CFG	0x5D
 #define	ELE_CFG	0x5E
 #define GPIO_CTRL0	0x73
@@ -63,8 +64,8 @@
 #define	ATO_CFG_TGT	0x7F
 
 // Global Constants
-#define TOU_THRESH	0x0F
-#define	REL_THRESH	0x2A
+#define TOU_THRESH	0x08
+#define	REL_THRESH	0x0C
 
 void captouchStart(I2CDriver *i2cp);
 uint16_t captouchRead(void);
@@ -72,7 +73,10 @@ uint16_t captouchRead(void);
 void captouchDebug(void);
 void captouchPrint(uint8_t reg);
 void captouchSet(uint8_t adr, uint8_t dat);
+uint8_t captouchGet(uint8_t reg);
 void captouchRecal(void);
+void captouchFastBaseline(void);
+void captouchCalibrate(void);
 
 extern event_source_t captouch_changed;
 

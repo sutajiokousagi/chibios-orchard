@@ -44,6 +44,7 @@ static void redraw_ui(void) {
                      message, font, White, justifyCenter);
   
   gdispFlush();
+  gdispCloseFont(font);
   orchardGfxEnd();
 }
 

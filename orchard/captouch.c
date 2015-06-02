@@ -1,4 +1,3 @@
-
 #include "ch.h"
 #include "hal.h"
 #include "i2c.h"
@@ -6,6 +5,7 @@
 
 #include "orchard.h"
 #include "orchard-events.h"
+#include "orchard-app.h"
 
 #include "captouch.h"
 #include "gpiox.h"
@@ -59,20 +59,25 @@ static void captouch_config(void) {
   // This group controls filtering when data is > baseline.
   captouch_set(MHD_R, 0x01);
   captouch_set(NHD_R, 0x01);
-  captouch_set(NCL_R, 0x00);
-  captouch_set(FDL_R, 0x00);
+  captouch_set(NCL_R, 0x03);
+  captouch_set(FDL_R, 0x02);
 
   // Section B
   // This group controls filtering when data is < baseline.
   captouch_set(MHD_F, 0x01);
   captouch_set(NHD_F, 0x01);
-  captouch_set(NCL_F, 0xFF);
+  captouch_set(NCL_F, 0x04);
   captouch_set(FDL_F, 0x02);
 
   // Section C
   // This group sets touch and release thresholds for each electrode
+#if KEY_LAYOUT == LAYOUT_BC1
+  captouch_set(ELE0_T, 18); // outer electrodes have an offset
+  captouch_set(ELE0_R, 25);
+#else
   captouch_set(ELE0_T, TOU_THRESH);
   captouch_set(ELE0_R, REL_THRESH);
+#endif
   captouch_set(ELE1_T, TOU_THRESH);
   captouch_set(ELE1_R, REL_THRESH);
   captouch_set(ELE2_T, TOU_THRESH);
@@ -93,13 +98,21 @@ static void captouch_config(void) {
   captouch_set(ELE9_R, REL_THRESH);
   captouch_set(ELE10_T, TOU_THRESH);
   captouch_set(ELE10_R, REL_THRESH);
+
+#if KEY_LAYOUT == LAYOUT_BC1
+  captouch_set(ELE11_T, 18);
+  captouch_set(ELE11_R, 25);
+#else
   captouch_set(ELE11_T, TOU_THRESH);
   captouch_set(ELE11_R, REL_THRESH);
+#endif
+  // set debounce requirements
+  captouch_set(TCH_DBNC, 0x11); 
 
   // Section D
   // Set the Filter Configuration
   // Set ESI2
-  captouch_set(FIL_CFG, 0x04);
+  captouch_set(FIL_CFG, 0x24);
 
   // Section F
   // Enable Auto Config and auto Reconfig
@@ -115,6 +128,29 @@ static void captouch_config(void) {
   // Set ELE_CFG to 0x00 to return to standby mode
   captouch_set(ELE_CFG, 0x0C);  // Enables all 12 Electrodes
 
+}
+
+void captouchFastBaseline(void) {
+  uint8_t ret;
+  uint16_t electrode;
+  uint8_t i, j;
+
+  captouch_set(ELE_CFG, 0x00);  // disable all electrodes
+
+  for( i = 0x4, j = 0x1e; i < 0x1b; i+= 2, j++ ) {
+    electrode = 0;
+    ret = captouchGet(i);
+    electrode = (uint16_t) ret;
+    ret = captouchGet(i+1);
+    electrode |= (ret << 8);
+
+    captouchSet(j, (uint8_t) (electrode >> 2));
+  }
+  
+  captouch_set(ELE_CFG, 0x0C);  // enable all electrodes
+  chThdSleepMilliseconds(50);
+
+  captouch_state = 0x0; // clear captouch state, it'll be all wrong now
 }
 
 static void captouch_keychange(eventid_t id) {
@@ -176,6 +212,16 @@ void captouchPrint(uint8_t reg) {
   chprintf( stream, "Value at %02x: %02x\n\r", reg, val );
 }
 
+uint8_t captouchGet(uint8_t reg) {
+  uint8_t val;
+
+  i2cAcquireBus(driver);
+  val = captouch_get(reg);
+  i2cReleaseBus(driver);
+  
+  return val;
+}
+
 void captouchSet(uint8_t adr, uint8_t dat) {
   chprintf( stream, "Writing %02x into %02x\n\r", dat, adr );
 
@@ -187,7 +233,9 @@ void captouchSet(uint8_t adr, uint8_t dat) {
 void captouchRecal(void) {
   i2cAcquireBus(driver);
   captouch_set(0x80, 0x63); // resets the chip
+  chThdSleepMilliseconds(50);
   captouch_set(0x80, 0x00); // is this necessary??
+  chThdSleepMilliseconds(50);
 
   captouch_config();
   i2cReleaseBus(driver);
@@ -206,6 +254,56 @@ void captouchDebug(void) {
 
 }
 
+#define CAL_RETRY_LIMIT 5
+void captouchCalibrate(void) {
+  coord_t width;
+  coord_t height;
+  font_t font;
+  uint8_t i;
+  char attemptstr[16];
+
+  orchardGfxStart();
+  font = gdispOpenFont("fixed_5x8");
+  width = gdispGetWidth();
+  height = gdispGetFontMetric(font, fontHeight);
+
+  gdispClear(Black);
+  
+  gdispDrawStringBox(0, height * 2, width, height,
+                     "Calibrating", font, White, justifyCenter);
+  gdispDrawStringBox(0, height * 3, width, height,
+                     "touch surfaces:", font, White, justifyCenter);
+  gdispDrawStringBox(0, height * 4, width, height,
+                     "Please do not touch", font, White, justifyCenter);
+  gdispDrawStringBox(0, height * 5, width, height,
+                     "the touch surfaces!", font, White, justifyCenter);
+  
+  gdispFlush();
+  i = 0;
+  while( i < CAL_RETRY_LIMIT ) {
+    chsnprintf(attemptstr, 16, "Attempt %d of %d", i+1, CAL_RETRY_LIMIT);
+    gdispFillArea(0, height*6, width, height, Black);
+    gdispDrawStringBox(0, height * 6, width, height,
+		       attemptstr, font, White, justifyCenter);
+    gdispFlush();
+    captouchFastBaseline();
+    chThdSleepMilliseconds(1000);
+
+    i2cAcquireBus(driver);
+    captouch_state = captouch_read();
+    i2cReleaseBus(driver);
+
+    if( captouch_state == 0x0 )
+      break;
+
+    i++;
+  }
+
+  gdispCloseFont(font);
+  gdispFlush();
+  orchardGfxEnd();
+}
+
 /*
 This cal set works through the touch surface:
 
@@ -218,4 +316,22 @@ This cal set works through the touch surface:
 00000060: 2D 2A 28 28 2F 2F 28 29 2E 2E 27 00 11 11 11 11 
 00000070: 11 11 00 00 00 00 00 00 00 00 00 0B 00 C4 7F B0 
 
+This cal set is even better:
+00000000: 00 00 00 00 B4 02 C1 02 BE 02 BF 02 C3 02 BD 02 
+00000010: BB 02 B4 02 BE 02 C2 02 BF 02 BD 02 00 00 AC B0 
+00000020: AF AF B0 AF AE AD AF B0 AF AF 00 01 01 00 00 01 
+00000030: 01 FF 02 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00000040: 00 06 0B 06 0B 06 0B 06 0B 06 0B 06 0B 06 0B 06 
+00000050: 0B 06 0B 06 0B 06 0B 06 0B 00 00 11 10 24 0C 25 
+00000060: 2D 2A 28 28 2E 2E 27 29 2E 2E 27 00 11 11 11 11 
+00000070: 11 11 00 00 00 00 00 00 00 00 00 0B 00 C4 7F B0 
+
+00000000: 00 00 00 00 B4 02 C1 02 BE 02 BF 02 C3 02 BD 02 
+00000010: BC 02 B5 02 BE 02 C2 02 BF 02 BD 02 00 00 AD B0 
+00000020: AF AF B0 AF AE AD AF B0 AF AF 00 01 01 00 00 01 
+00000030: 01 FF 02 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00000040: 00 06 0B 06 0B 06 0B 06 0B 06 0B 06 0B 06 0B 06 
+00000050: 0B 06 0B 06 0B 06 0B 06 0B 00 00 11 10 24 0C 25 
+00000060: 2D 2A 28 28 2E 2E 27 29 2E 2E 27 00 11 11 11 11 
+00000070: 11 11 00 00 00 00 00 00 00 00 00 0B 00 C4 7F B0 
  */

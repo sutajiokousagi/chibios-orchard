@@ -34,6 +34,7 @@ void gpioxTogglePad(void *port, int pad);
 void gpioxSetPadMode(void *port, int pad, int mode);
 uint8_t gpioxReadPad(void *port, int pad);
 void gpioxPollInt(void *port);
+uint8_t gpioxGetDebug(uint8_t reg);
 
 #define oledResPad 6
 

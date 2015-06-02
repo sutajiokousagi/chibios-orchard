@@ -104,6 +104,15 @@ void gpioxStart(I2CDriver *i2cp) {
 #endif
 }
 
+uint8_t gpioxGetDebug(uint8_t reg) {
+  uint8_t ret;
+  i2cAcquireBus(driver);
+  ret = gpiox_get(reg);
+  i2cReleaseBus(driver);
+
+  return ret;
+}
+
 void gpioxSetPad(void *port, int pad) {
 
   (void)port;

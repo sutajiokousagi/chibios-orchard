@@ -39,7 +39,9 @@ static const EXTConfig ext_config = {
   {
     {EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, ble_rdyn_cb, PORTC, 3},
     {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART, radioInterrupt, PORTC, 4},
+#if ORCHARD_BOARD_REV != ORCHARD_REV_EVT1
     {EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, gpiox_rdy_cb, PORTD, 4},
+#endif
   }
 };
 

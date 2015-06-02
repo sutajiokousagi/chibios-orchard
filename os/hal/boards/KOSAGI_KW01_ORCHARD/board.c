@@ -76,7 +76,12 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT1,  // PORTA
       .pads = {
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /* PTA0*/ PAL_MODE_ALTERNATIVE_7,   /* PTA1*/ PAL_MODE_ALTERNATIVE_3,   /* PTA2*/ PAL_MODE_ALTERNATIVE_3,
+#else
+        /* ECO10: allow fast Tx filling of radio packets by wiring D1 to PTD1 */
+        /* PTA0*/ PAL_MODE_ALTERNATIVE_7,   /* PTA1*/ PAL_MODE_ALTERNATIVE_3,   /* PTA2*/ PAL_MODE_INPUT,
+#endif
         /* PTA3*/ PAL_MODE_ALTERNATIVE_7,   /* PTA4*/ PAL_MODE_ALTERNATIVE_3,   /* PTA5*/ PAL_MODE_UNCONNECTED,
         /* PTA6*/ PAL_MODE_UNCONNECTED,     /* PTA7*/ PAL_MODE_UNCONNECTED,     /* PTA8*/ PAL_MODE_UNCONNECTED,
         /* PTA9*/ PAL_MODE_UNCONNECTED,     /*PTA10*/ PAL_MODE_UNCONNECTED,     /*PTA11*/ PAL_MODE_UNCONNECTED,
@@ -129,13 +134,7 @@ const PALConfig pal_default_config =
     {
       .port = IOPORT4,  // PORTD
       .pads = {
-#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
-        /* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_UNCONNECTED,     /* PTD2*/ PAL_MODE_UNCONNECTED,
-#else
-        /* ECO10: allow fast Tx filling of radio packets by wiring D1 to PTD1 */
-        /* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_INPUT,           /* PTD2*/ PAL_MODE_UNCONNECTED,
-#endif
-
+	/* PTD0*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD1*/ PAL_MODE_UNCONNECTED,     /* PTD2*/ PAL_MODE_UNCONNECTED,
 #if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
         /* PTD3*/ PAL_MODE_UNCONNECTED,     /* PTD4*/ PAL_MODE_OUTPUT_PUSHPULL, /* PTD5*/ PAL_MODE_ALTERNATIVE_2,
 #else

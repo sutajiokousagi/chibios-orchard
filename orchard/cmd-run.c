@@ -2,14 +2,17 @@
 #include "orchard-shell.h"
 #include "orchard-app.h"
 
-void cmd_launch(BaseSequentialStream *chp, int argc, char *argv[])
+void cmd_run(BaseSequentialStream *chp, int argc, char *argv[])
 {
   const OrchardApp *launcher = orchard_app_start();
 
-  (void)argc;
-  (void)argv;
-
   if (argc) {
+    int i;
+
+    /* This is a bad way to do it */
+    for (i = 1; i < argc; i++)
+      argv[i][-1] = ' ';
+
     while (launcher->name) {
       if (!strcasecmp(launcher->name, argv[0]))
         break;
@@ -19,7 +22,7 @@ void cmd_launch(BaseSequentialStream *chp, int argc, char *argv[])
     /* No match found, print help */
     if (!launcher->name) {
       launcher = orchard_app_start();
-      chprintf(chp, "Usage: launch [app]\r\n");
+      chprintf(chp, "Usage: run [app]\r\n");
       chprintf(chp, "    Available apps:\r\n");
       while (launcher->name) {
         chprintf(chp, "        ");
@@ -35,4 +38,4 @@ void cmd_launch(BaseSequentialStream *chp, int argc, char *argv[])
   orchardAppRun(launcher);
 }
 
-orchard_command("launch", cmd_launch);
+orchard_command("run", cmd_run);

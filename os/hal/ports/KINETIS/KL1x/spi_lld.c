@@ -92,10 +92,8 @@ static void spi_fill_buffer(SPIDriver *spip)
     spip->txoffset++;
 }
 
-static void spi_start_xfer(SPIDriver *spip, bool polling)
+static void spi_start_xfer(SPIDriver *spip)
 {
-
-  (void)polling;
 
   osalDbgAssert(spip->state == SPI_ACTIVE, "Invalid SPI state");
 
@@ -306,7 +304,7 @@ void spi_lld_ignore(SPIDriver *spip, size_t n) {
   spip->rxbuf = NULL;
   spip->txbuf = NULL;
 
-  spi_start_xfer(spip, false);
+  spi_start_xfer(spip);
 }
 
 /**
@@ -331,7 +329,7 @@ void spi_lld_exchange(SPIDriver *spip, size_t n,
   spip->rxbuf = rxbuf;
   spip->txbuf = txbuf;
 
-  spi_start_xfer(spip, false);
+  spi_start_xfer(spip);
 }
 
 /**
@@ -353,7 +351,7 @@ void spi_lld_send(SPIDriver *spip, size_t n, const void *txbuf) {
   spip->rxbuf = NULL;
   spip->txbuf = (void *)txbuf;
 
-  spi_start_xfer(spip, false);
+  spi_start_xfer(spip);
 }
 
 /**
@@ -375,7 +373,7 @@ void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
   spip->rxbuf = rxbuf;
   spip->txbuf = NULL;
 
-  spi_start_xfer(spip, false);
+  spi_start_xfer(spip);
 }
 
 /**
@@ -392,11 +390,21 @@ void spi_lld_receive(SPIDriver *spip, size_t n, void *rxbuf) {
  */
 uint16_t spi_lld_polled_exchange(SPIDriver *spip, uint16_t frame) {
 
-  spi_start_xfer(spip, true);
+  osalDbgAssert(spip->state == SPI_READY, "Invalid SPI state");
+  uint16_t result;
 
-  spi_stop_xfer(spip);
+  /* Load byte into the buffer */
+  spip->spi->DH = (frame >> 8);
+  spip->spi->DL = frame;
 
-  return frame;
+  /* Wait for the byte to be transmitted */
+  while (!(spip->spi->S & SPIx_S_SPTEF))
+    asm("");
+
+  result  = spip->spi->DH << 8;
+  result |= spip->spi->DL;
+
+  return result;
 }
 
 #endif /* HAL_USE_SPI */

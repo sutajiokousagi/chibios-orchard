@@ -153,12 +153,14 @@ void captouchFastBaseline(void) {
   captouch_state = 0x0; // clear captouch state, it'll be all wrong now
 }
 
-static void captouch_keychange(eventid_t id) {
+static void captouch_keychange(void *port, int irq, int type) {
 
   uint16_t mask;
   bool changed = false;
 
-  (void)id;
+  (void)port;
+  (void)irq;
+  (void)type;
 
   i2cAcquireBus(driver);
   mask = captouch_read();
@@ -186,8 +188,8 @@ void captouchStart(I2CDriver *i2cp) {
 
   chEvtObjectInit(&captouch_changed);
 
-  gpioxSetPadMode(GPIOX, 7, GPIOX_IN | GPIOX_IRQ_FALLING | GPIOX_PULL_UP);
-  evtTableHook(orchard_events, gpiox_falling[7], captouch_keychange);
+  gpioxSetPadMode(GPIOX, 7, GPIOX_IN | GPIOX_IRQ_BOTH | GPIOX_PULL_UP);
+  gpioxRegisterHandler(GPIOX, 7, captouch_keychange);
 }
 
 static void dump(uint8_t *byte, uint32_t count) {

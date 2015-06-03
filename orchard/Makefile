@@ -131,6 +131,7 @@ CSRC = main.c \
        orchard-math.c \
        radio.c \
        led.c \
+       hex.c \
        hsvrgb.c \
        flash.c \
        storage.c \

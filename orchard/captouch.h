@@ -68,7 +68,7 @@
 // direct touches to the PCB have a much larger signature over baseline
 // so we can use this to our advantage to filter ambient noise
 #define TOU_THRESH      0x18 
-#define RE_THRESH       0x1C
+#define REL_THRESH      0x1C
 #else
 // touches through the PC case are fairly small; but the case also filters
 // out most ambient noise so we can be more sensitive

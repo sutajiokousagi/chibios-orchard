@@ -28,6 +28,7 @@
 #include "orchard-app.h"
 
 #include "accel.h"
+#include "ble.h"
 #include "captouch.h"
 #include "charger.h"
 #include "gpiox.h"
@@ -152,12 +153,6 @@ static void key_mod(eventid_t id) {
 
 }
 
-static void ble_ready(eventid_t id) {
-
-  (void)id;
-  chprintf(stream, " [BLE ready] ");
-}
-
 static void freefall(eventid_t id) {
 
   (void)id;
@@ -258,7 +253,8 @@ int main(void)
   chargerStart(i2cDriver);
   ggStart(i2cDriver);
   captouchStart(i2cDriver);
-  radioStart(&KRADIO1, &SPID1);
+  radioStart(radioDriver, &SPID1);
+  bleStart(bleDriver, &SPID2);
   oledStart(&SPID2);
   ledStart(LED_COUNT, fb, UI_LED_COUNT, ui_fb);
   effectsStart();
@@ -273,7 +269,6 @@ int main(void)
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);
   evtTableHook(orchard_events, captouch_changed, key_mod);
-  evtTableHook(orchard_events, ble_rdy, ble_ready);
   evtTableHook(orchard_events, accel_freefall, freefall);
   radioSetDefaultHandler(radioDriver, default_radio_handler);
 

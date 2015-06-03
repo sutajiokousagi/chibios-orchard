@@ -13,6 +13,7 @@ extern void *stream;
 
 #define i2cDriver                     (&I2CD2)
 #define radioDriver                   (&KRADIO1)
+#define bleDriver                     (&BLE1)
 #define accelAddr                     0x1c
 #define gpioxAddr                     0x43
 #define ggAddr                        0x55

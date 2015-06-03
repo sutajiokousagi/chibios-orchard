@@ -40,6 +40,21 @@ static void test_event(OrchardAppContext *context, const OrchardAppEvent *event)
   }
   else if (event->type == timerEvent)
     chprintf(stream, "Timer event: %d usec\r\n", event->timer.usecs);
+  else if (event->type == uiEvent)
+    chprintf(stream, "UI event - code: %d  flags: %d\r\n",
+             event->ui.code, event->ui.flags);
+  else if (event->type == adcEvent) {
+    chprintf(stream, "ADC event from ");
+    if (event->adc.code == adcCodeTemp)
+      chprintf(stream, "Temperature ");
+    else if (event->adc.code == adcCodeMic)
+      chprintf(stream, "Microphone ");
+    else if (event->adc.code == adcCodeUsbdet)
+      chprintf(stream, "USB Detect ");
+    else
+      chprintf(stream, "Unknown ");
+    chprintf(stream, "source.  Value: %d\r\n", event->adc.flags);
+  }
   else
     chprintf(stream, "Unrecognized event\r\n");
 }

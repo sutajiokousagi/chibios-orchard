@@ -64,8 +64,17 @@
 #define	ATO_CFG_TGT	0x7F
 
 // Global Constants
+#if KEY_LAYOUT == LAYOUT_BM
+// direct touches to the PCB have a much larger signature over baseline
+// so we can use this to our advantage to filter ambient noise
+#define TOU_THRESH      0x18 
+#define RE_THRESH       0x1C
+#else
+// touches through the PC case are fairly small; but the case also filters
+// out most ambient noise so we can be more sensitive
 #define TOU_THRESH	0x08
 #define	REL_THRESH	0x0C
+#endif
 
 void captouchStart(I2CDriver *i2cp);
 uint16_t captouchRead(void);

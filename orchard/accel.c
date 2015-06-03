@@ -249,11 +249,13 @@ static uint8_t accel_get(uint8_t reg) {
   return val;
 }
 
-static void accel_irq(eventid_t id) {
+static void accel_irq(void *port, int irq, int type) {
 
   uint8_t mask;
 
-  (void)id;
+  (void)port;
+  (void)irq;
+  (void)type;
 
   i2cAcquireBus(driver);
   mask = accel_get(REG_INT_SRC);
@@ -381,7 +383,7 @@ void accelStart(I2CDriver *i2cp) {
   chEvtObjectInit(&accel_freefall);
   chEvtObjectInit(&accel_landscape_portrait);
 
-  evtTableHook(orchard_events, gpiox_falling[3], accel_irq);
+  gpioxRegisterHandler(GPIOX, 3, accel_irq);
   gpioxSetPadMode(GPIOX, 3, GPIOX_IN | GPIOX_IRQ_FALLING);
 
   // enable freefall by default

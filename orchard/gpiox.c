@@ -18,8 +18,10 @@
 #define REG_IRQ_MASK      0x11
 #define REG_IRQ_STATUS    0x13
 
-event_source_t gpiox_rising[GPIOX_NUM_PADS];
-event_source_t gpiox_falling[GPIOX_NUM_PADS];
+typedef void (*gpiox_callback_t)(void *port, int pad, int type);
+
+gpiox_callback_t gpiox_handlers[8];
+
 static I2CDriver *driver;
 static uint8_t gpiox_pal_mode[GPIOX_NUM_PADS];
 static uint8_t regcache[10];
@@ -84,11 +86,6 @@ void gpioxStart(I2CDriver *i2cp) {
 
   for (i = 0; i < ARRAY_SIZE(regcache); i++)
     regcache[i] = 0;
-
-  for (i = 0; i < GPIOX_NUM_PADS; i++) {
-    chEvtObjectInit(&gpiox_rising[i]);
-    chEvtObjectInit(&gpiox_falling[i]);
-  }
 
   i2cAcquireBus(driver);
   gpiox_set(REG_ID, 1);
@@ -251,6 +248,17 @@ uint8_t gpioxReadPad(void *port, int pad) {
   return val;
 }
 
+void gpioxRegisterHandler(void *port,
+                          int pad,
+                          void (*handler)(void *port, int pad, int mode)) {
+
+  (void)port;
+  osalDbgAssert(pad < 8, "Pad out of range");
+  gpiox_handlers[pad] = handler;
+}
+
+static uint32_t interrupt_rising_count[8];
+static uint32_t interrupt_falling_count[8];
 
 static void irq_check_and_broadcast(uint8_t state, int gpio) {
 
@@ -266,58 +274,63 @@ static void irq_check_and_broadcast(uint8_t state, int gpio) {
     /* "Mask" the GPIO */
     regcache[REG_IRQ_LEVEL / 2] &= ~bit;
 
-    if (gpiox_pal_mode[gpio] & GPIOX_IRQ_FALLING)
-      chEvtBroadcast(&gpiox_falling[gpio]);
+    if (gpiox_pal_mode[gpio] & GPIOX_IRQ_FALLING) {
+      osalDbgAssert(gpiox_handlers[gpio] != NULL, "Got unexpected interrupt");
+      interrupt_rising_count[gpio]++;
+      gpiox_handlers[gpio](NULL, gpio, GPIOX_IRQ_FALLING);
+    }
   }
   else {
     /* "Mask" the GPIO */
     regcache[REG_IRQ_LEVEL / 2] |= bit;
 
-    if (gpiox_pal_mode[gpio] & GPIOX_IRQ_RISING)
-      chEvtBroadcast(&gpiox_rising[gpio]);
+    if (gpiox_pal_mode[gpio] & GPIOX_IRQ_RISING) {
+      osalDbgAssert(gpiox_handlers[gpio] != NULL, "Got unexpected interrupt");
+      interrupt_falling_count[gpio]++;
+      gpiox_handlers[gpio](NULL, gpio, GPIOX_IRQ_RISING);
+    }
   }
 }
 
-static uint32_t false_interrupts;
-static uint32_t real_interrupts;
+static int gpiox_irq_are_pending(void *port) {
+
+  (void)port;
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
+  /* Original board rev had the GPIO connected to a non-IRQ line */
+  return !palReadPad(GPIOB, 0);
+#else
+  return !palReadPad(GPIOD, 4);
+#endif
+}
+
+static uint32_t interrupt_count;
 static void gpiox_poll_int(int ign) {
 
   (void)ign;
+
   int pad;
   uint8_t irq_state;
-  int pal_level;
 
-#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
-  /* Original board rev had the GPIO connected to a non-IRQ line */
-  pal_level = palReadPad(GPIOB, 0);
-#else
-  pal_level = palReadPad(GPIOD, 4);
-#endif
+  while (gpiox_irq_are_pending(NULL)) {
 
-  if (pal_level)
-    goto out;
+    i2cAcquireBus(driver);
+    irq_state = gpiox_get(REG_IRQ_STATUS);
+    i2cReleaseBus(driver);
 
-  i2cAcquireBus(driver);
-  irq_state = gpiox_get(REG_IRQ_STATUS);
-  i2cReleaseBus(driver);
+    interrupt_count++;
 
-  if (!irq_state && !pal_level)
-    false_interrupts++;
-  else
-    real_interrupts++;
+    for (pad = 0; pad < GPIOX_NUM_PADS; pad++)
+      irq_check_and_broadcast(irq_state, pad);
 
-  for (pad = 0; pad < GPIOX_NUM_PADS; pad++)
-    irq_check_and_broadcast(irq_state, pad);
+    /* Acknowledge the IRQ by writing new values to watch */
+    i2cAcquireBus(driver);
+    /* Mask off the pins that caused this interrupt, while we re-set the level */
+    gpiox_set(REG_IRQ_MASK, regcache[REG_IRQ_MASK / 2] | irq_state);
+    gpiox_sync(REG_IRQ_LEVEL);
+    /* Unmask the new pins */
+    gpiox_sync(REG_IRQ_MASK);
+    i2cReleaseBus(driver);
+  }
 
-  /* Acknowledge the IRQ by writing new values to watch */
-  i2cAcquireBus(driver);
-  /* Mask off the pins that caused this interrupt, while we re-set the level */
-  gpiox_set(REG_IRQ_MASK, regcache[REG_IRQ_MASK / 2] | irq_state);
-  gpiox_sync(REG_IRQ_LEVEL);
-  /* Unmask the new pins */
-  gpiox_sync(REG_IRQ_MASK);
-  i2cReleaseBus(driver);
-
-out:
   return;
 }

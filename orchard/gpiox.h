@@ -24,8 +24,6 @@
 #define GPIOX               NULL
 
 #define GPIOX_NUM_PADS 8
-extern event_source_t gpiox_rising[GPIOX_NUM_PADS];
-extern event_source_t gpiox_falling[GPIOX_NUM_PADS];
 
 void gpioxStart(I2CDriver *i2cp);
 void gpioxSetPad(void *port, int pad);
@@ -35,6 +33,9 @@ void gpioxSetPadMode(void *port, int pad, int mode);
 uint8_t gpioxReadPad(void *port, int pad);
 void gpioxPollInt(void *port);
 uint8_t gpioxGetDebug(uint8_t reg);
+void gpioxRegisterHandler(void *port,
+                          int pad,
+                          void (*handler)(void *port, int pad, int mode));
 
 #define oledResPad 6
 

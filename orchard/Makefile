@@ -121,6 +121,8 @@ CSRC = main.c \
        $(wildcard app-*.c) \
        $(wildcard ui-*.c) \
        accel.c \
+       ble.c \
+       ble-service.c \
        charger.c \
        gasgauge.c \
        captouch.c \

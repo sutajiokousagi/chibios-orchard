@@ -1,6 +1,9 @@
 #ifndef __BLE_H__
 #define __BLE_H__
 
+/* Enabling this adds about 10k to the build */
+#define NRF_DEBUG 0
+
 #ifndef NRF_DEBUG
 #define NRF_DEBUG 1
 #define NRF_VERBOSE_DEBUG 1
@@ -23,6 +26,7 @@ extern BLEDevice BLE1;
 #include "chprintf.h"
 #define nrf_debug(msg) chprintf(stream, msg "\r\n")
 #define nrf_debugnl(msg) chprintf(stream, msg "\r\n")
+void bleDebugEvent(BLEDevice *ble, nRFEvent *event);
 #else
 #define nrf_debug(msg)
 #define nrf_debugnl(msg)
@@ -52,8 +56,6 @@ typedef void (*nRFDataAckHandler) (BLEDevice *ble, nRFPipe servicePipeNo);
 
 void bleReset(BLEDevice *ble);
 void bleStart(BLEDevice *ble, SPIDriver *spip);
-
-void bleDebugEvent(BLEDevice *ble, nRFEvent *event);
 
 nRFTxStatus blePoll(BLEDevice *ble, uint16_t timeout);
 nRFDeviceState bleDeviceState(BLEDevice *ble);

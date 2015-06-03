@@ -163,6 +163,7 @@ void bleStart(BLEDevice *ble, SPIDriver *spip) {
   // Load up the first setup message and start interrupts
 }
 
+#if NRF_DEBUG
 void ble_print_address(uint8_t *address)
 {
   chprintf(stream, "0x");
@@ -609,13 +610,16 @@ void bleDebugEvent(BLEDevice *ble, nRFEvent *event)
     break;
   }
 }
+#endif
 
 static nRFTxStatus ble_handle_packet(BLEDevice *ble, nRFEvent *rxEvent)
 {
 
+#if NRF_DEBUG
   chprintf(stream, "Got event (%d bytes):\r\n", rxEvent->length);
   print_hex(stream, rxEvent, rxEvent->length + 2, 0);
   bleDebugEvent(ble, rxEvent);
+#endif
 
   // Return immediately if we didn't receive anything
   if (!rxEvent->length)
@@ -787,7 +791,7 @@ static nRFTxStatus ble_transmit_receive(BLEDevice *ble,
   // Buffer that we will receive into
   uint8_t rxBuffer[sizeof(nRFEvent)];
   uint8_t txBuffer[sizeof(nRFEvent)];
-  uint8_t txLength, txCommand;
+  uint8_t txLength;
 
   nRFEvent *rxEvent = (nRFEvent *)rxBuffer;
 
@@ -797,12 +801,10 @@ static nRFTxStatus ble_transmit_receive(BLEDevice *ble,
   // Transmit length
   if (txCmd) {
     txLength = txCmd->length;
-    txCommand = txCmd->command;
     memcpy(txBuffer, txCmd, txLength + 1);
   }
   else {
     txLength = 0;
-    txCommand = 0;
   }
 
   osalDbgAssert(txLength <= NRF_MAX_PACKET_LENGTH, "BLE packet too long");
@@ -826,7 +828,7 @@ static nRFTxStatus ble_transmit_receive(BLEDevice *ble,
     ble_select(ble);
 #if NRF_VERBOSE_DEBUG
     chprintf(stream, "transmitReceive: called with transmission, "
-            "command %d\r\n", txCommand);
+            "command %d\r\n", txCmd->command);
     print_hex(stream, txBuffer, txLength + 1, 0);
 #endif
   } 
@@ -887,7 +889,10 @@ static nRFTxStatus ble_transmit_receive(BLEDevice *ble,
   if (bytes_left < (txLength - 1))
     bytes_left = txLength - 1;
 
-  chprintf(stream, "Finishing up transfer, have %d bytes left (%d, %d)\r\n", bytes_left, rxEvent->length, txLength);
+#if NRF_DEBUG
+  chprintf(stream, "Finishing up transfer, have %d bytes left (%d, %d)\r\n",
+           bytes_left, rxEvent->length, txLength);
+#endif
   spiExchange(ble->spip, bytes_left, txBuffer + 2, rxBuffer + 2);
 
   // Bring REQN high

@@ -318,14 +318,14 @@ void halt(void) {
   chprintf(stream, "Accelerometer stopped\n\r");
 
   // for now BLE seems broken, leave it alone...
-  //  bleStop(bleDriver);
-  //  chprintf(stream, "BLE stopped\n\r");
+  bleStop(bleDriver);
+  chprintf(stream, "BLE stopped\n\r");
+
+  chargerStop();
+  chprintf(stream, "Charger stopped\n\r");
 
   oledStop(&SPID2);
   chprintf(stream, "OLED stopped\n\r");
-  
-  chargerStop();
-  chprintf(stream, "Charger stopped\n\r");
 
   gpioxStop();
   chprintf(stream, "GPIOX stopped\n\r");

@@ -1,6 +1,6 @@
-
 #include "ch.h"
 #include "hal.h"
+#include "oled.h"
 #include "spi.h"
 
 #include "orchard.h"
@@ -38,6 +38,8 @@ static void oled_unselect(void) {
 }
 
 void oledStop(SPIDriver *spip) {
+  (void)spip;
+  
   oledAcquireBus();
   oledCmd(0xAE); // display off
   oledReleaseBus();
@@ -46,11 +48,12 @@ void oledStop(SPIDriver *spip) {
   oledCmd(0x8D); // disable charge pump
   oledCmd(0x10);
   oledReleaseBus();
-  // wait 100ms per datasheet
-  chThdSleepMilliseconds(100);
 
   // or just yank the reset line low?
   // gpioxSetPadMode(GPIOX, oledResPad, GPIOX_OUT_PUSHPULL | GPIOX_VAL_LOW);
+  
+  // wait 100ms per datasheet
+  chThdSleepMilliseconds(100);
 }
 
 void oledStart(SPIDriver *spip) {

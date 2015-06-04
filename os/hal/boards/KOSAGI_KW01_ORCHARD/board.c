@@ -356,9 +356,15 @@ void early_init_radio(void)
 
   /* Map Reset to a GPIO, which is looped from PTE30 back into
      the RESET_B_XCVR port.*/
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
   PORTE->PCR[30] &= PORTx_PCRn_MUX_MASK;
   PORTE->PCR[30] |= PORTx_PCRn_MUX(1);
   GPIOE->PDDR |= (1 << 30);
+#else
+  PORTE->PCR[19] &= PORTx_PCRn_MUX_MASK;
+  PORTE->PCR[19] |= PORTx_PCRn_MUX(1);
+  GPIOE->PDDR |= (1 << 19);
+#endif
 
   /* Enable SPI clock.*/
   SIM->SCGC4 |= SIM_SCGC4_SPI0;

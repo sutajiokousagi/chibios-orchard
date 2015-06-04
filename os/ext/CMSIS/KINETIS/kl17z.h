@@ -325,6 +325,14 @@ typedef struct
   __IO uint8_t  REGSC;
 } PMC_TypeDef;
 
+typedef struct
+{
+  __IO uint8_t  PMPROT;
+  __IO uint8_t  PMCTRL;
+  __IO uint8_t  STOPCTRL;
+  __IO uint8_t  PMSTAT;
+} SMC_TypeDef;
+
 /****************************************************************/
 /*                  Peripheral memory map                       */
 /****************************************************************/
@@ -353,6 +361,7 @@ typedef struct
 #define SPI1_BASE               ((uint32_t)0x40077000)
 #define LLWU_BASE               ((uint32_t)0x4007C000)
 #define PMC_BASE                ((uint32_t)0x4007D000)
+#define SMC_BASE                ((uint32_t)0x4007E000)
 #define GPIOA_BASE              ((uint32_t)0x400FF000)
 #define GPIOB_BASE              ((uint32_t)0x400FF040)
 #define GPIOC_BASE              ((uint32_t)0x400FF080)
@@ -378,6 +387,7 @@ typedef struct
 #define SIM                     ((SIM_TypeDef  *)    SIM_BASE)
 #define LLWU                    ((LLWU_TypeDef  *)   LLWU_BASE)
 #define PMC                     ((PMC_TypeDef  *)    PMC_BASE)
+#define SMC                     ((SMC_TypeDef  *)    SMC_BASE)
 #define PORTA                   ((PORT_TypeDef  *)   PORTA_BASE)
 #define PORTB                   ((PORT_TypeDef  *)   PORTB_BASE)
 #define PORTC                   ((PORT_TypeDef  *)   PORTC_BASE)
@@ -1211,5 +1221,16 @@ typedef struct
 #define PMC_REGSC_ACKISO              ((uint8_t)0x8)    /*!< Acknowledge Isolation */
 #define PMC_REGSC_REGONS              ((uint8_t)0x4)    /*!< Regulator In Run Regulation Status */
 #define PMC_REGSC_BGBE                ((uint8_t)0x1)    /*!< Bandgap Buffer Enable */
+/****************************************************************/
+/*                                                              */
+/*             System Management Controller (SMC)               */
+/*                                                              */
+/****************************************************************/
+/*********  Bits definition for PMC_PMCTL register  *************/
+#define SMC_PMCTRL_RUNM               ((uint8_t)0x60)   /*!< Run Mode Control */
+#define SMC_PMCTRL_STOPA              ((uint8_t)0x08)   /*!< Stop aborted */
+#define SMC_PMCTRL_STOPM_MASK         ((uint8_t)0x07)   /*!< Stop mode control */
+#define SMC_PMCTRL_STOPM_SHIFT        0
+#define SMC_PMCTRL_STOPM(x)           (((uint8_t)(((uint8_t)(x))<<SMC_PMCTRL_STOPM_SHIFT))&SMC_PMCTRL_STOPM_MASK)
 
 #endif

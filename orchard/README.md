@@ -33,6 +33,16 @@ comments in sysfsgpio-novena.cfg.
 
     sudo openocd -f sysfsgpio-novena.cfg
 
+If you're using a Raspberry Pi, use the sysfsgpio-rpi.cfg script.  The
+pinout is documented in the board-specific file.
+
+    sudo openocd -f sysfsgpio-rpi.cfg
+
+If you're flahsing boards for the first time, add '-c noinit' before the
+board-specific config file.  E.g.:
+
+    sudo openocd -c noinit -f sysfsgpio-rpi.cfg
+
 You can then connect to OpenOCD either via telnet (to load code or do basic
 debugging functions), or via gdb (in order to debug applications.)
 

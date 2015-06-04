@@ -50,6 +50,7 @@ uint8_t pbe_fbe(void);
 int32_t fll_freq(int32_t fll_ref);
 uint8_t fbe_fei(void);
 void cpuStop(void);
+void cpuVLLS0(void);
 
 #define LED_COUNT 16
 #define UI_LED_COUNT 16
@@ -336,7 +337,7 @@ void halt(void) {
   fbe_fei();
   
   radioStop(radioDriver);
-  cpuStop();
+  cpuVLLS0();
 }
 
 // look in ../os/ext/CMSIS/KINETIS/kl17z.h for CPU register set
@@ -360,9 +361,31 @@ void cpuStop(void) {
   dummyread =  SMC->PMCTRL;
   //#warning "check that this disassembles to a read"
   //  (void) SMC->PMCTRL; // check that this works
+  dummyread++; // get rid of compiler warning
 
   /* Set the SLEEPDEEP bit to enable deep sleep mode (STOP) */
   SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+  /* WFI instruction will start entry into STOP mode */
+  asm("WFI");
+}
+
+void cpuVLLS0(void) {
+  volatile unsigned int dummyread;
+  
+  /* Write to PMPROT to allow all possible power modes */
+  SMC->PMPROT = 0x2A; // enable all  possible modes
+  /* Set the STOPM field to 0b100 for VLLS0 mode */
+  SMC->PMCTRL &= 0xF8;
+  SMC->PMCTRL |= 0x04;
+  /* set VLLSM = 0b00 */
+  SMC->STOPCTRL = 0x03;  // POR detect allowed, normal stop mode
+  /*wait for write to complete to SMC before stopping core */
+  dummyread = SMC->STOPCTRL;
+  dummyread++; // get rid of compiler warning
+  
+  /* Set the SLEEPDEEP bit to enable deep sleep mode (STOP) */
+  SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+  dummyread = SCB->SCR;
   /* WFI instruction will start entry into STOP mode */
   asm("WFI");
 }

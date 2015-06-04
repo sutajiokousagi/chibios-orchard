@@ -1,5 +1,6 @@
 #include "orchard-app.h"
 #include "charger.h"
+#include "gasgauge.h"
 
 static uint32_t shipmode_init(OrchardAppContext *context) {
 
@@ -13,8 +14,9 @@ static void shipmode_start(OrchardAppContext *context) {
   (void)context;
 
   chprintf(stream, "SHIPMODE: Starting shipmode app\r\n");
+  
+  ggSetHibernate(); // optional, seems to do nothing
   chargerShipMode();
-  halt();
 }
 
 static void shipmode_event(OrchardAppContext *context, const OrchardAppEvent *event) {

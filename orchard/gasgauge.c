@@ -62,6 +62,16 @@ void ggStart(I2CDriver *i2cp) {
 
   driver = i2cp;
 
+  // clear hibernate state, if it was set
+  i2cAcquireBus(driver);
+  gg_set(GG_CMD_CNTL, GG_CODE_CLR_HIB);
+  i2cReleaseBus(driver);
+}
+
+void ggSetHibernate(void) {
+  i2cAcquireBus(driver);
+  gg_set(GG_CMD_CNTL, GG_CODE_SET_HIB);
+  i2cReleaseBus(driver);
 }
 
 int16_t ggAvgCurrent(void) {

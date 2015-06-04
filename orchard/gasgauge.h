@@ -7,6 +7,8 @@ int16_t ggStateofCharge(void);
 
 uint16_t setDesignCapacity(uint16_t mAh);
 
+void ggSetHibernate(void);
+
 void ggStart(I2CDriver *i2cp);
 
 // word-width commands
@@ -40,3 +42,5 @@ void ggStart(I2CDriver *i2cp);
 #define GG_CODE_SEAL    0x0020
 #define GG_CODE_CFGUPDATE 0x0013
 #define GG_CODE_RESET   0x0042
+#define GG_CODE_SET_HIB 0x0011
+#define GG_CODE_CLR_HIB 0x0012

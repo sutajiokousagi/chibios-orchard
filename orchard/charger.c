@@ -9,6 +9,7 @@
 
 static I2CDriver *driver;
 static chargerIntent chgIntent = CHG_IDLE;
+static chargerIntent shipIntent = CHG_IDLE; // one-way flag for shipmode
 
 static void charger_set(uint8_t reg, uint8_t val) {
 
@@ -40,19 +41,26 @@ static void charger_get(uint8_t adr, uint8_t *data) {
 
 
 static void do_charger_watchdog(void) {
-  switch( chgIntent ) {
-  case CHG_CHARGE:
-    charger_set(0x00, 0x80); // command for charge mode
-    break;
-
-  case CHG_BOOST:
-    charger_set(0x00, 0xC0); // command for boost mode
-    break;
-    
-  case CHG_IDLE:
-  default:
-    break;
-    // do nothing
+  if( shipIntent == CHG_SHIPMODE ) {
+    charger_set(0x00, 0x00); // turn off boost if it's turned on
+    // give it a few ms to discharge caps and prevent bounceback    
+    chThdSleepMilliseconds(100);
+    charger_set(0x00, 0x08); // command for ship mode
+  } else {
+    switch( chgIntent ) {
+    case CHG_CHARGE:
+      charger_set(0x00, 0x80); // command for charge mode
+      break;
+      
+    case CHG_BOOST:
+      charger_set(0x00, 0xC0); // command for boost mode
+      break;
+      
+    case CHG_IDLE:
+    default:
+      break;
+      // do nothing
+    }
   }
 }
 
@@ -94,7 +102,7 @@ void chargerStart(I2CDriver *i2cp) {
 // battery while shipping or in storage. The only way out of this is to plug
 // power into the microUSB port, which re-engages power to the whole system.
 msg_t chargerShipMode(void) {
-  charger_set(0x00, 0x08); // command for ship mode
+  shipIntent = CHG_SHIPMODE;  // this is a one-way door
   
   return MSG_OK;
 }

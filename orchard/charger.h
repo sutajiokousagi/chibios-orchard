@@ -9,6 +9,7 @@ typedef enum chargerIntent {
   CHG_IDLE,
   CHG_CHARGE,
   CHG_BOOST,
+  CHG_SHIPMODE,
 } chargerIntent;
 
 typedef enum chargerFault {

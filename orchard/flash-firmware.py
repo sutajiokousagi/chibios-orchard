@@ -24,12 +24,6 @@ memory (after): ['0x00000001', '0x00000000', '0xaaaaaaaa', '0x00000023',
 
 """
 import socket
-
-import sys
-sys.path.append("./python-gdb-mi") 
-sys.path.append("./factory-test/python-gdb-mi") 
-sys.path.append("./factory-test/python-gdb-mi") 
-import gdbmi
 import logging
 
 def strToHex(data):
@@ -119,55 +113,47 @@ class OpenOcd:
 
 if __name__ == "__main__":
 
-    gdb = None
-    should_exit = False
-    run_function_results = {}
-
     def show(*args):
         print(*args, end="\n")
 
-    def exit_on_connect_error(token, obj):
-        logging.error(['Get result.  Token, obj', obj.what, token, obj])
+    def halt_soc(ocd):
+        tries = 0
+        while True:
+            ocd.send("sleep 1000")
+            state = ocd.send("klx.cpu curstate")
+            if (state == "halted") and (ocd.readVariable(0x40048024) == 0x16151502):
+                break
+            print("State is not 'halted': " + state + ", will try again")
+            ocd.send("reset halt")
+            tries = tries + 1
+        return tries > 1
 
-    def print_status(token, obj):
-        logging.error(['Get result.  Token, obj', obj.what, token, obj])
+    def run_test(ocd):
+        swdid = int(ocd.send("ocd_transport init").split(" ")[2].rstrip(), 0)
+        print("SWD ID: 0x%08x" % swdid)
+        if swdid != 0x0bc11477:
+            print("SWD ID not correct (wanted: 0x0bc11477)")
+            return False
 
-    def run_function_get_result(token, obj):
-        logging.error(['Get result.  Token, obj', obj.what, token, obj])
-        if obj.what != '"\\n"':
-            res = obj.what
-            # Remove the "$1 = " at the front
-            res = '='.join(res.split('=')[1:]).lstrip()
-            run_function_results[token] = res
+        dapid = int(ocd.send("ocd_dap apid").rstrip(), 0)
+        print("DAP ID: 0x%08x" % dapid)
+        if dapid != 0x04770031:
+            print("DAP ID not correct (wanted: 0x04770031)")
+            return False
 
-    def run_function(descr):
-        token = gdb.send("call " + descr, None, run_function_get_result)
-        gdb.wait_for(token)
-        gdb.wait_for(token)
-        return run_function_results[token]
-
-    def do_test(bpnum, obj):
-        prot = "gpiox_get(1)"
-        logging.error(['Result of calling ', prot, run_function(prot)])
-        should_exit = True
-
-    with OpenOcd() as ocd:
         print("Halting CPU")
         ocd.send("klx.cpu curstate")
         ocd.send("reset halt")
 
-        print("Doing mass erase...")
-        ocd.send("kinetis mdm mass_erase")
-
         print ("Trying to halt SOC")
-        while True:
-            ocd.send("sleep 1000")
-            state = ocd.send("klx.cpu curstate")
-            if state == "halted":
-                print("State is halted: " + state)
-                break
-            print("Trying to halt again")
-            ocd.send("reset halt")
+        if halt_soc(ocd):
+            print("New board, doing mass erase...")
+            ocd.send("kinetis mdm mass_erase")
+        else:
+            print("Board reset just fine")
+
+        # Print out some interesting data
+        print("Interesting registers:")
 
         # Print out SDID
         show("SDID: %s" % (hexify(ocd.readVariable(0x40048024))))
@@ -184,33 +170,13 @@ if __name__ == "__main__":
         print("Rewriting flash...")
         ocd.send("flash write_image build/orchard.elf")
 
-        print("Starting GDB")
+        print("Restarting board...")
+        ocd.send("reset")
 
-        logging.basicConfig(
-            #level=logging.INFO,
-            level=logging.DEBUG,
-            #level=logging.ERROR,
-            format='%(asctime)s '\
-            '%(levelname)s '\
-            '%(pathname)s:%(lineno)s '\
-            '%(message)s')
-
-        gdb = gdbmi.Session("build/orchard.elf")
-        token = gdb.send("set unwindonsignal on")
-        logging.debug(["Set window", token])
-        gdb.wait_for(token)
-
-        token = gdb.send("target remote localhost:3333", print_status, exit_on_connect_error)
-        logging.debug(["Connect to localhost", token])
-        gdb.wait_for(token)
-
-        token = gdb.send("monitor reset halt", print_status, exit_on_connect_error)
-        logging.debug(["Reset board", token])
-        gdb.wait_for(token)
-
-        # When orchardShellRestart is to be called, run the testcase instead
-        gdb.wait_for(gdb.add_breakpoint("orchardShellRestart", do_test))
-        token = gdb.send("continue")
-
-        while not should_exit:
-            gdb.wait_for(None)
+    try:
+        with OpenOcd() as ocd:
+            run_test(ocd)
+    except:
+        print("Failed to connect to OpenOCD.  Make sure it is running.")
+        print("Be sure to run openocd with the '-c noinit' argument.  E.g.:")
+        print("    sudo openocd -c noinit -f sysfsgpio-rpi.cfg")

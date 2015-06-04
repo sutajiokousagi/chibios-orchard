@@ -59,6 +59,14 @@ static unsigned int patternChanged = 0;
 
 static int wavesign = -1;
 
+static uint8_t ledExitRequest = 0;
+static uint8_t ledsOff = 0;
+
+uint8_t effectsStop(void) {
+  ledExitRequest = 1;
+  return ledsOff;
+}
+
 /**
  * @brief   Initialize Led Driver
  * @details Initialize the Led Driver based on parameters.
@@ -763,6 +771,11 @@ static void blendFbs(void) {
   for( i = led_config.ui_pixels * 3; i < led_config.max_pixels * 3; i++ ) {
     led_config.final_fb[i] = led_config.fb[i];
   }
+  if( ledExitRequest ) {
+    for( i = 0; i < led_config.max_pixels * 3; i++ ) {
+      led_config.final_fb[i] = 0; // turn all the LEDs off
+    }
+  }
 }
 
 static THD_WORKING_AREA(waEffectsThread, 256);
@@ -771,7 +784,7 @@ static THD_FUNCTION(effects_thread, arg) {
   (void)arg;
   chRegSetThreadName("LED effects");
 
-  while (1) {
+  while (!ledsOff) {
     blendFbs();
     
     // transmit the actual framebuffer to the LED chain
@@ -785,6 +798,16 @@ static THD_FUNCTION(effects_thread, arg) {
 
     // re-render the internal framebuffer animations
     draw_pattern();
+
+    if( ledExitRequest ) {
+      // force one full cycle through an update on request to force LEDs off
+      blendFbs(); 
+      chSysLock();
+      ledUpdate(led_config.final_fb, led_config.pixel_count);
+      chSysUnlock();
+      
+      ledsOff = 1;
+    }
   }
   return;
 }
@@ -848,6 +871,8 @@ void effectsStart(void) {
   }
 
   draw_pattern();
+  ledExitRequest = 0;
+  ledsOff = 0;
   chThdCreateStatic(waEffectsThread, sizeof(waEffectsThread),
       NORMALPRIO - 6, effects_thread, &led_config);
 }

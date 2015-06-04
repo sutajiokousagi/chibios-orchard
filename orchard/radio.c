@@ -385,6 +385,10 @@ static void radio_unload_packet(eventid_t id) {
                              payload);
 }
 
+void radioStop(KRadioDevice *radio) {
+  radio_set(radio, RADIO_OpMode, 0x80); // force into sleep mode immediately
+}
+
 void radioStart(KRadioDevice *radio, SPIDriver *spip) {
 
   unsigned int reg;

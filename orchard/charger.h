@@ -30,6 +30,7 @@ typedef enum chargerStat {
 } chargerStat;
 
 void chargerStart(I2CDriver *driver);
+void chargerStop(void);
 msg_t chargerShipMode(void);
 msg_t chargerBoostIntent(uint8_t enable);
 msg_t chargerChargeIntent(uint8_t enable);

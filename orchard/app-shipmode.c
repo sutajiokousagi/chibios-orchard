@@ -14,6 +14,7 @@ static void shipmode_start(OrchardAppContext *context) {
 
   chprintf(stream, "SHIPMODE: Starting shipmode app\r\n");
   chargerShipMode();
+  halt();
 }
 
 static void shipmode_event(OrchardAppContext *context, const OrchardAppEvent *event) {

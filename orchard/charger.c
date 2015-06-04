@@ -77,6 +77,11 @@ static THD_FUNCTION(charger_watchdog_thread, arg) {
   return;
 }
 
+void chargerStop(void) {
+  chargerBoostIntent(0);
+  charger_set(CHG_REG_CTL, 0xF); // set Hi-Z mode for charger
+}
+
 void chargerStart(I2CDriver *i2cp) {
 
   driver = i2cp;

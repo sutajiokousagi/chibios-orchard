@@ -8,6 +8,7 @@ struct accel_data {
 };
 
 void accelStart(I2CDriver *driver);
+void accelStop(void);
 msg_t accelPoll(struct accel_data *data);
 void accelEnableFreefall(int sensitivity, int debounce);
 void accelDisableFreefall(void);

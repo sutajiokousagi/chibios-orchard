@@ -26,6 +26,7 @@
 #define GPIOX_NUM_PADS 8
 
 void gpioxStart(I2CDriver *i2cp);
+void gpioxStop(void);
 void gpioxSetPad(void *port, int pad);
 void gpioxClearPad(void *port, int pad);
 void gpioxTogglePad(void *port, int pad);

@@ -78,6 +78,14 @@ static THD_FUNCTION(gpiox_poll_thread, arg) {
 }
 #endif
 
+void gpioxStop(void) {
+  i2cAcquireBus(driver);
+  gpiox_set(0x11, 0xFF);  // mask all interrupts
+  gpiox_set(0x3, 0x0);  // force all gpios to inputs
+  gpiox_set(0xB, 0x0);  // disable pull-up/pulldowns
+  i2cReleaseBus(driver);
+}
+
 void gpioxStart(I2CDriver *i2cp) {
 
   unsigned int i;

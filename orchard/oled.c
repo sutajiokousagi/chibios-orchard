@@ -37,6 +37,22 @@ static void oled_unselect(void) {
   palSetPad(GPIOA, 19);
 }
 
+void oledStop(SPIDriver *spip) {
+  oledAcquireBus();
+  oledCmd(0xAE); // display off
+  oledReleaseBus();
+
+  oledAcquireBus();
+  oledCmd(0x8D); // disable charge pump
+  oledCmd(0x10);
+  oledReleaseBus();
+  // wait 100ms per datasheet
+  chThdSleepMilliseconds(100);
+
+  // or just yank the reset line low?
+  // gpioxSetPadMode(GPIOX, oledResPad, GPIOX_OUT_PUSHPULL | GPIOX_VAL_LOW);
+}
+
 void oledStart(SPIDriver *spip) {
 
   driver = spip;

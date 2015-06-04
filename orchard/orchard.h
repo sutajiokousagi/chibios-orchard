@@ -4,6 +4,8 @@
 extern const char *gitversion;
 extern struct evt_table orchard_events;
 
+void halt(void);
+
 #define ORCHARD_OS_VERSION_MAJOR      1
 #define ORCHARD_OS_VERSION_MINOR      0
 

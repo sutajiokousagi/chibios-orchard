@@ -36,6 +36,7 @@ void cmd_shipmode(BaseSequentialStream *chp, int argc, char *argv[])
 
   /// NOTE TO SELF: implement flush of volatile genome state (such as playtime and favorites)
   /// to FLASH before going into shipmode
+  halt();
   
   chprintf(chp, "Battery will disconnect and system will power off\r\n");
   chprintf(chp, "You must disconnect/reconnect power via microUSB to reconnect battery\r\n");

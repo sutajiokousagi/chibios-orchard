@@ -178,6 +178,12 @@ uint16_t captouchRead(void) {
   return captouch_state;
 }
 
+void captouchStop() {
+  i2cAcquireBus(driver);
+  captouch_set(ELE_CFG, 0x00);  // disabling all electrodes puts us in stop mode
+  i2cReleaseBus(driver);
+}
+
 void captouchStart(I2CDriver *i2cp) {
 
   driver = i2cp;

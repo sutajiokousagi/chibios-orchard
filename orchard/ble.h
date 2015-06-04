@@ -56,6 +56,7 @@ typedef void (*nRFDataAckHandler) (BLEDevice *ble, nRFPipe servicePipeNo);
 
 void bleReset(BLEDevice *ble);
 void bleStart(BLEDevice *ble, SPIDriver *spip);
+void bleStop(BLEDevice *ble);
 
 nRFTxStatus blePoll(BLEDevice *ble, uint16_t timeout);
 nRFDeviceState bleDeviceState(BLEDevice *ble);

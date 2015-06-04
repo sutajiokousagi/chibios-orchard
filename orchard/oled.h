@@ -4,6 +4,7 @@
 #include "spi.h"
 
 void oledStart(SPIDriver *device);
+void oledStop(SPIDriver *device);
 void oledAcquireBus(void);
 void oledReleaseBus(void);
 void oledCmd(uint8_t cmd);

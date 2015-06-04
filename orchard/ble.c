@@ -10,6 +10,7 @@
 #include "ble.h"
 #include "gpiox.h"
 #include "hex.h"
+#include "ble-service.h"
 
 struct _BLEDevice {
   SPIDriver                 *spip;
@@ -129,6 +130,12 @@ void bleReset(BLEDevice *ble) {
   ble_assert_reset(ble);
   chThdSleepMicroseconds(1);
   ble_deassert_reset(ble);
+}
+
+void bleStop(BLEDevice *ble) {
+  bleReset(ble);
+  bleSetup(ble, &ble_broadcast);
+  bleSleep(ble);  
 }
 
 void bleStart(BLEDevice *ble, SPIDriver *spip) {

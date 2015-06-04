@@ -18,6 +18,7 @@ typedef struct _RadioPacket {
 extern KRadioDevice KRADIO1;
 
 void radioStart(KRadioDevice *radio, SPIDriver *spip);
+void radioStop(KRadioDevice *radio);
 uint8_t radioRead(KRadioDevice *radio, uint8_t addr);
 void radioWrite(KRadioDevice *radio, uint8_t addr, uint8_t val);
 int radioDump(KRadioDevice *radio, uint8_t addr, void *bfr, int count);

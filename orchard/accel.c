@@ -361,6 +361,14 @@ void accelDisableFreefall(void) {
   i2cReleaseBus(driver);
 }
 
+void accelStop(void) {
+  i2cAcquireBus(driver);
+  // forces accelerometer into standby mode
+  accel_set(REG_CTRL1, accel_get(REG_CTRL1) & ~REG_CTRL1_ACTIVE);
+  i2cReleaseBus(driver);
+}
+
+
 void accelStart(I2CDriver *i2cp) {
 
   driver = i2cp;

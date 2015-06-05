@@ -974,10 +974,12 @@ static nRFTxStatus ble_transmit_pipe_command(BLEDevice *ble, uint8_t command, nR
 
 nRFTxStatus bleTest(BLEDevice *ble, uint8_t feature)
 {
+  /*
   if (ble->device_state != Standby) {
     nrf_debug("device not in Standby state");
     return InvalidState;
   }
+  */
 
   nrf_debug("calling test");
 
@@ -1149,6 +1151,11 @@ nRFTxStatus bleCloseRemotePipe(BLEDevice *ble, nRFPipe servicePipeNo)
 
 nRFTxStatus bleDtmCommand(BLEDevice *ble, uint16_t dtmCmd)
 {
+  if (ble->device_state != Test) {
+    nrf_debug("device not in Standby state");
+    return InvalidState;
+  }
+
   nRFCommand cmd;
   cmd.length = 3;
   cmd.command = NRF_DTMCOMMAND_OP;

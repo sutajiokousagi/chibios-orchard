@@ -103,6 +103,28 @@ static void ble_bc(BaseSequentialStream *chp, int argc, char *argv[]) {
   bleSetup(bleDriver, &ble_broadcast);
 }
 
+static void ble_test(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+  int ret;
+  int testnum = 3;
+
+  if (argc > 1)
+    testnum = strtoul(argv[1], NULL, 0);
+
+  bleReset(bleDriver);
+
+  chprintf(chp, "Starting BLE test via ACI: ");
+  ret = bleTest(bleDriver, 2);
+  chprintf(chp, "%d\r\n", ret);
+
+  /* Allow the bleDriver to get into the "Test" mode */
+  blePoll(bleDriver, 1000);
+
+  chprintf(chp, "Starting DTM test %d: ", testnum);
+  ret = bleDtmCommand(bleDriver, testnum);
+  chprintf(chp, "%d\r\n", ret);
+}
+
 static void cmd_ble(BaseSequentialStream *chp, int argc, char *argv[])
 {
 
@@ -113,6 +135,7 @@ static void cmd_ble(BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "   bc                 Set up BLE as a broadcast device\r\n");
     chprintf(chp, "   kbd                Set up BLE as a keyboard\r\n");
     chprintf(chp, "   reset              Reset BLE radio completely\r\n");
+    chprintf(chp, "   test               Run carrier wave test\r\n");
     chprintf(chp, "   bond [timeout] [interval]  Pair with something\r\n");
     return;
   }
@@ -129,6 +152,8 @@ static void cmd_ble(BaseSequentialStream *chp, int argc, char *argv[])
     ble_reset(chp, argc, argv);
   else if (!strcasecmp(argv[0], "bond"))
     ble_bond(chp, argc, argv);
+  else if (!strcasecmp(argv[0], "test"))
+    ble_test(chp, argc, argv);
   else
     chprintf(chp, "Unrecognized BLE command\r\n");
 }

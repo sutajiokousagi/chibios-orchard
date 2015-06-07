@@ -9,6 +9,8 @@
 
 #include "captouch.h"
 #include "gpiox.h"
+#include "orchard-test.h"
+#include "test-audit.h"
 
 #include <stdlib.h>
 
@@ -311,6 +313,17 @@ void captouchCalibrate(void) {
   gdispFlush();
   orchardGfxEnd();
 }
+
+OrchardTestResult test_captouch(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("captouch", test_captouch);
 
 /*
 This cal set works through the touch surface:

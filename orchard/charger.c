@@ -7,6 +7,9 @@
 #include "orchard.h"
 #include "string.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 static I2CDriver *driver;
 static chargerIntent chgIntent = CHG_IDLE;
 static chargerIntent shipIntent = CHG_IDLE; // one-way flag for shipmode
@@ -305,3 +308,14 @@ void chargerSetTargetCurrent(uint16_t current) {
   data |= code << 3;
   charger_set(CHG_REG_CURRENT, data);
 }
+
+OrchardTestResult test_charger(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("charger", test_charger);

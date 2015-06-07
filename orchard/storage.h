@@ -1,3 +1,6 @@
+#ifndef __ORCHARD_STORAGE__
+#define __ORCHARD_STORAGE__
+
 #include "flash.h"
 
 // naming conventions:
@@ -12,7 +15,8 @@
 // one sector is reserved for swapping in for updates
 #define STORAGE_SIZE  ((uint32_t) (__storage_size__) - (uint32_t) SECTOR_SIZE)
 
-#define BLOCK_TOTAL   (STORAGE_SIZE / SECTOR_SIZE)
+#define BLOCK_TOTAL   (STORAGE_SIZE / SECTOR_SIZE)  // number of blocks, 1-based
+#define BLOCK_MAX     (BLOCK_TOTAL - 1)   // max block index, 0-based
 #define SECTOR_NUM_ERASE  1   // number of sectors reserved for erasing/junking
 #define SECTOR_MAX ( (uint32_t) __storage_end__ / SECTOR_SIZE)
 #define SECTOR_MIN ((uint32_t) __storage_start__ / SECTOR_SIZE)
@@ -61,3 +65,4 @@ int8_t storagePatchData(uint32_t block, uint32_t *data, uint32_t offset, uint32_
 // When laying out storage structures using ORFS, make sure the total size of the structure
 // aligns to a 4-byte boundary!
 
+#endif // __ORCHARD_STORAGE__

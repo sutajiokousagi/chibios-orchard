@@ -7,6 +7,9 @@
 #include "orchard.h"
 #include "orchard-app.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 #define REG_ID            0x01
 #define REG_DIR           0x03
 #define REG_OUT           0x05
@@ -342,3 +345,14 @@ static void gpiox_poll_int(int ign) {
 
   return;
 }
+
+OrchardTestResult test_gpiox(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("gpiox", test_gpiox);

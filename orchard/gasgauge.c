@@ -8,6 +8,9 @@
 
 #include "chprintf.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 static I2CDriver *driver;
 
 static void gg_set(uint8_t cmdcode, int16_t val) {
@@ -208,3 +211,14 @@ uint16_t setDesignCapacity(uint16_t mAh) {
   return designCapacity;
   
 }
+
+OrchardTestResult test_gasgauge(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("gasgauge", test_gasgauge);

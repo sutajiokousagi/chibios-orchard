@@ -7,6 +7,9 @@
 
 #include "chbsem.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 static adcsample_t mic_sample[MIC_SAMPLE_DEPTH];
 static uint8_t mic_return[MIC_SAMPLE_DEPTH];
 mutex_t adc_mutex;
@@ -202,3 +205,26 @@ adcsample_t *analogReadUsbRaw(void) {
 void analogStart() {
   
 }
+
+
+OrchardTestResult test_usb(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("usb", test_usb);
+
+OrchardTestResult test_mic(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("mic", test_mic);

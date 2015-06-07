@@ -11,6 +11,9 @@
 
 #include "TransceiverReg.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 #define REG_TEMP1                 0x4e
 #define REG_TEMP1_START             (1 << 3)
 #define REG_TEMP1_RUNNING           (1 << 2)
@@ -624,3 +627,14 @@ void radioSend(KRadioDevice *radio,
                                | OpMode_Listen_Off
                                | OpMode_Receiver);
 }
+
+OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("radio", test_radio);

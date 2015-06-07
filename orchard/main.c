@@ -26,6 +26,8 @@
 #include "orchard-shell.h"
 #include "orchard-events.h"
 #include "orchard-app.h"
+#include "orchard-test.h"
+#include "test-audit.h"
 
 #include "accel.h"
 #include "ble.h"
@@ -246,6 +248,9 @@ int main(void)
   chprintf(stream, "\r\n\r\nOrchard shell.  Based on build %s\r\n", gitversion);
   print_mcu_info();
 
+  flashStart();
+  orchardTestInit();
+
   i2cStart(i2cDriver, &i2c_config);
   spiStart(&SPID1, &spi_config);
   spiStart(&SPID2, &spi_config);
@@ -268,8 +273,6 @@ int main(void)
   uiStart();
   orchardAppInit();
 
-  flashStart();
-
   geneStart();
   pagingStart();
 
@@ -283,6 +286,8 @@ int main(void)
 
   captouchCalibrate();
 
+  orchardTestRun(orchardTestPoweron);
+  
   // eventually get rid of this
   chprintf(stream, "User flash start: 0x%x  user flash end: 0x%x  length: 0x%x\r\n",
       __storage_start__, __storage_end__, __storage_size__);
@@ -558,3 +563,13 @@ uint8_t fbe_fei(void) {
 } // fbe_fei
 
   
+OrchardTestResult test_cpu(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("cpu", test_cpu);

@@ -12,6 +12,9 @@
 #include "hex.h"
 #include "ble-service.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 struct _BLEDevice {
   SPIDriver                 *spip;
   uint64_t                  pipes_open;
@@ -1416,3 +1419,14 @@ void bleSetDataAckHandler(BLEDevice *ble, nRFDataAckHandler handler)
 {
     ble->data_ack_handler = handler;
 }
+
+OrchardTestResult test_ble(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("ble", test_ble);

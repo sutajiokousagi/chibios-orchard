@@ -9,6 +9,9 @@
 
 #include "gfx.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 static SPIDriver *driver;
 
 static void oled_command_mode(void) {
@@ -104,3 +107,14 @@ void oledOrchardBanner(void) {
   gdispCloseFont(font);
   orchardGfxEnd();
 }
+
+OrchardTestResult test_oled(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("oled", test_oled);

@@ -117,9 +117,11 @@ CSRC = main.c \
        orchard-app.c \
        orchard-ui.c \
        orchard-vectors.c \
+       orchard-test.c \
        $(wildcard cmd-*.c) \
        $(wildcard app-*.c) \
        $(wildcard ui-*.c) \
+       $(wildcard test-*.c) \
        accel.c \
        ble.c \
        ble-service.c \

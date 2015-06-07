@@ -11,6 +11,9 @@
 #include "fixmath.h"
 #include "orchard-ui.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 #include <string.h>
 #include <math.h>
 
@@ -876,3 +879,14 @@ void effectsStart(void) {
   chThdCreateStatic(waEffectsThread, sizeof(waEffectsThread),
       NORMALPRIO - 6, effects_thread, &led_config);
 }
+
+OrchardTestResult test_led(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("ws2812b", test_led);

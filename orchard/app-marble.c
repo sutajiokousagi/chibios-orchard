@@ -8,8 +8,6 @@
 #include "captouch.h"
 #include "orchard-ui.h"
 
-#warning "TODO: remove cmd-oled.c once this app is working"
-
 #define TILT_THRESH 100
 #define TILT_RATE   128
 #define BALL_SIZE  6

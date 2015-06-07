@@ -15,6 +15,17 @@ void orchardTestInit(void) {
   auditStart();  // start / initialize the test audit log
 }
 
+void orchardListTests(void) {
+  const TestRoutine *current;
+
+  current = orchard_test_start();
+  chprintf( stream, "Available tests:\n\r" );
+  while(current->test_name) {
+    chprintf( stream, "%s\r\n", current->test_name);
+    current++;
+  }
+}
+
 const TestRoutine *orchardGetTestByName(const char *name) {
   const TestRoutine *current;
 

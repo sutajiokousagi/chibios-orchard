@@ -60,5 +60,6 @@ typedef struct {
 void orchardTestInit(void);
 const TestRoutine *orchardGetTestByName(const char *name);
 void orchardTestRun(uint32_t test_type);
+void orchardListTests(void);
 
 #endif /* __ORCHARD_TEST_H__ */

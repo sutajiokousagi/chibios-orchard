@@ -8,6 +8,9 @@
 #include "orchard.h"
 #include "orchard-events.h"
 
+#include "orchard-test.h"
+#include "test-audit.h"
+
 #define REG_INT_SYSMOD                0x0b
 #define REG_INT_SYSMOD_SYSMOD1          (1 << 1)
 #define REG_INT_SYSMOD_SYSMOD0          (1 << 0)
@@ -412,12 +415,36 @@ msg_t accelPoll(struct accel_data *data) {
                            TIME_INFINITE);
   i2cReleaseBus(driver);
 
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
   data->x  = ((rx[1] & 0xff)) << 4;
   data->x |= ((rx[2] >> 4) & 0x0f);
+  
   data->y  = ((rx[3] & 0xff)) << 4;
   data->y |= ((rx[4] >> 4) & 0x0f);
+#else
+  // x/y swapped
+  data->x  = ((rx[3] & 0xff)) << 4;
+  data->x |= ((rx[4] >> 4) & 0x0f);
+  
+  data->y  = ((rx[1] & 0xff)) << 4;
+  data->y |= ((rx[2] >> 4) & 0x0f);
+
+  data->y = 4095 - data->y;  // y axis inverted
+#endif
+  
   data->z  = ((rx[5] & 0xff)) << 4;
   data->z |= ((rx[6] >> 4) & 0x0f);
 
   return MSG_OK;
 }
+
+OrchardTestResult test_accel(const char *my_name, OrchardTestType test_type) {
+
+  switch(test_type) {
+  default:
+    auditUpdate(my_name, test_type, orchardResultNoTest);
+  }
+  
+  return orchardResultNoTest;
+}
+orchard_test("accel", test_accel);

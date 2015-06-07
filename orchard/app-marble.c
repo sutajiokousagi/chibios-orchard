@@ -17,9 +17,9 @@
 struct accel_data d, dref;
 
 static void redraw_ui(void) {
-  coord_t x = 60, y = 28;
-  coord_t xo, yo;
-  uint8_t changed = 0;
+  static coord_t x = 60, y = 28;
+  static coord_t xo, yo;
+  static uint8_t changed = 0;
   coord_t width, height;
 
   width = gdispGetWidth();    // these are thread-safe, don't lock around them
@@ -84,7 +84,12 @@ static void marble_start(OrchardAppContext *context) {
   dref.x = (dref.x + 2048) & 0xFFF;
   dref.y = (dref.y + 2048) & 0xFFF;
 
-  orchardAppTimer(context, 30, true); // screen refresh timer at once every 30ms
+  orchardGfxStart();
+  gdispClear(Black);
+  gdispFlush();
+  orchardGfxEnd();
+
+  orchardAppTimer(context, 20 * 1000, true); // screen refresh timer at once every 20ms
 }
 
 static void marble_event(OrchardAppContext *context, const OrchardAppEvent *event) {

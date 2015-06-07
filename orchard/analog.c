@@ -211,7 +211,7 @@ OrchardTestResult test_usb(const char *my_name, OrchardTestType test_type) {
 
   switch(test_type) {
   default:
-    auditUpdate(my_name, test_type, orchardResultNoTest);
+    return orchardResultNoTest;
   }
   
   return orchardResultNoTest;
@@ -222,7 +222,7 @@ OrchardTestResult test_mic(const char *my_name, OrchardTestType test_type) {
 
   switch(test_type) {
   default:
-    auditUpdate(my_name, test_type, orchardResultNoTest);
+    return orchardResultNoTest;
   }
   
   return orchardResultNoTest;

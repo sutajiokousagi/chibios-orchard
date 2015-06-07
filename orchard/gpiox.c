@@ -350,7 +350,7 @@ OrchardTestResult test_gpiox(const char *my_name, OrchardTestType test_type) {
 
   switch(test_type) {
   default:
-    auditUpdate(my_name, test_type, orchardResultNoTest);
+    return orchardResultNoTest;
   }
   
   return orchardResultNoTest;

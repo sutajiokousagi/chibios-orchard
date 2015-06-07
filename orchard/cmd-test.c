@@ -30,7 +30,17 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
 
   test_result = test->test_function(argv[0], test_type);
 
-  chprintf(chp, "Test result code is %d\n\r", (int32_t) test_result);
+  chprintf(chp, "Test result code is %d\n\r", (int8_t) test_result);
 }
 
 orchard_command("test", cmd_test);
+
+void cmd_printaudit(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  (void) chp;
+  (void) argc;
+  (void) argv;
+  
+  auditPrintLog();
+}
+orchard_command("auditlog", cmd_printaudit);

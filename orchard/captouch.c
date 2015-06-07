@@ -233,7 +233,7 @@ uint8_t captouchGet(uint8_t reg) {
 }
 
 void captouchSet(uint8_t adr, uint8_t dat) {
-  chprintf( stream, "Writing %02x into %02x\n\r", dat, adr );
+  //  chprintf( stream, "Writing %02x into %02x\n\r", dat, adr );
 
   i2cAcquireBus(driver);
   captouch_set(adr, dat);
@@ -318,7 +318,7 @@ OrchardTestResult test_captouch(const char *my_name, OrchardTestType test_type) 
 
   switch(test_type) {
   default:
-    auditUpdate(my_name, test_type, orchardResultNoTest);
+    return orchardResultNoTest;
   }
   
   return orchardResultNoTest;

@@ -47,7 +47,16 @@ void orchardTestRun(OrchardTestType test_type) {
   cur_test = orchard_test_start();
   while(cur_test->test_function) {
     test_result = cur_test->test_function(cur_test->test_name, test_type);
-    auditUpdate(cur_test->test_name, test_type, test_result);
+    if( test_type != orchardTestPoweron ) {
+      auditUpdate(cur_test->test_name, test_type, test_result);
+    } else {
+      if( test_result != orchardResultPass ) {
+	if( test_result != orchardResultNoTest )
+	  chprintf(stream, "TEST: %s subystem failed test with code %d\n\r", cur_test->test_name, test_result);
+	else
+	  chprintf(stream, "TEST: reminder: write test for subystem %s\n\r", cur_test->test_name );
+      }
+    }
     cur_test++;
   }
 }

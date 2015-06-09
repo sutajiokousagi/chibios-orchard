@@ -439,11 +439,12 @@ msg_t accelPoll(struct accel_data *data) {
 }
 
 OrchardTestResult test_accel(const char *my_name, OrchardTestType test_type) {
+  (void) my_name;
   uint8_t ret;
   
   switch(test_type) {
-  orchardTestPoweron:
-  orchardTestTrivial:
+  case orchardTestPoweron:
+  case orchardTestTrivial:
     i2cAcquireBus(driver);
     ret =  accel_get(REG_WHO_AM_I);
     i2cReleaseBus(driver);
@@ -452,6 +453,7 @@ OrchardTestResult test_accel(const char *my_name, OrchardTestType test_type) {
     } else {
       return orchardResultPass;
     }
+    break;
   default:
     return orchardResultNoTest;
   }

@@ -177,6 +177,5 @@ if __name__ == "__main__":
         with OpenOcd() as ocd:
             run_test(ocd)
     except:
-        print("Failed to connect to OpenOCD.  Make sure it is running.")
-        print("Be sure to run openocd with the '-c noinit' argument.  E.g.:")
-        print("    sudo openocd -c noinit -f sysfsgpio-rpi.cfg")
+        print("Failed to connect to OpenOCD.  Make sure it is running.  E.g.:")
+        print("    sudo openocd -f flash-firmware-openocd-rpi.cfg")

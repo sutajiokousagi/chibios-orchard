@@ -213,8 +213,22 @@ uint16_t setDesignCapacity(uint16_t mAh) {
 }
 
 OrchardTestResult test_gasgauge(const char *my_name, OrchardTestType test_type) {
+  (void) my_name;
+  int16_t ret;
 
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    i2cAcquireBus(driver);
+    gg_set(GG_CMD_CNTL, GG_CODE_DEVTYPE);
+    gg_get(GG_CMD_CNTL, &ret);
+    i2cReleaseBus(driver);
+    if( ret != 0x0421 ) {
+      return orchardResultFail;
+    } else {
+      return orchardResultPass;
+    }
+    break;
   default:
     return orchardResultNoTest;
   }

@@ -48,16 +48,16 @@ void auditPrintLog(void);
 /*
   blocks to test 
 
-  int32_t   touch_count;
+  int32_t   touch_count;   trivial
   int32_t   accel_count;   trivial
-  int32_t   led_count;
+  int32_t   led_count;     can't trivially test
   int32_t   ble_count;     trivial
-  int32_t   oled_count;
-  int32_t   charger_count;
+  int32_t   oled_count;    can't trivially test
+  int32_t   charger_count; trivial
   int32_t   gg_count;      trivial
   int32_t   gpiox_count;   trivial
-  int32_t   radio_count;
+  int32_t   radio_count;   trivial
   int32_t   cpu_count;     trivial
-  int32_t   usb_count;
-  int32_t   mic_count;
+  int32_t   usb_count;     trivial
+  int32_t   mic_count;     trivial
 */

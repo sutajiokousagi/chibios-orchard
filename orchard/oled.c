@@ -111,6 +111,10 @@ void oledOrchardBanner(void) {
 OrchardTestResult test_oled(const char *my_name, OrchardTestType test_type) {
 
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    // the OLED is not trivially testable as it's "write-only"
+    return orchardResultUnsure;
   default:
     return orchardResultNoTest;
   }

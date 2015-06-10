@@ -564,8 +564,16 @@ uint8_t fbe_fei(void) {
 
   
 OrchardTestResult test_cpu(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    if( SIM->SDID != 0x16151502 ) // just check the CPUID is correct
+      return orchardResultFail;
+    else
+      return orchardResultPass;
+    break;
   default:
     return orchardResultNoTest;
   }

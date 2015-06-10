@@ -347,9 +347,21 @@ static void gpiox_poll_int(int ign) {
 }
 
 OrchardTestResult test_gpiox(const char *my_name, OrchardTestType test_type) {
-
+  uint8_t ret;
+  
   switch(test_type) {
   default:
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    i2cAcquireBus(driver);
+    ret =  gpiox_get(0x01);
+    i2cReleaseBus(driver);
+    if( ret != 0xA2 ) {
+      return orchardResultFail;
+    } else {
+      return orchardResultPass;
+    }
+    break;
     return orchardResultNoTest;
   }
   

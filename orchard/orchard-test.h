@@ -14,6 +14,7 @@
 // (Poweron is not a recording entry) we can have up to 28 categories of tests that fully
 // log. So if you're going to add a test type here, think about the impact
 // it will have on # of tests and the audit log size.
+// Also, update the help message in cmd-test.c...
 typedef enum _OrchardTestType {
   orchardTestPoweron = 0,      // test run at power-on to confirm the block is good
   orchardTestTrivial,          // test if we can simply talk to a hardware block

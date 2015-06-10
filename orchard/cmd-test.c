@@ -16,7 +16,11 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
   if( argc != 2 ) {
     chprintf(chp, "Usage: test <testname> <testtype>, where testname is one of:\n\r");
     orchardListTests();
-    chprintf(chp, "And testtype is a code denoting the test type (see orchard-test.h)\n\r" );
+    chprintf(chp, "And testtype is according to the following table:\n\r" );
+    chprintf(chp, "  0 - Power On\n\r" );
+    chprintf(chp, "  1 - Trivial\n\r" );
+    chprintf(chp, "  2 - Comprehensive\n\r" );
+    chprintf(chp, "  3 - Interactive\n\r" );
     return;
   }
 
@@ -44,3 +48,21 @@ void cmd_printaudit(BaseSequentialStream *chp, int argc, char *argv[])
   auditPrintLog();
 }
 orchard_command("auditlog", cmd_printaudit);
+
+
+void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  (void) chp;
+  OrchardTestType  test_type;
+
+  if( argc != 1 ) {
+    chprintf(chp, "Usage: testall <testtype>\n\r");
+    chprintf(chp, "Testtype is a code denoting the test type (see orchard-test.h)\n\r" );
+    return;
+  }
+  test_type = (OrchardTestType) strtoul(argv[0], NULL, 0);
+
+  orchardTestRun(test_type);
+  
+}
+orchard_command("testall", cmd_testall);

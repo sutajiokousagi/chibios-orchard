@@ -354,9 +354,9 @@ OrchardTestResult test_gpiox(const char *my_name, OrchardTestType test_type) {
   case orchardTestPoweron:
   case orchardTestTrivial:
     i2cAcquireBus(driver);
-    ret =  gpiox_get(0x01);
+    ret =  gpiox_get(REG_ID);
     i2cReleaseBus(driver);
-    if( ret != 0xA2 ) {
+    if( ret != 0xA0 ) {
       return orchardResultFail;
     } else {
       return orchardResultPass;

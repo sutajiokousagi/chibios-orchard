@@ -315,8 +315,21 @@ void captouchCalibrate(void) {
 }
 
 OrchardTestResult test_captouch(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  uint8_t ret;
+  
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    i2cAcquireBus(driver);
+    ret =  captouch_get(ATO_CFG_USL);
+    i2cReleaseBus(driver);
+    if( ret != 0xC4 ) { // this is a value that should have been set by us previously
+      return orchardResultFail;
+    } else {
+      return orchardResultPass;
+    }
+    break;
   default:
     return orchardResultNoTest;
   }
@@ -324,6 +337,7 @@ OrchardTestResult test_captouch(const char *my_name, OrchardTestType test_type) 
   return orchardResultNoTest;
 }
 orchard_test("captouch", test_captouch);
+
 
 /*
 This cal set works through the touch surface:

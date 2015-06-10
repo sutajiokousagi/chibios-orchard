@@ -156,6 +156,7 @@ CSRC = main.c \
        $(LIBFIXMATHSRC) \
        $(LIBC90TFSSRC) \
        $(LIBFIXMATRIXSRC) \
+       $(CHIBIOS)/ext/libfixmath/contrib/fix16_fft.c \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

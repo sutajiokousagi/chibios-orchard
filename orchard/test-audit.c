@@ -68,7 +68,9 @@ void auditPrintLog(void) {
   const struct auditLog *log;
   uint32_t i;
   const auditEntry *entry;
-  
+  char result[8];
+  char type[8];
+
   log = (const struct auditLog *) storageGetData(AUDIT_BLOCK);
   chprintf(stream, "entry_count: %d\n\r", log->entry_count);
   chprintf(stream, "signature: %08x\n\r", log->signature);
@@ -77,7 +79,40 @@ void auditPrintLog(void) {
   chprintf(stream, "Log (runs type result | name)\n\r", log->version);
   entry = &(log->firstEntry);
   for( i = 0; i < log->entry_count; i++ ) {
-    chprintf(stream, "  %5d %3d %3d | %s\n\r", entry->runs, entry->type, entry->result, entry->testName);
+    switch(entry->result) {
+    case orchardResultPass:
+      chsnprintf(result, sizeof(result), "%s", "pass  ");
+      break;
+    case orchardResultFail:
+      chsnprintf(result, sizeof(result), "%s", "fail  ");
+      break;
+    case orchardResultUnsure:
+      chsnprintf(result, sizeof(result), "%s", "unsure");
+      break;
+    case orchardResultNoTest:
+      chsnprintf(result, sizeof(result), "%s", "notest");
+      break;
+    default:
+      chsnprintf(result, sizeof(result), "%s", "lolwut");
+    }
+    switch(entry->type) {
+    case orchardTestPoweron:
+      chsnprintf(type, sizeof(type), "%s", "poweron");
+      break;
+    case orchardTestTrivial:
+      chsnprintf(type, sizeof(type), "%s", "trivial");
+      break;
+    case orchardTestComprehensive:
+      chsnprintf(type, sizeof(type), "%s", "compreh");
+      break;
+    case orchardTestInteractive:
+      chsnprintf(type, sizeof(type), "%s", "interac");
+      break;
+    default:
+      chsnprintf(type, sizeof(result), "%s", "lolwut");
+    }
+    
+    chprintf(stream, "  %5d %s %s | %s\n\r", entry->runs, type, result, entry->testName);
     entry++;
   }
 }

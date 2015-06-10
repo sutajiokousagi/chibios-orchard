@@ -1421,8 +1421,19 @@ void bleSetDataAckHandler(BLEDevice *ble, nRFDataAckHandler handler)
 }
 
 OrchardTestResult test_ble(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  OrchardTestResult result = orchardResultFail;
+  
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    bleReset(bleDriver);
+    if(cmdSuccess == bleSetup(bleDriver, &ble_broadcast)) {
+      result = orchardResultPass;
+    }
+    bleSleep(bleDriver);
+    return result;
+    break;
   default:
     return orchardResultNoTest;
   }

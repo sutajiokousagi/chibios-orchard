@@ -50,11 +50,21 @@ void orchardTestRun(OrchardTestType test_type) {
     if( test_type != orchardTestPoweron ) {
       auditUpdate(cur_test->test_name, test_type, test_result);
     } else {
-      if( test_result != orchardResultPass ) {
-	if( test_result != orchardResultNoTest )
-	  chprintf(stream, "TEST: %s subystem failed test with code %d\n\r", cur_test->test_name, test_result);
-	else
-	  chprintf(stream, "TEST: reminder: write test for subystem %s\n\r", cur_test->test_name );
+      switch(test_result) {
+      case orchardResultPass:
+	break;
+      case orchardResultFail:
+	chprintf(stream, "TEST: %s subystem failed test with code %d\n\r", cur_test->test_name, test_result);
+	break;
+      case orchardResultNoTest:
+	chprintf(stream, "TEST: reminder: write test for subystem %s\n\r", cur_test->test_name );
+	break;
+      case orchardResultUnsure:
+	chprintf(stream, "TEST: %s subystem not testable with test type %d\n\r", cur_test->test_name, test_result, test_type);
+	break;
+      default:
+	// lolwut?
+	break;
       }
     }
     cur_test++;

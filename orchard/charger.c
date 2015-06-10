@@ -310,8 +310,20 @@ void chargerSetTargetCurrent(uint16_t current) {
 }
 
 OrchardTestResult test_charger(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  
+  uint8_t ret;
+  
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    charger_get(CHG_REG_ID, &ret);
+    if( ret != 0x46 ) {
+      return orchardResultFail;
+    } else {
+      return orchardResultPass;
+    }
+    break;
   default:
     return orchardResultNoTest;
   }

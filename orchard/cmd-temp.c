@@ -2,6 +2,8 @@
 #include "orchard-shell.h"
 #include "radio.h"
 
+#include "analog.h"
+
 void cmd_temp(BaseSequentialStream *chp, int argc, char **argv) {
 
   int temp;

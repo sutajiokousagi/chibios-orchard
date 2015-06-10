@@ -883,6 +883,10 @@ void effectsStart(void) {
 OrchardTestResult test_led(const char *my_name, OrchardTestType test_type) {
 
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    // the LED is not trivially testable as it's "write-only"
+    return orchardResultUnsure;
   default:
     return orchardResultNoTest;
   }

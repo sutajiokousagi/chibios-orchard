@@ -629,8 +629,19 @@ void radioSend(KRadioDevice *radio,
 }
 
 OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  uint8_t reg;
+  
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    reg = radio_get(radioDriver, RADIO_Version);
+    if( reg != 0x23 ) {
+      return orchardResultFail;
+    } else {
+      return orchardResultPass;
+    }
+    break;
   default:
     return orchardResultNoTest;
   }

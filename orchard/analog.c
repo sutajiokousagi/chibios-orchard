@@ -9,6 +9,7 @@
 
 #include "orchard-test.h"
 #include "test-audit.h"
+#include "gasgauge.h" // used in test procedure
 
 static adcsample_t mic_sample[MIC_SAMPLE_DEPTH];
 static uint8_t mic_return[MIC_SAMPLE_DEPTH];
@@ -208,8 +209,28 @@ void analogStart() {
 
 
 OrchardTestResult test_usb(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  usbStat usbStatus;
+  OrchardTestResult ret = orchardResultPass;
+  
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    analogUpdateUsbStatus();
+    chThdSleepMilliseconds(1);
+
+    usbStatus = analogReadUsbStatus();
+    
+    if( usbStatus == usbStatNC ) {
+      if( ggAvgCurrent() > 0 ) {
+	ret = orchardResultFail;  // we should see a negative current when NC & discharging
+      }
+    } else {
+      if( ggAvgCurrent() < 0 ) {
+	ret = orchardResultFail;  // we should see a positive current when plugged in
+      }
+    }
+    return ret;
   default:
     return orchardResultNoTest;
   }
@@ -219,8 +240,26 @@ OrchardTestResult test_usb(const char *my_name, OrchardTestType test_type) {
 orchard_test("usb", test_usb);
 
 OrchardTestResult test_mic(const char *my_name, OrchardTestType test_type) {
+  (void) my_name;
+  
+  uint8_t *samples;
 
   switch(test_type) {
+  case orchardTestPoweron:
+  case orchardTestTrivial:
+    analogUpdateMic();
+    chThdSleepMilliseconds(5);
+    samples = analogReadMic();
+    if( (samples[0] < 108) || (samples[0] > 148) ) {
+      // could either be bad bias, or noisy environment
+      return orchardResultUnsure;
+    } else {
+      // we'll trivially declare success if we happen to see the right value on the pin
+      // probably this could be made a lot more robust: for the more rigorous tests
+      // running an FFT and/or computing averages/min/max can help determine if there's a
+      // noise or oscillation issue
+      return orchardResultPass;
+    }
   default:
     return orchardResultNoTest;
   }

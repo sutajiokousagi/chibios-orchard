@@ -13,6 +13,7 @@
 
 #include "orchard-test.h"
 #include "test-audit.h"
+#include "gasgauge.h"
 
 #include <string.h>
 #include <math.h>
@@ -63,7 +64,7 @@ static unsigned int patternChanged = 0;
 static int wavesign = -1;
 
 static uint8_t ledExitRequest = 0;
-static uint8_t ledsOff = 0;
+static uint8_t ledsOff = 1;
 
 uint8_t effectsStop(void) {
   ledExitRequest = 1;
@@ -807,9 +808,9 @@ static THD_FUNCTION(effects_thread, arg) {
       blendFbs(); 
       chSysLock();
       ledUpdate(led_config.final_fb, led_config.pixel_count);
-      chSysUnlock();
-      
       ledsOff = 1;
+      chThdExitS(MSG_OK);
+      chSysUnlock();
     }
   }
   return;
@@ -881,12 +882,82 @@ void effectsStart(void) {
 }
 
 OrchardTestResult test_led(const char *my_name, OrchardTestType test_type) {
-
+  (void) my_name;
+  
+  OrchardTestResult result = orchardResultPass;
+  uint16_t i;
+  int16_t offCurrent = 0;
+  uint8_t interactive = 0;
+  
   switch(test_type) {
   case orchardTestPoweron:
-  case orchardTestTrivial:
     // the LED is not trivially testable as it's "write-only"
     return orchardResultUnsure;
+  case orchardTestInteractive:
+    interactive = 20;  // 20 seconds to evaluate LED state...should be plenty
+  case orchardTestTrivial:
+  case orchardTestComprehensive:
+    orchardTestPrompt("Preparing", "LED test", 0);
+    while(ledsOff == 0) {
+      effectsStop();
+      chThdYield();
+      chThdSleepMilliseconds(100);
+    }
+
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS * 2);
+    // measure current draw with LEDs off
+    offCurrent = ggAvgCurrent(); // -40 or 400
+    
+    // green pattern
+    for( i = 0; i < led_config.pixel_count * 3; i += 3 ) {
+      led_config.final_fb[i] = 255;
+      led_config.final_fb[i+1] = 0;
+      led_config.final_fb[i+2] = 0;
+    }
+    chSysLock();
+    ledUpdate(led_config.final_fb, led_config.pixel_count);
+    chSysUnlock();
+    orchardTestPrompt("green LED test", "", 0);
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS * 2);
+    orchardTestPrompt("press button", "to advance", interactive);
+    //    chprintf( stream, "off: %d, now: %d, diff: %d\n\r", offCurrent, ggAvgCurrent(), abs( ggAvgCurrent() - offCurrent) );
+    if( abs( ggAvgCurrent() - offCurrent ) < 20)
+      result = orchardResultFail;
+
+    // red pattern
+    for( i = 0; i < led_config.pixel_count * 3; i += 3 ) {
+      led_config.final_fb[i] = 0;
+      led_config.final_fb[i+1] = 255;
+      led_config.final_fb[i+2] = 0;
+    }
+    chSysLock();
+    ledUpdate(led_config.final_fb, led_config.pixel_count);
+    chSysUnlock();
+    orchardTestPrompt("red LED test", "", 0);
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS * 2);
+    orchardTestPrompt("press button", "to advance", interactive);
+    if( abs( ggAvgCurrent() - offCurrent ) < 20)
+      result = orchardResultFail;
+
+    // blue pattern
+    for( i = 0; i < led_config.pixel_count * 3; i += 3 ) {
+      led_config.final_fb[i] = 0;
+      led_config.final_fb[i+1] = 0;
+      led_config.final_fb[i+2] = 255;
+    }
+    orchardTestPrompt("blue LED test", "", 0);
+    chSysLock();
+    ledUpdate(led_config.final_fb, led_config.pixel_count);
+    chSysUnlock();
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS * 2);
+    orchardTestPrompt("press button", "to advance", interactive);
+    if( abs( ggAvgCurrent() - offCurrent ) < 20)
+      result = orchardResultFail;
+
+    orchardTestPrompt("LED test", "finished", 0);
+    // resume effects
+    effectsStart();
+    return result;
   default:
     return orchardResultNoTest;
   }

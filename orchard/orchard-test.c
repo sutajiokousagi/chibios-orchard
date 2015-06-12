@@ -5,6 +5,9 @@
 #include "hal.h"
 #include "chprintf.h"
 #include "orchard.h"
+#include "gfx.h"
+#include "orchard-ui.h"
+#include "captouch.h"
 
 #include "orchard-test.h"
 #include "test-audit.h"
@@ -69,4 +72,88 @@ void orchardTestRun(OrchardTestType test_type) {
     }
     cur_test++;
   }
+}
+
+// used to draw UI prompts for tests to the screen
+// print up to 2 lines of text
+// interaction_delay specifies how long we should wait before we declare failure
+//   0 means don't delay
+OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interaction_delay) {
+  coord_t width;
+  coord_t height;
+  font_t font;
+  uint32_t val;
+  char timer[16];
+  uint32_t starttime;
+  uint32_t curtime, updatetime;
+  OrchardTestResult result = orchardResultUnsure;
+  uint8_t countdown;
+
+  val = captouchRead();
+  countdown = interaction_delay;
+  
+  orchardGfxStart();
+  font = gdispOpenFont("ui2");
+  width = gdispGetWidth();
+  height = gdispGetFontMetric(font, fontHeight);
+  
+  gdispClear(Black);
+
+  gdispDrawStringBox(0, height * 2, width, height,
+                     line1, font, White, justifyCenter);
+  
+  gdispDrawStringBox(0, height * 3, width, height,
+                     line2, font, White, justifyCenter);
+  
+  if( interaction_delay != 0 ) {
+    chsnprintf(timer, sizeof(timer), "%d", countdown);
+    gdispDrawStringBox(0, height * 4, width, height,
+		       timer, font, White, justifyCenter);
+    countdown--;
+  }
+  
+  gdispFlush();
+  
+  starttime = chVTGetSystemTime();
+  updatetime = starttime + 1000;
+  if( interaction_delay != 0 ) {
+    while(1) {
+      curtime = chVTGetSystemTime();
+      if( (val != captouchRead()) ) {
+	result = orchardResultPass;
+	break;
+      }
+      if( (curtime - starttime) > ((uint32_t) interaction_delay * 1000) ) {
+	result = orchardResultFail;
+	break;
+      }
+
+      if( curtime > updatetime ) {
+	chsnprintf(timer, sizeof(timer), "%d", countdown);
+	gdispFillArea(0, height * 4, width, height, Black);
+	
+	gdispDrawStringBox(0, height * 4, width, height,
+			   timer, font, White, justifyCenter);
+	gdispFlush();
+	countdown--;
+	updatetime += 1000;
+      }
+    }
+  }
+
+  if( result == orchardResultFail ) {
+    chsnprintf(timer, sizeof(timer), "FAIL: timeout");
+    gdispFillArea(0, height * 4, width, height, Black);
+    
+    gdispDrawStringBox(0, height * 4, width, height,
+		       timer, font, White, justifyCenter);
+    
+    gdispFlush();
+    chThdSleepMilliseconds(2000);
+  }
+  
+  gdispCloseFont(font);
+  orchardGfxEnd();
+
+  return result;
 }

@@ -115,6 +115,8 @@ OrchardTestResult test_oled(const char *my_name, OrchardTestType test_type) {
   case orchardTestTrivial:
     // the OLED is not trivially testable as it's "write-only"
     return orchardResultUnsure;
+  case orchardTestInteractive:
+    return orchardTestPrompt("press button", "immediately", 5);
   default:
     return orchardResultNoTest;
   }

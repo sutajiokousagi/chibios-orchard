@@ -68,5 +68,6 @@ void orchardTestInit(void);
 const TestRoutine *orchardGetTestByName(const char *name);
 void orchardTestRun(uint32_t test_type);
 void orchardListTests(void);
+OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interaction_delay);
 
 #endif /* __ORCHARD_TEST_H__ */

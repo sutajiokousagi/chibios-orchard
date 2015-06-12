@@ -28,6 +28,7 @@ extern event_source_t ui_completed;
 void orchardAppInit(void);
 void orchardAppRestart(void);
 void orchardAppWatchdog(void);
+const OrchardApp *orchardAppByName(const char *name);
 void orchardAppRun(const OrchardApp *app);
 void orchardAppExit(void);
 void orchardAppTimer(const OrchardAppContext *context,

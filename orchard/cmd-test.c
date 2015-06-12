@@ -7,11 +7,14 @@
 #include "orchard-test.h"
 #include "test-audit.h"
 
+#include "orchard-app.h"
+
 void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
 {
   const TestRoutine *test;
   OrchardTestResult  test_result;
   OrchardTestType  test_type;
+  const OrchardApp *test_app;
   
   if( argc != 2 ) {
     chprintf(chp, "Usage: test <testname> <testtype>, where testname is one of:\n\r");
@@ -24,6 +27,11 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
     return;
   }
 
+  test_app = orchardAppByName("~testmode");
+  if( test_app ) {
+    orchardAppRun(test_app);
+  }
+  
   test = orchardGetTestByName(argv[0]);
   test_type = (OrchardTestType) strtoul(argv[1], NULL, 0);
 
@@ -54,7 +62,13 @@ void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
 {
   (void) chp;
   OrchardTestType  test_type;
+  const OrchardApp *test_app;
 
+  test_app = orchardAppByName("~testmode");
+  if( test_app ) {
+    orchardAppRun(test_app);
+  }
+  
   if( argc != 1 ) {
     chprintf(chp, "Usage: testall <testtype>\n\r");
     chprintf(chp, "Testtype is a code denoting the test type (see orchard-test.h)\n\r" );

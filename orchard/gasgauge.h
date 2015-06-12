@@ -44,3 +44,5 @@ void ggStart(I2CDriver *i2cp);
 #define GG_CODE_RESET   0x0042
 #define GG_CODE_SET_HIB 0x0011
 #define GG_CODE_CLR_HIB 0x0012
+
+#define GG_UPDATE_INTERVAL_MS 1000

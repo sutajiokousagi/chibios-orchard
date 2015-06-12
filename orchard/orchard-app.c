@@ -537,6 +537,19 @@ static void timer_do_send_message(void *arg) {
   chSysUnlockFromISR();
 }
 
+const OrchardApp *orchardAppByName(const char *name) {
+  const OrchardApp *current;
+
+  current = orchard_app_start();
+  while(current->name) {
+    if( !strncmp(name, current->name, 16) ) {
+      return current;
+    }
+    current++;
+  }
+  return NULL;
+}
+
 void orchardAppRun(const OrchardApp *app) {
   instance.next_app = app;
   chThdTerminate(instance.thr);

@@ -891,7 +891,7 @@ OrchardTestResult test_led(const char *my_name, OrchardTestType test_type) {
   
   switch(test_type) {
   case orchardTestPoweron:
-    // the LED is not trivially testable as it's "write-only"
+    // the LED is not easily testable as it's "write-only"
     return orchardResultUnsure;
   case orchardTestInteractive:
     interactive = 20;  // 20 seconds to evaluate LED state...should be plenty

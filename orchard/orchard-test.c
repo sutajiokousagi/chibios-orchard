@@ -142,7 +142,7 @@ OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interactio
   }
 
   if( result == orchardResultFail ) {
-    chsnprintf(timer, sizeof(timer), "FAIL: timeout");
+    chsnprintf(timer, sizeof(timer), "timeout!");
     gdispFillArea(0, height * 4, width, height, Black);
     
     gdispDrawStringBox(0, height * 4, width, height,

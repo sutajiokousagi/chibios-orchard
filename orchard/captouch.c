@@ -317,6 +317,9 @@ void captouchCalibrate(void) {
 OrchardTestResult test_captouch(const char *my_name, OrchardTestType test_type) {
   (void) my_name;
   uint8_t ret;
+  char touchstat[13];
+  uint16_t touchmask = 0;
+  uint8_t i;
   
   switch(test_type) {
   case orchardTestPoweron:
@@ -330,6 +333,28 @@ OrchardTestResult test_captouch(const char *my_name, OrchardTestType test_type) 
       return orchardResultPass;
     }
     break;
+  case orchardTestInteractive:
+    if( orchardTestPrompt("Do not touch", "touch sensors", 2) == orchardResultPass ) {
+      orchardTestPrompt("captouch fail", "sensor stuck on", 0);
+      return orchardResultFail;
+    }
+    touchstat[12] = '\0';
+    while( touchmask != 0xFFF ) {
+      touchmask |= captouchRead();
+      for( i = 0; i < 12; i++ ) {
+	if( (touchmask >> i) & 1 )
+	  touchstat[i] = 'T';
+	else
+	  touchstat[i] = '_';
+      }
+      orchardTestPrompt("touch each sensor", touchstat, 0);
+      chThdYield();
+      chThdSleepMilliseconds(10);
+      // if not all sensors can be touched, the test will never time out and we'll get stuck.
+    }
+    orchardTestPrompt("touch test PASS", touchstat, 0);
+    return orchardResultPass;
+    
   default:
     return orchardResultNoTest;
   }

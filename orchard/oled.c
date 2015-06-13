@@ -110,6 +110,8 @@ void oledOrchardBanner(void) {
 
 OrchardTestResult test_oled(const char *my_name, OrchardTestType test_type) {
 
+  (void)my_name;
+  
   switch(test_type) {
   case orchardTestPoweron:
   case orchardTestTrivial:

@@ -14,6 +14,7 @@ event_source_t usbdet_rdy;
 
 event_source_t radio_page;
 event_source_t radio_sex;
+event_source_t radio_app;
 
 static void ble_rdyn_cb(EXTDriver *extp, expchannel_t channel) {
 
@@ -61,6 +62,7 @@ void orchardEventsStart(void) {
   // radio protocol events
   chEvtObjectInit(&radio_page);
   chEvtObjectInit(&radio_sex);
+  chEvtObjectInit(&radio_app);
 
   extStart(&EXTD1, &ext_config);
 }

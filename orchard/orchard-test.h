@@ -70,4 +70,8 @@ void orchardTestRun(uint32_t test_type);
 void orchardListTests(void);
 OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interaction_delay);
 
+// radio packet type defines for testing
+#define RADIO_TYPE_DUT_TO_PEER  6
+#define RADIO_TYPE_PEER_TO_DUT  7
+
 #endif /* __ORCHARD_TEST_H__ */

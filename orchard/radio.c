@@ -628,9 +628,30 @@ void radioSend(KRadioDevice *radio,
                                | OpMode_Receiver);
 }
 
+static uint32_t test_rxseq = 0;
+static uint32_t test_rxdat = 0;
+
+static void test_radio_handler(uint8_t type, uint8_t src, uint8_t dst,
+			       uint8_t length, void *data) {
+
+  (void)length;
+  (void)type;
+
+  test_rxdat = *((uint32_t *) data);
+  test_rxseq++;
+}
+
+#define RADIO_TEST_TIMEOUT_MS  5000
+#define RADIO_TEST_TX_RETRY_MS 300
 OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
   (void) my_name;
   uint8_t reg;
+  uint32_t nonce;
+  uint32_t oldseq;
+  uint32_t starttime;
+  uint8_t i, j;
+  char promptA[16];
+  char promptB[16];
   
   switch(test_type) {
   case orchardTestPoweron:
@@ -641,6 +662,48 @@ OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
     } else {
       return orchardResultPass;
     }
+    break;
+  case orchardTestInteractive:
+    orchardTestPrompt("radio test", "requires test peer", 0);
+    radioSetHandler(radioDriver, RADIO_TYPE_PEER_TO_DUT, test_radio_handler);
+
+    for( i = 0; i < 4; i++ ) {
+      switch(i) {
+      case 0:
+	nonce = SIM->UIDL;
+	break;
+      case 1:
+	nonce = SIM->UIDML;
+	break;
+      case 2:
+	nonce = SIM->UIDMH;
+	break;
+      default:
+	nonce = rand();
+      }
+
+      j = 0;
+      oldseq = test_rxseq;
+      starttime = chVTGetSystemTime();
+      while(oldseq == test_rxseq) {
+	chsnprintf(promptA, sizeof(promptA), "radio tx: %d", i+1 );
+	chsnprintf(promptB, sizeof(promptB), "retry: %d", j++ );
+	orchardTestPrompt(promptA, promptB, 0);
+	radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, RADIO_TYPE_DUT_TO_PEER,
+		  4, &nonce);
+	if( chVTGetSystemTime() - starttime > RADIO_TEST_TIMEOUT_MS ) {
+	  orchardTestPrompt("radio test", "timeout fail!", 0);
+	  return orchardResultFail;
+	}
+	chThdSleepMilliseconds(RADIO_TEST_TX_RETRY_MS);
+      }
+      if( test_rxdat != nonce ) {
+	orchardTestPrompt("radio test", "rx mismatch!", 0);
+	return orchardResultFail;
+      }
+    }
+    orchardTestPrompt("radio test", "pass!", 0);
+    return orchardResultPass;
     break;
   default:
     return orchardResultNoTest;

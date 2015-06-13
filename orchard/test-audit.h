@@ -46,18 +46,18 @@ void auditPrintLog(void);
 #endif /* __ORCHARD_AUDIT__ */
 
 /*
-  blocks to test 
+  test writing status
 
-  touch   trivial  *
-  accel   trivial
+  touch   trivial; interactive
+  accel   trivial   * <- "marble" app but rolling into four corners to pass the test.
   led     can't trivially test; comprehensive, interactive
   ble     trivial
   oled    can't trivially test; interactive
-  charger trivial   *
+  charger trivial   **  <- plug in, plug out; check currents & charge rate
   gg      trivial
   gpiox   trivial
-  radio   trivial   **
+  radio   trivial   *** <- tx random # to peer that echoes the number back. Requires peer app.
   cpu     trivial
   usb     trivial
-  mic     trivial   *
+  mic     trivial   ** <- app-oscope launch, auto-kill with timer
 */

@@ -406,6 +406,14 @@ static void adc_usb_event(eventid_t id) {
   instance.app->event(instance.context, &evt);
 }
 
+static void radio_app_event(eventid_t id) {
+  (void)id;
+  OrchardAppEvent evt;
+
+  evt.type = radioEvent;
+  instance.app->event(instance.context, &evt);
+}
+
 static void key_event(eventid_t id) {
   (void)id;
   uint32_t val = captouch_collected_state;
@@ -599,6 +607,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   instance->keymask = captouchRead();
 
   evtTableInit(orchard_app_events, 32);
+  evtTableHook(orchard_app_events, radio_app, radio_app_event);
   evtTableHook(orchard_app_events, ui_completed, ui_complete_cleanup);
   evtTableHook(orchard_app_events, captouch_changed, key_event_timer);
   evtTableHook(orchard_app_events, captouch_changed, dial_event);
@@ -663,6 +672,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   evtTableUnhook(orchard_app_events, captouch_changed, dial_event);
   evtTableUnhook(orchard_app_events, captouch_changed, key_event_timer);
   evtTableUnhook(orchard_app_events, ui_completed, ui_complete_cleanup);
+  evtTableUnhook(orchard_app_events, radio_app, radio_app_event);
 
   /* Atomically broadcasting the event source and terminating the thread,
      there is not a chSysUnlock() because the thread terminates upon return.*/

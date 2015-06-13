@@ -78,6 +78,7 @@ extern event_source_t usbdet_rdy;
 // BM radio protocol events
 extern event_source_t radio_page;
 extern event_source_t radio_sex;
+extern event_source_t radio_app;
 
 void orchardEventsStart(void);
 
@@ -89,6 +90,7 @@ typedef enum _OrchardAppEventType {
   timerEvent,
   uiEvent,
   adcEvent,
+  radioEvent,
 } OrchardAppEventType;
 
 /* ------- */

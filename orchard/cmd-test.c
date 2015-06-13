@@ -57,7 +57,6 @@ void cmd_printaudit(BaseSequentialStream *chp, int argc, char *argv[])
 }
 orchard_command("auditlog", cmd_printaudit);
 
-
 void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
 {
   (void) chp;

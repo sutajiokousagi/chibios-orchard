@@ -27,7 +27,6 @@ static void ledSetColor(void *ptr, int x, Color c, uint8_t shift);
 static void ledSetRGBClipped(void *fb, uint32_t i,
                       uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
 static Color ledGetColor(void *ptr, int x);
-static void ledSetCount(uint32_t count);
 static void redraw_ui(void);
 
 // hardware configuration information
@@ -151,7 +150,7 @@ static Color ledGetColor(void *ptr, int x) {
   return c;
 }
 
-static void ledSetCount(uint32_t count) {
+void ledSetCount(uint32_t count) {
   if (count > led_config.max_pixels)
     return;
   led_config.pixel_count = count;
@@ -213,7 +212,6 @@ static void lightGeneFB(struct effects_config *config) {
   RgbColor rgbC;
   
   int i;
-  int count_mask;
 
   for (i = 0; i < count; i++) {
     fix16_t omega = fix16_div( fix16_from_int(loop), fix16_from_int(255) );
@@ -835,7 +833,6 @@ static void redraw_ui(void) {
   
   coord_t width;
   coord_t height;
-  coord_t header_height;
   font_t font;
 
   curfx = orchard_effects_start();
@@ -846,7 +843,6 @@ static void redraw_ui(void) {
   font = gdispOpenFont("fixed_5x8");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
-  header_height = height;
 
   gdispClear(Black);
   gdispFillArea(0, 0, width, height, White);

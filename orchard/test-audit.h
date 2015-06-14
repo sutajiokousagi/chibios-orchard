@@ -41,7 +41,7 @@ typedef struct auditLog {
 void auditStart(void);
 int32_t auditCheck(uint32_t test_type);
 void auditUpdate(const char *name, OrchardTestType type, OrchardTestResult result );
-void auditPrintLog(void);
+void auditPrintLog(BaseSequentialStream *chp);
 
 #endif /* __ORCHARD_AUDIT__ */
 

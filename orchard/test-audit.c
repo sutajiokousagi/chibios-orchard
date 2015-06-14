@@ -64,7 +64,7 @@ const auditEntry *find_audit_entry(const char *name, OrchardTestType type) {
   return NULL;
 }
 
-void auditPrintLog(void) {
+void auditPrintLog(BaseSequentialStream *chp) {
   const struct auditLog *log;
   uint32_t i;
   const auditEntry *entry;
@@ -72,11 +72,11 @@ void auditPrintLog(void) {
   char type[8];
 
   log = (const struct auditLog *) storageGetData(AUDIT_BLOCK);
-  chprintf(stream, "entry_count: %d\n\r", log->entry_count);
-  chprintf(stream, "signature: %08x\n\r", log->signature);
-  chprintf(stream, "version: %d\n\r", log->version);
+  chprintf(chp, "entry_count: %d\n\r", log->entry_count);
+  chprintf(chp, "signature: %08x\n\r", log->signature);
+  chprintf(chp, "version: %d\n\r", log->version);
 
-  chprintf(stream, "Log (runs type result | name)\n\r", log->version);
+  chprintf(chp, "Log (runs type result | name)\n\r", log->version);
   entry = &(log->firstEntry);
   for( i = 0; i < log->entry_count; i++ ) {
     switch(entry->result) {
@@ -112,7 +112,8 @@ void auditPrintLog(void) {
       chsnprintf(type, sizeof(result), "%s", "lolwut");
     }
     
-    chprintf(stream, "  %5d %s %s | %s\n\r", entry->runs, type, result, entry->testName);
+    chprintf(chp, "  %5d %s %s | %s\n\r",
+        entry->runs, type, result, entry->testName);
     entry++;
   }
 }

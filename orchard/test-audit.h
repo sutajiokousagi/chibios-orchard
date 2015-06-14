@@ -28,7 +28,7 @@ typedef struct auditEntry {
   uint8_t  type;    // type of test (explicit cast from typdef to int32 to match native write size)
   uint8_t  result;  // last test result
   char testName[TEST_NAME_LENGTH];
-} auditEntry;
+} __attribute__((__packed__)) auditEntry;
   
 typedef struct auditLog {
   uint32_t  entry_count; // implementation depends on this being the first structure entry
@@ -36,7 +36,7 @@ typedef struct auditLog {
   uint32_t  version;
 
   struct auditEntry firstEntry; // first entry in an array of entries that starts here
-} auditLog;
+} __attribute__((__packed__)) auditLog;
 
 void auditStart(void);
 int32_t auditCheck(uint32_t test_type);

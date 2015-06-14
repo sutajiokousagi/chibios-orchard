@@ -1,7 +1,7 @@
 """
 Run gdb with:
 
-gdb -ex 'source factory-test.py' -ex 'target remote localhost:3333' -ex 'break orchardShellRestart' -ex 'continue' build/orchard.elf
+gdb -ex 'source factory-test.py' -ex 'target remote localhost:3333' -ex 'break orchardShellRestart' -ex 'continue' -ex 'testpane' build/orchard.elf
 """
 import gdb
 import sys

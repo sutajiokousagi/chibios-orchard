@@ -3,6 +3,8 @@
 
 #include "radio.h"
 
+static uint32_t test_rxdat;
+
 static void testmode_start(OrchardAppContext *context) {
   (void)context;
   
@@ -11,17 +13,14 @@ static void testmode_start(OrchardAppContext *context) {
 
 orchard_app("~testmode", NULL, testmode_start, NULL, NULL);
 
-
-static uint32_t test_rxdat;
-static void test_peer_handler(uint8_t type, uint8_t src, uint8_t dst,
+static void test_peer_handler(uint8_t prot, uint8_t src, uint8_t dst,
                               uint8_t length, const void *data) {
 
   (void)length;
-  (void)type;
+  (void)prot;
   (void)src;
   (void)dst;
 
-#warning "Make sure that this buffer doesn't get reused"
   test_rxdat = *((uint32_t *) data);
 
   chEvtBroadcast(&radio_app);
@@ -30,8 +29,7 @@ static void test_peer_handler(uint8_t type, uint8_t src, uint8_t dst,
 static void testpeer_start(OrchardAppContext *context) {
   (void)context;
   
-  radioSetHandler(radioDriver, RADIO_TYPE_DUT_TO_PEER, test_peer_handler);
-  
+  radioSetHandler(radioDriver, radio_prot_dut_to_peer, test_peer_handler);
   orchardTestPrompt("Now a test peer", "reboot to stop.", 0);
 }
 
@@ -40,11 +38,11 @@ static void testpeer_event(OrchardAppContext *context,
   (void)context;
   char datstr[16];
   
-  if(event->type == radioEvent) {
+  if (event->type == radioEvent) {
     chprintf(stream, "received %08x, rebroadcasting...\n\r", test_rxdat);
     chsnprintf(datstr, sizeof(datstr), "%08x", test_rxdat);
     orchardTestPrompt("received:", datstr, 0);
-    radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, RADIO_TYPE_PEER_TO_DUT,
+    radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_peer_to_dut,
               4, &test_rxdat);
   }
 }

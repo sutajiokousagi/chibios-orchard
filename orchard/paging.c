@@ -55,11 +55,11 @@ void radioPagePopup(void) {
 
 }
 
-static void radio_message_received(uint8_t type, uint8_t src, uint8_t dst,
+static void radio_message_received(uint8_t prot, uint8_t src, uint8_t dst,
                                    uint8_t length, const void *data) {
 
   (void)length;
-  (void)type;
+  (void)prot;
   chprintf(stream, "Received %s message from %02x: %s\r\n",
       (dst == RADIO_BROADCAST_ADDRESS) ? "broadcast" : "direct", src, data);
 
@@ -72,5 +72,5 @@ static void radio_message_received(uint8_t type, uint8_t src, uint8_t dst,
 
 
 void pagingStart(void) {
-  radioSetHandler(radioDriver, 1, radio_message_received);
+  radioSetHandler(radioDriver, radio_prot_paging, radio_message_received);
 }

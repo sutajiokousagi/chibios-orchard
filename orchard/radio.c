@@ -54,9 +54,9 @@ enum encoding_type {
 };
 
 typedef struct _PacketHandler {
-    void (*handler)(uint8_t type, uint8_t src, uint8_t dst,
+    void (*handler)(uint8_t prot, uint8_t src, uint8_t dst,
                     uint8_t length, const void *data);
-      uint8_t type;
+      uint8_t prot;
 } PacketHandler;
 
 /* Kinetis Radio definition */
@@ -71,7 +71,7 @@ struct _KRadioDevice {
   uint8_t                 broadcast;
   uint8_t                 num_handlers;
   PacketHandler           handlers[MAX_PACKET_HANDLERS];
-  void                    (*default_handler)(uint8_t type,
+  void                    (*default_handler)(uint8_t prot,
                                              uint8_t src,
                                              uint8_t dst,
                                              uint8_t length,
@@ -369,8 +369,8 @@ static void radio_unload_packet(eventid_t id) {
   unsigned int i;
   bool handled = false;
   for (i = 0; i < radio->num_handlers; i++) {
-    if (radio->handlers[i].type == pkt.type) {
-      radio->handlers[i].handler(pkt.type,
+    if (radio->handlers[i].prot == pkt.prot) {
+      radio->handlers[i].handler(pkt.prot,
                                  pkt.src,
                                  pkt.dst,
                                  sizeof(payload),
@@ -382,7 +382,7 @@ static void radio_unload_packet(eventid_t id) {
 
   /* If the packet wasn't handled, pass it to the default handler */
   if (!handled && radio->default_handler)
-      radio->default_handler(pkt.type,
+      radio->default_handler(pkt.prot,
                              pkt.src,
                              pkt.dst,
                              sizeof(payload),
@@ -438,7 +438,7 @@ void radioStart(KRadioDevice *radio, SPIDriver *spip) {
 }
 
 void radioSetDefaultHandler(KRadioDevice *radio,
-                            void (*handler)(uint8_t type,
+                            void (*handler)(uint8_t prot,
                                             uint8_t src,
                                             uint8_t dst,
                                             uint8_t length,
@@ -446,8 +446,8 @@ void radioSetDefaultHandler(KRadioDevice *radio,
   radio->default_handler = handler;
 }
 
-void radioSetHandler(KRadioDevice *radio, uint8_t type,
-                     void (*handler)(uint8_t type,
+void radioSetHandler(KRadioDevice *radio, uint8_t prot,
+                     void (*handler)(uint8_t prot,
                                      uint8_t src,
                                      uint8_t dst,
                                      uint8_t length,
@@ -456,7 +456,7 @@ void radioSetHandler(KRadioDevice *radio, uint8_t type,
 
   /* Replace an existing handler? */
   for (i = 0; i < radio->num_handlers; i++) {
-    if (radio->handlers[i].type == type) {
+    if (radio->handlers[i].prot == prot) {
       radio->handlers[i].handler = handler;
       return;
     }
@@ -464,8 +464,8 @@ void radioSetHandler(KRadioDevice *radio, uint8_t type,
 
   /* New handler */
   osalDbgAssert(radio->num_handlers < MAX_PACKET_HANDLERS,
-                "Too many packet handler types");
-  radio->handlers[radio->num_handlers].type    = type;
+                "Too many packet handler prots");
+  radio->handlers[radio->num_handlers].prot    = prot;
   radio->handlers[radio->num_handlers].handler = handler;
   radio->num_handlers++;
 }
@@ -577,7 +577,7 @@ uint8_t radioAddress(KRadioDevice *radio) {
 
 void radioSend(KRadioDevice *radio,
                uint8_t addr,
-               uint8_t type,
+               uint8_t prot,
                size_t bytes,
                const void *payload) {
 
@@ -587,7 +587,7 @@ void radioSend(KRadioDevice *radio,
   pkt.length = bytes + sizeof(pkt);
   pkt.src = radio->address;
   pkt.dst = addr;
-  pkt.type = type;
+  pkt.prot = prot;
 
   /* Ideally, we'd poll for DIO1 to see when the FIFO can accept data.
    * This is not wired up on Orchard, so we can't transmit packets larger
@@ -632,15 +632,14 @@ void radioSend(KRadioDevice *radio,
 static uint32_t test_rxseq = 0;
 static uint32_t test_rxdat = 0;
 
-static void test_radio_handler(uint8_t type, uint8_t src, uint8_t dst,
-			       uint8_t length, void *data) {
+static void test_radio_handler(uint8_t prot, uint8_t src, uint8_t dst,
+                               uint8_t length, const void *data) {
 
   (void)length;
-  (void)type;
+  (void)prot;
   (void)src;
   (void)dst;
 
-#warning "Check that test_rxdat won't get overwritten"
   test_rxdat = *((uint32_t *) data);
   test_rxseq++;
 }
@@ -669,7 +668,7 @@ OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
     break;
   case orchardTestInteractive:
     orchardTestPrompt("radio test", "requires test peer", 0);
-    radioSetHandler(radioDriver, RADIO_TYPE_PEER_TO_DUT, test_radio_handler);
+    radioSetHandler(radioDriver, radio_prot_peer_to_dut, test_radio_handler);
 
     for( i = 0; i < 4; i++ ) {
       switch(i) {
@@ -693,7 +692,7 @@ OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
 	chsnprintf(promptA, sizeof(promptA), "radio tx: %d", i+1 );
 	chsnprintf(promptB, sizeof(promptB), "retry: %d", j++ );
 	orchardTestPrompt(promptA, promptB, 0);
-	radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, RADIO_TYPE_DUT_TO_PEER,
+	radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_dut_to_peer,
 		  4, &nonce);
 	if( chVTGetSystemTime() - starttime > RADIO_TEST_TIMEOUT_MS ) {
 	  orchardTestPrompt("radio test", "timeout fail!", 0);

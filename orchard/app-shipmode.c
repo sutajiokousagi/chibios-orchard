@@ -29,31 +29,16 @@ static void redraw_ui(void) {
   orchardGfxEnd();
 }
 
-
-static uint32_t shipmode_init(OrchardAppContext *context) {
-
-  (void)context;
-  return 0;
-}
-
 static void shipmode_start(OrchardAppContext *context) {
 
   (void)context;
 
   redraw_ui();
-  /// NOTE TO SELF: implement flush of volatile genome state (such as playtime and favorites)
-  /// to FLASH before going into power off
+#warning \
+  "Implement flush of volatile genome state " \
+  "(such as playtime and favorites) " \
+  "to FLASH before going into power off!"
   halt();
 }
 
-static void shipmode_event(OrchardAppContext *context, const OrchardAppEvent *event) {
-
-  (void)context;
-}
-
-static void shipmode_exit(OrchardAppContext *context) {
-
-  (void)context;
-}
-
-orchard_app("power-off", shipmode_init, shipmode_start, shipmode_event, shipmode_exit);
+orchard_app("power-off", NULL, shipmode_start, NULL, NULL);

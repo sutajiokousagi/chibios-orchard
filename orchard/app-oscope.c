@@ -7,8 +7,9 @@
 #include <stdlib.h>
 
 #include "fixmath.h"
+#include "fix16_fft.h"
 
-static mode = 0;
+static int mode = 0;
 
 static void agc(uint8_t  *sample) {
   uint8_t min, max;
@@ -85,7 +86,6 @@ static void agc_fft(uint8_t  *sample) {
 }
 
 static void redraw_ui(uint8_t *samples) {
-  coord_t width;
   coord_t height;
   uint8_t i;
   uint8_t scale;
@@ -94,7 +94,7 @@ static void redraw_ui(uint8_t *samples) {
 
   agc( samples );
   
-  if( mode ) {
+  if ( mode ) {
     fix16_fft(samples, real, imag, MIC_SAMPLE_DEPTH);
     for( i = 0; i < MIC_SAMPLE_DEPTH; i++ ) {
       samples[i] = fix16_to_int( fix16_sqrt(fix16_sadd(fix16_mul(real[i],real[i]),
@@ -105,7 +105,6 @@ static void redraw_ui(uint8_t *samples) {
   }
   
   orchardGfxStart();
-  width = gdispGetWidth();
   height = gdispGetHeight();
   scale = 256 / height;
 

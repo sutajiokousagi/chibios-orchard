@@ -265,20 +265,16 @@ static void accel_irq(void *port, int irq, int type) {
   i2cReleaseBus(driver);
 
   if (mask & REG_INT_SRC_FF_MT) {
-    uint8_t ffmask;
-
     i2cAcquireBus(driver);
-    ffmask = accel_get(REG_FF_MT_SRC);
+    (void)accel_get(REG_FF_MT_SRC);
     i2cReleaseBus(driver);
 
     chEvtBroadcast(&accel_freefall);
   }
 
   if (mask & REG_INT_SRC_LNDPRT) {
-    uint8_t lndprtmask;
-
     i2cAcquireBus(driver);
-    lndprtmask = accel_get(REG_PL_STATUS);
+    (void)accel_get(REG_PL_STATUS);
     i2cReleaseBus(driver);
 
     chEvtBroadcast(&accel_landscape_portrait);

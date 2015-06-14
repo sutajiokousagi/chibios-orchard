@@ -636,7 +636,10 @@ static void test_radio_handler(uint8_t type, uint8_t src, uint8_t dst,
 
   (void)length;
   (void)type;
+  (void)src;
+  (void)dst;
 
+#warning "Check that test_rxdat won't get overwritten"
   test_rxdat = *((uint32_t *) data);
   test_rxseq++;
 }

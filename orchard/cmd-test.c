@@ -52,7 +52,7 @@ void cmd_printaudit(BaseSequentialStream *chp, int argc, char *argv[])
   (void) argc;
   (void) argv;
   
-  auditPrintLog();
+  auditPrintLog(chp);
 }
 orchard_command("auditlog", cmd_printaudit);
 

@@ -39,7 +39,7 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
     return;
   }
 
-  test_result = test->test_function(argv[0], test_type);
+  test_result = orchardTestRun(test, test_type);
 
   chprintf(chp, "Test result code is %d\n\r", (int8_t) test_result);
 }
@@ -74,7 +74,7 @@ void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
   }
   test_type = (OrchardTestType) strtoul(argv[0], NULL, 0);
 
-  orchardTestRun(chp, test_type);
+  orchardTestRunAll(chp, test_type);
   
 }
 orchard_command("testall", cmd_testall);

@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <fix16.h>
+#include <fix16_fft.h>
 
 #ifndef FIX16_FFT_INPUT_TYPE
 #error "No FFT input type defined"
@@ -113,16 +114,17 @@ void fix16_fft(FIX16_FFT_INPUT_TYPE *input, fix16_t *real, fix16_t *imag,
                unsigned transform_length)
 {
   int log_length = ilog2(transform_length);
+  unsigned i;
+  int j;
+
   transform_length = 1 << log_length;
 
-  unsigned i;
-  for (i = 0; i < transform_length / 4; i++) {
-    four_point_dft(input + FIX16_FFT_INPUT_INDEX(rbit_n(i, log_length - 2)), transform_length / 4, real + 4*i, imag + 4*i);
-  }
+  for (i = 0; i < transform_length / 4; i++)
+    four_point_dft(input + FIX16_FFT_INPUT_INDEX(rbit_n(i, log_length - 2)),
+                   transform_length / 4, real + 4*i, imag + 4*i);
 
-  for (i = 2; i < log_length; i++) {
-    butterfly(real, imag, 1 << i, transform_length / (2 << i));
-  }
+  for (j = 2; j < log_length; j++)
+    butterfly(real, imag, 1 << j, transform_length / (2 << j));
     
 #ifdef FIX16_FFT_OUTPUT_SCALE
   fix16_t scale = FIX16_FFT_OUTPUT_SCALE(transform_length);

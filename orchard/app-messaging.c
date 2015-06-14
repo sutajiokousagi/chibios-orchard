@@ -49,18 +49,23 @@ static void redraw_ui(void) {
 }
 
 static uint32_t messenger_init(OrchardAppContext *context) {
+
   (void)context;
   return 0;
 }
 
 static void messenger_start(OrchardAppContext *context) {
+
+  (void)context;
   chsnprintf(message, MSG_MAXLEN, "%s", "nothing yet");
   redraw_ui();
 }
 
 void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
-  (void)context;
+
   const struct genes *family;
+
+  (void)context;
   
   family = (const struct genes *) storageGetData(GENE_BLOCK);
 
@@ -68,7 +73,8 @@ void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
       // send a message
       txseq++;
-      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, 1, strlen(family->name) + 1, family->name);
+      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, 1,
+                strlen(family->name) + 1, family->name);
     }
   }
   redraw_ui();
@@ -79,4 +85,5 @@ static void messenger_exit(OrchardAppContext *context) {
   (void)context;
 }
 
-orchard_app("Messenger test", messenger_init, messenger_start, messenger_event, messenger_exit);
+orchard_app("Messenger test",
+    messenger_init, messenger_start, messenger_event, messenger_exit);

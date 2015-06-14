@@ -286,7 +286,7 @@ int main(void)
 
   captouchCalibrate();
 
-  orchardTestRun(stream, orchardTestPoweron);
+  orchardTestRunAll(stream, orchardTestPoweron);
   
   // eventually get rid of this
   chprintf(stream, "User flash start: 0x%x  user flash end: 0x%x  length: 0x%x\r\n",

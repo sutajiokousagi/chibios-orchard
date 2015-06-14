@@ -18,7 +18,7 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
   
   if( argc != 2 ) {
     chprintf(chp, "Usage: test <testname> <testtype>, where testname is one of:\n\r");
-    orchardListTests();
+    orchardListTests(chp);
     chprintf(chp, "And testtype is according to the following table:\n\r" );
     chprintf(chp, "  0 - Power On\n\r" );
     chprintf(chp, "  1 - Trivial\n\r" );
@@ -28,14 +28,13 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
   }
 
   test_app = orchardAppByName("~testmode");
-  if( test_app ) {
+  if (test_app)
     orchardAppRun(test_app);
-  }
   
   test = orchardGetTestByName(argv[0]);
   test_type = (OrchardTestType) strtoul(argv[1], NULL, 0);
 
-  if( test == NULL ) {
+  if (test == NULL) {
     chprintf(chp, "Test %s was not found in the test table.\n\r", argv[0]);
     return;
   }
@@ -75,7 +74,7 @@ void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
   }
   test_type = (OrchardTestType) strtoul(argv[0], NULL, 0);
 
-  orchardTestRun(test_type);
+  orchardTestRun(chp, test_type);
   
 }
 orchard_command("testall", cmd_testall);

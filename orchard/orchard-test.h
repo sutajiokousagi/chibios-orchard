@@ -66,8 +66,8 @@ typedef struct {
 
 void orchardTestInit(void);
 const TestRoutine *orchardGetTestByName(const char *name);
-void orchardTestRun(uint32_t test_type);
-void orchardListTests(void);
+void orchardTestRun(BaseSequentialStream *chp, uint32_t test_type);
+void orchardListTests(BaseSequentialStream *chp);
 OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interaction_delay);
 
 // radio packet type defines for testing

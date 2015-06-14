@@ -18,13 +18,13 @@ void orchardTestInit(void) {
   auditStart();  // start / initialize the test audit log
 }
 
-void orchardListTests(void) {
+void orchardListTests(BaseSequentialStream *chp) {
   const TestRoutine *current;
 
   current = orchard_test_start();
-  chprintf( stream, "Available tests:\n\r" );
+  chprintf(chp, "Available tests:\n\r" );
   while(current->test_name) {
-    chprintf( stream, "%s\r\n", current->test_name);
+    chprintf(chp, "%s\r\n", current->test_name);
     current++;
   }
 }
@@ -43,7 +43,7 @@ const TestRoutine *orchardGetTestByName(const char *name) {
 }
 
 
-void orchardTestRun(OrchardTestType test_type) {
+void orchardTestRun(BaseSequentialStream *chp, OrchardTestType test_type) {
   const TestRoutine *cur_test;
   OrchardTestResult test_result;
   
@@ -57,13 +57,16 @@ void orchardTestRun(OrchardTestType test_type) {
       case orchardResultPass:
 	break;
       case orchardResultFail:
-	chprintf(stream, "TEST: %s subystem failed test with code %d\n\r", cur_test->test_name, test_result);
+	chprintf(chp, "TEST: %s subystem failed test with code %d\n\r",
+           cur_test->test_name, test_result);
 	break;
       case orchardResultNoTest:
-	chprintf(stream, "TEST: reminder: write test for subystem %s\n\r", cur_test->test_name );
+	chprintf(chp, "TEST: reminder: write test for subystem %s\n\r",
+           cur_test->test_name );
 	break;
       case orchardResultUnsure:
-	chprintf(stream, "TEST: %s subystem not testable with test type %d\n\r", cur_test->test_name, test_result, test_type);
+	chprintf(stream, "TEST: %s subystem not testable with test type %d\n\r",
+           cur_test->test_name, test_result, test_type);
 	break;
       default:
 	// lolwut?

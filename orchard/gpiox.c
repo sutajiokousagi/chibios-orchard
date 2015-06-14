@@ -348,6 +348,8 @@ static void gpiox_poll_int(int ign) {
 
 OrchardTestResult test_gpiox(const char *my_name, OrchardTestType test_type) {
   uint8_t ret;
+
+  (void)my_name;
   
   switch(test_type) {
   default:

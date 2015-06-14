@@ -21,6 +21,7 @@ static void test_peer_handler(uint8_t type, uint8_t src, uint8_t dst,
   (void)src;
   (void)dst;
 
+#warning "Make sure that this buffer doesn't get reused"
   test_rxdat = *((uint32_t *) data);
 
   chEvtBroadcast(&radio_app);

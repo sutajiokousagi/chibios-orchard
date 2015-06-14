@@ -47,10 +47,6 @@
 
 #include "SSD_Types.h"
 
-/* Endianness */
-#define BIG_ENDIAN                        0   /* Big Endian */
-#define LITTLE_ENDIAN                     1   /* Little Endian */
-
 /* cpu cores */
 #define COLDFIRE                          0   /* ColdFire core */
 #define ARM_CORTEX_M                      1   /* ARM Cortex M4 core M0 core*/

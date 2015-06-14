@@ -9,7 +9,6 @@ static uint32_t led_init(OrchardAppContext *context) {
 }
 
 static void led_start(OrchardAppContext *context) {
-  uint8_t i;
   
   (void)context;
   chprintf(stream, "LED: Starting led app\r\n");
@@ -28,21 +27,15 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   chprintf(stream, "LED: Received %d event\r\n", event->type);
 
   if (event->type == keyEvent) {
-    if (event->key.code == keyCW)
-      ; // something
-    else if (event->key.code == keyCCW) {
-      ; // something more
-    }
-    else if ((event->key.code == keyLeft)  && (event->key.flags == keyDown) ) {
+    if ((event->key.code == keyLeft)  && (event->key.flags == keyDown) ) {
       shift = getShift();
       shift++;
-      if( shift > 6 )
-	shift = 0;
+      if (shift > 6)
+        shift = 0;
       setShift(shift);
-    } else if ( (event->key.code == keyRight) && (event->key.flags == keyDown))
+    }
+    else if ( (event->key.code == keyRight) && (event->key.flags == keyDown))
       effectsNextPattern();
-    else if (event->key.code == keySelect)
-      ; // something
   }
 }
 

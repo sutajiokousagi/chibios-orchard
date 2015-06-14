@@ -17,16 +17,16 @@
 // Also, update the help message in cmd-test.c...
 typedef enum _OrchardTestType {
   orchardTestPoweron = 0,      // test run at power-on to confirm the block is good
-  orchardTestTrivial,          // test if we can simply talk to a hardware block
-  orchardTestComprehensive,    // a deeper test, as required
-  orchardTestInteractive,      // tests that require interaction with factory labor
+  orchardTestTrivial = 1,      // test if we can simply talk to a hardware block
+  orchardTestComprehensive = 2,// a deeper test, as required
+  orchardTestInteractive = 3,  // tests that require interaction with factory labor
 } OrchardTestType;
 
 typedef enum _OrchardTestResult {
   orchardResultPass = 0,
-  orchardResultFail,
-  orchardResultUnsure,
-  orchardResultNoTest,  // for cases where there is no test for a function
+  orchardResultFail = 1,
+  orchardResultUnsure = 2,
+  orchardResultNoTest = 3,  // for cases where there is no test for a function
 } OrchardTestResult;
 
 /*

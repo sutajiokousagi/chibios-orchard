@@ -12,9 +12,12 @@
 #include "orchard-test.h"
 #include "test-audit.h"
 
+static const TestRoutine *first_test;
+
 orchard_test_end();
 
 void orchardTestInit(void) {
+  first_test = orchard_test_start();
   auditStart();  // start / initialize the test audit log
 }
 

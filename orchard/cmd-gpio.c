@@ -15,6 +15,12 @@
 */
 
 #include <stdlib.h>
+#include <ctype.h>
+
+#ifdef toupper
+#undef toupper
+#endif
+#define toupper(c) (((c < 'a') || (c > 'z')) ? c : (c + ('a' - 'A')))
 
 #include "orchard-shell.h"
 

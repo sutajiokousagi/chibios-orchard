@@ -39,8 +39,32 @@ void auditStart(void) {
 }
 
 // check audit log to see if all tests of test_type have passed
-int32_t auditCheck(uint32_t test_type) {
-  return -1;
+// this is mostly for the convenience of python frameworks calling fuctions over gdb
+// result is 0 if all passed
+// upper 16 bits record fails, lower 16 bits record unsure
+// so if you want to just confirm that nothing failed, just check result is < 65536
+uint32_t auditCheck(uint32_t test_type) {
+  const struct auditLog *log;
+  const auditEntry *entry;
+  uint16_t unsure = 0;
+  uint16_t fail = 0;
+  uint32_t i;
+
+  log = (const struct auditLog *) storageGetData(AUDIT_BLOCK);
+  entry = &(log->firstEntry);
+  for( i = 0; i < log->entry_count; i++ ) {
+    if( entry->type == test_type ) {
+      if( entry->result == orchardResultUnsure ) {
+	unsure++;
+      }
+      if( entry->result == orchardResultFail ) {
+	fail++;
+      }
+    }
+    entry++;
+  }
+  
+  return unsure | (fail << 16);
 }
 
 const auditEntry *find_audit_entry(const char *name, OrchardTestType type) {

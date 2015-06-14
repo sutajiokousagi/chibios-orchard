@@ -17,6 +17,7 @@ static void testmode_event(OrchardAppContext *context,
   (void) event;
 
   // do nothing -- but this function has to exist for the app to be running
+  // if you optimize it out with a NULL function, the app quits immediately
   return;
 }
 

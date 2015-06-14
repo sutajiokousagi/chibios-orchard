@@ -9,6 +9,8 @@
 
 #include "orchard-test.h"
 #include "test-audit.h"
+#include "analog.h"    // for test
+#include "gasgauge.h"  // for test
 
 static I2CDriver *driver;
 static chargerIntent chgIntent = CHG_IDLE;
@@ -309,10 +311,17 @@ void chargerSetTargetCurrent(uint16_t current) {
   charger_set(CHG_REG_CURRENT, data);
 }
 
+#define TEST_CHG_TIMEOUT 10000
+#define TEST_CHG_THRESH 100  // threshold, in mA, for a test to pass charging
+#define TEST_CHG_DTHRESH -20 // threshold, in mA, for proper discharging
 OrchardTestResult test_charger(const char *my_name, OrchardTestType test_type) {
   (void) my_name;
-  
   uint8_t ret;
+  usbStat usbStatus;
+  uint32_t starttime;
+  char chgprompt[16];
+  int16_t current;
+  uint8_t waspluggedin = 1;
   
   switch(test_type) {
   case orchardTestPoweron:
@@ -324,6 +333,79 @@ OrchardTestResult test_charger(const char *my_name, OrchardTestType test_type) {
       return orchardResultPass;
     }
     break;
+  case orchardTestInteractive:
+    usbStatus = analogReadUsbStatus();
+    if( usbStatus == usbStatNC ) {
+      waspluggedin = 0;
+      orchardTestPrompt("plug in USB", "to proceed", 0);
+      starttime = chVTGetSystemTime();
+      while( (analogReadUsbStatus() == usbStatNC) ) {
+	if( chVTGetSystemTime() - starttime > TEST_CHG_TIMEOUT ) {
+	  orchardTestPrompt("charger not found", "FAIL", 0);
+	  return orchardResultFail;
+	}
+	chThdYield();
+	chThdSleepMilliseconds(100);
+      }
+    }
+    
+    // we should now be plugged in
+    orchardTestPrompt("detecting", "charger...", 0);
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS); // wait for gg to update
+    usbStatus = analogReadUsbStatus();
+    if( (usbStatus == usbStat500) || (usbStatus == usbStat1500) ) {
+      current = ggAvgCurrent();
+      if( current < TEST_CHG_THRESH ) {
+	orchardTestPrompt("charge test fail", "charge current low", 0);
+      }
+      chsnprintf(chgprompt, sizeof(chgprompt), "%d mAh", current );
+      if( usbStatus == usbStat500 ) 
+	orchardTestPrompt("found 500mA chg", chgprompt, 0);
+      else
+	orchardTestPrompt("found 1.5A chg", chgprompt, 0);
+    } else {
+      orchardTestPrompt("charge test fail", "charger ID fail", 0);
+    }
+      
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS);
+    
+    orchardTestPrompt("unplug USB", "to proceed", 0);
+    starttime = chVTGetSystemTime();
+    while( (analogReadUsbStatus() != usbStatNC) ) {
+      if( chVTGetSystemTime() - starttime > TEST_CHG_TIMEOUT ) {
+	orchardTestPrompt("unplug detect", "failure!", 0);
+	  return orchardResultFail;
+      }
+      chThdYield();
+      chThdSleepMilliseconds(100);
+    }
+
+    orchardTestPrompt("detecting", "discharge...", 0);
+    chThdSleepMilliseconds(GG_UPDATE_INTERVAL_MS);
+
+    current = ggAvgCurrent();
+    if( current > TEST_CHG_DTHRESH ) { // positive, or a less negative number than required
+      chsnprintf(chgprompt, sizeof(chgprompt), "%d mAh", current );
+      orchardTestPrompt("discharge fail", chgprompt, 0);
+      return orchardResultFail;
+    }
+    if( waspluggedin ) {
+      // let's plug back in if that was the case before...
+      orchardTestPrompt("plug in USB", "to proceed", 0);
+      starttime = chVTGetSystemTime();
+      while( (analogReadUsbStatus() == usbStatNC) ) {
+	if( chVTGetSystemTime() - starttime > TEST_CHG_TIMEOUT ) {
+	  orchardTestPrompt("charger not found", "FAIL", 0);
+	  return orchardResultFail;
+	}
+	chThdYield();
+	chThdSleepMilliseconds(100);
+      }
+    }
+    orchardTestPrompt("charger test", "PASSED", 0);
+    return orchardResultPass;
+    break;
+    
   default:
     return orchardResultNoTest;
   }

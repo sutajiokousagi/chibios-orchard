@@ -95,8 +95,10 @@ void orchardTestRunAll(BaseSequentialStream *chp, OrchardTestType test_type) {
 // print up to 2 lines of text
 // interaction_delay specifies how long we should wait before we declare failure
 //   0 means don't delay
+//   negative numbers delay that amount of seconds, but don't print a timeout failure
+//    (meant for prompts that need to be read, but not interacted with)
 OrchardTestResult orchardTestPrompt(char *line1, char *line2,
-                                    uint8_t interaction_delay) {
+                                    int8_t interaction_delay) {
   coord_t width;
   coord_t height;
   font_t font;
@@ -108,7 +110,7 @@ OrchardTestResult orchardTestPrompt(char *line1, char *line2,
   uint8_t countdown;
 
   val = captouchRead();
-  countdown = interaction_delay;
+  countdown = (uint8_t) abs(interaction_delay);
 
   orchardGfxStart();
   font = gdispOpenFont("ui2");
@@ -141,7 +143,7 @@ OrchardTestResult orchardTestPrompt(char *line1, char *line2,
         result = orchardResultPass;
         break;
       }
-      if ((curtime - starttime) > ((uint32_t) interaction_delay * 1000)) {
+      if ((curtime - starttime) > ((uint32_t) abs(interaction_delay) * 1000)) {
         result = orchardResultFail;
         break;
       }
@@ -160,14 +162,16 @@ OrchardTestResult orchardTestPrompt(char *line1, char *line2,
   }
 
   if (result == orchardResultFail) {
-    chsnprintf(timer, sizeof(timer), "timeout!");
-    gdispFillArea(0, height * 4, width, height, Black);
-
-    gdispDrawStringBox(0, height * 4, width, height,
+    if( interaction_delay >= 0 ) {
+      chsnprintf(timer, sizeof(timer), "timeout!");
+      gdispFillArea(0, height * 4, width, height, Black);
+      
+      gdispDrawStringBox(0, height * 4, width, height,
                        timer, font, White, justifyCenter);
 
-    gdispFlush();
-    chThdSleepMilliseconds(2000);
+      gdispFlush();
+      chThdSleepMilliseconds(2000);
+    }
   }
 
   gdispCloseFont(font);

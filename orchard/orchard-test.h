@@ -70,7 +70,7 @@ void orchardTestRunAll(BaseSequentialStream *chp, uint32_t test_type);
 OrchardTestResult orchardTestRun(const TestRoutine *test, uint32_t test_type);
 OrchardTestResult orchardTestRunByName(const char *name, uint32_t test_type);
 void orchardListTests(BaseSequentialStream *chp);
-OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interaction_delay);
+OrchardTestResult orchardTestPrompt(char *line1, char *line2, int8_t interaction_delay);
 
 // radio packet type defines for testing
 #define RADIO_TYPE_DUT_TO_PEER  6

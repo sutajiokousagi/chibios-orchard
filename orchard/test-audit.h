@@ -39,7 +39,7 @@ typedef struct auditLog {
 } __attribute__((__packed__)) auditLog;
 
 void auditStart(void);
-int32_t auditCheck(uint32_t test_type);
+uint32_t auditCheck(uint32_t test_type);
 void auditUpdate(const char *name, OrchardTestType type, OrchardTestResult result );
 void auditPrintLog(BaseSequentialStream *chp);
 
@@ -49,15 +49,16 @@ void auditPrintLog(BaseSequentialStream *chp);
   test writing status
 
   touch   trivial; interactive
-  accel   trivial   * <- "marble" app but rolling into four corners to pass the test.
+  accel   trivial; silicon works if trivial test passes. not tested: drop/bump interrupt pin
   led     can't trivially test; comprehensive, interactive
   ble     trivial
   oled    can't trivially test; interactive
-  charger trivial   **  <- plug in, plug out; check currents & charge rate
-  gg      trivial
-  gpiox   trivial
-  radio   trivial   *** <- tx random # to peer that echoes the number back. Requires peer app.
-  cpu     trivial
-  usb     trivial
-  mic     trivial   ** <- app-oscope launch, auto-kill with timer
+  charger trivial; interactive
+  gg      trivial; tested by charger interactive
+  gpiox   trivial; deeper tests tested by other tests
+  radio   trivial; interactive. Test is not yet stable, test peer tends to crash
+  cpu     trivial; deeper tests tested by other tests
+  usb     trivial; tested by charger interactive
+  mic     trivial; interactive
+
 */

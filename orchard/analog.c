@@ -10,6 +10,7 @@
 #include "orchard-test.h"
 #include "test-audit.h"
 #include "gasgauge.h" // used in test procedure
+#include "orchard-app.h" // used in test procedure
 
 static adcsample_t mic_sample[MIC_SAMPLE_DEPTH];
 static uint8_t mic_return[MIC_SAMPLE_DEPTH];
@@ -243,6 +244,7 @@ OrchardTestResult test_mic(const char *my_name, OrchardTestType test_type) {
   (void) my_name;
   
   uint8_t *samples;
+  const OrchardApp *test_app;
 
   switch(test_type) {
   case orchardTestPoweron:
@@ -260,6 +262,22 @@ OrchardTestResult test_mic(const char *my_name, OrchardTestType test_type) {
       // noise or oscillation issue
       return orchardResultPass;
     }
+  case orchardTestInteractive:
+    // in the interactive case, we can ask the operator to view the screen and approve the mic
+    test_app = orchardAppByName("Sound scope");
+    if( test_app ) {
+      orchardTestPrompt("speak into mic,", "confirm waveform", -2);
+      orchardAppRun(test_app);
+      chThdSleepMilliseconds(4000);  // give four seconds to speak into the mic
+      test_app = orchardAppByName("~testmode");
+      orchardAppRun(test_app);
+      return orchardTestPrompt("press any button", "if the mic passed", 6);
+    } else {
+      // couldn't find the test app, so we couldn't run the test
+      return orchardResultUnsure;
+    }
+    
+    
   default:
     return orchardResultNoTest;
   }

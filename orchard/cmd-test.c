@@ -28,8 +28,12 @@ void cmd_test(BaseSequentialStream *chp, int argc, char *argv[])
   }
 
   test_app = orchardAppByName("~testmode");
-  if (test_app)
+  if (test_app) {
     orchardAppRun(test_app);
+    // give some time for the app to launch
+    chThdYield();
+    chThdSleepMilliseconds(500);
+  }
   
   test = orchardGetTestByName(argv[0]);
   test_type = (OrchardTestType) strtoul(argv[1], NULL, 0);
@@ -56,6 +60,21 @@ void cmd_printaudit(BaseSequentialStream *chp, int argc, char *argv[])
 }
 orchard_command("auditlog", cmd_printaudit);
 
+void cmd_auditcheck(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  (void) chp;
+  OrchardTestType  test_type;
+
+  if( argc != 1 ) {
+    chprintf(chp, "Usage: auditcheck <testtype>\n\r");
+    chprintf(chp, "Testtype is a code denoting the test type (see orchard-test.h)\n\r" );
+    return;
+  }
+  test_type = (OrchardTestType) strtoul(argv[0], NULL, 0);
+  chprintf(chp, "audit check result: %x\n\r", auditCheck(test_type));
+}
+orchard_command("auditcheck", cmd_auditcheck);
+
 void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
 {
   (void) chp;
@@ -65,6 +84,9 @@ void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
   test_app = orchardAppByName("~testmode");
   if( test_app ) {
     orchardAppRun(test_app);
+    // give some time for the app to launch
+    chThdYield();
+    chThdSleepMilliseconds(500);
   }
   
   if( argc != 1 ) {

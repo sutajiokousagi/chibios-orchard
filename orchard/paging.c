@@ -56,7 +56,7 @@ void radioPagePopup(void) {
 }
 
 static void radio_message_received(uint8_t type, uint8_t src, uint8_t dst,
-                                   uint8_t length, void *data) {
+                                   uint8_t length, const void *data) {
 
   (void)length;
   (void)type;

@@ -34,13 +34,13 @@ void radioSetDefaultHandler(KRadioDevice *radio,
                                             uint8_t src,
                                             uint8_t dst,
                                             uint8_t length,
-                                            void *data));
+                                            const void *data));
 void radioSetHandler(KRadioDevice *radio, uint8_t type,
                      void (*handler)(uint8_t type,
                                      uint8_t src,
                                      uint8_t dst,
                                      uint8_t length,
-                                     void *data));
+                                     const void *data));
 
 void radioInterrupt(EXTDriver *extp, expchannel_t channel);
 

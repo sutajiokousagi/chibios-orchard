@@ -14,7 +14,7 @@ orchard_app("~testmode", NULL, testmode_start, NULL, NULL);
 
 static uint32_t test_rxdat;
 static void test_peer_handler(uint8_t type, uint8_t src, uint8_t dst,
-                              uint8_t length, void *data) {
+                              uint8_t length, const void *data) {
 
   (void)length;
   (void)type;

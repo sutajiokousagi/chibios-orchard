@@ -173,7 +173,7 @@ extern int print_hex(BaseSequentialStream *chp,
                      const void *block, int count, uint32_t start);
 
 static void default_radio_handler(uint8_t type, uint8_t src, uint8_t dst,
-                                  uint8_t length, void *data) {
+                                  uint8_t length, const void *data) {
 
   chprintf(stream, "\r\nNo handler for packet found.  %02x -> %02x : %02x\r\n",
            src, dst, type);

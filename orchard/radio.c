@@ -54,7 +54,8 @@ enum encoding_type {
 };
 
 typedef struct _PacketHandler {
-    void (*handler)(uint8_t type, uint8_t src, uint8_t dst, uint8_t length, void *data);
+    void (*handler)(uint8_t type, uint8_t src, uint8_t dst,
+                    uint8_t length, const void *data);
       uint8_t type;
 } PacketHandler;
 
@@ -74,7 +75,7 @@ struct _KRadioDevice {
                                              uint8_t src,
                                              uint8_t dst,
                                              uint8_t length,
-                                             void *data);
+                                             const void *data);
   enum modulation_type    modulation;
   enum radio_mode         mode;
   enum encoding_type      encoding;
@@ -441,7 +442,7 @@ void radioSetDefaultHandler(KRadioDevice *radio,
                                             uint8_t src,
                                             uint8_t dst,
                                             uint8_t length,
-                                            void *data)) {
+                                            const void *data)) {
   radio->default_handler = handler;
 }
 
@@ -450,7 +451,7 @@ void radioSetHandler(KRadioDevice *radio, uint8_t type,
                                      uint8_t src,
                                      uint8_t dst,
                                      uint8_t length,
-                                     void *data)) {
+                                     const void *data)) {
   unsigned int i;
 
   /* Replace an existing handler? */

@@ -66,7 +66,9 @@ typedef struct {
 
 void orchardTestInit(void);
 const TestRoutine *orchardGetTestByName(const char *name);
-void orchardTestRun(BaseSequentialStream *chp, uint32_t test_type);
+void orchardTestRunAll(BaseSequentialStream *chp, uint32_t test_type);
+OrchardTestResult orchardTestRun(const TestRoutine *test, uint32_t test_type);
+OrchardTestResult orchardTestRunByName(const char *name, uint32_t test_type);
 void orchardListTests(BaseSequentialStream *chp);
 OrchardTestResult orchardTestPrompt(char *line1, char *line2, uint8_t interaction_delay);
 

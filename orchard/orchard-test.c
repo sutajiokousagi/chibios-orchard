@@ -41,8 +41,20 @@ const TestRoutine *orchardGetTestByName(const char *name) {
   return NULL;
 }
 
+OrchardTestResult orchardTestRun(const TestRoutine *test, uint32_t test_type) {
 
-void orchardTestRun(BaseSequentialStream *chp, OrchardTestType test_type) {
+  return test->test_function(test->test_name, test_type);
+}
+
+OrchardTestResult orchardTestRunByName(const char *name, uint32_t test_type) {
+
+  const TestRoutine *test = orchardGetTestByName(name);
+  if (!test)
+    return orchardResultNoTest;
+  return orchardTestRun(test, test_type);
+}
+
+void orchardTestRunAll(BaseSequentialStream *chp, OrchardTestType test_type) {
   const TestRoutine *cur_test;
   OrchardTestResult test_result;
 

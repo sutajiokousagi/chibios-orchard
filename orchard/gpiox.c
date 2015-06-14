@@ -1,4 +1,6 @@
 
+#include <ctype.h>
+
 #include "ch.h"
 #include "hal.h"
 #include "i2c.h"

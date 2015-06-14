@@ -11,7 +11,16 @@ static void testmode_start(OrchardAppContext *context) {
   orchardTestPrompt("Testing...", "", 0);
 }
 
-orchard_app("~testmode", NULL, testmode_start, NULL, NULL);
+static void testmode_event(OrchardAppContext *context,
+			   const OrchardAppEvent *event) {
+  (void) context;
+  (void) event;
+
+  // do nothing -- but this function has to exist for the app to be running
+  return;
+}
+
+orchard_app("~testmode", NULL, testmode_start, testmode_event, NULL);
 
 static void test_peer_handler(uint8_t prot, uint8_t src, uint8_t dst,
                               uint8_t length, const void *data) {

@@ -187,7 +187,7 @@ static uint8_t const default_registers[] = {
   RADIO_SyncValue2, 0x4E, //SFD value for uncoded with phySUNMRFSKSFD = 0
 
   /* Radio packet mode config */
-  RADIO_PacketConfig1, PacketConfig1_PacketFormat_Variable_Length | PacketConfig1_AddresFiltering_Node_Or_Broadcast | PacketConfig1_CrcAutoClear_Off | PacketConfig1_Crc_On,
+  RADIO_PacketConfig1, PacketConfig1_PacketFormat_Variable_Length | PacketConfig1_AddresFiltering_Node_Or_Broadcast | PacketConfig1_Crc_On,
   RADIO_PacketConfig2, 0x00,
 
   /* Radio payload length initialization */

@@ -72,7 +72,7 @@ typedef struct orchard_app_instance {
 
 #define orchard_app(_name, _init, _start, _event, _exit)                        \
   const OrchardApp _orchard_app_list_##_init##_start##_event##_exit           \
-  __attribute__((unused, aligned(4), section(".chibi_list_app_2_" # _init # _start # _event # _exit))) =  \
+  __attribute__((unused, aligned(4), section(".chibi_list_app_2_" # _event # _start # _init # _exit))) =  \
      { _name, _init, _start, _event, _exit }
 
 #define orchard_app_end()                                                     \

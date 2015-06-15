@@ -32,7 +32,11 @@ static const char *gpio_name(int bank, int pad) {
     switch (pad) {
       case 0: return "SWD_CLK";
       case 1: return "TOUCH2";
+#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
       case 2: return "TOUCH3";
+#else
+      case 2: return "RF_TX_CAN";
+#endif
       case 3: return "SWD_DIO";
       case 4: return "TOUCH5";
       case 18: return "RF_CLK";

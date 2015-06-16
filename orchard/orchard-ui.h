@@ -18,19 +18,10 @@ typedef struct _OrchardAppContext OrchardAppContext;
 // for selection lists, the definition is straightfoward
 // for dialog boxes, the first list item is the message; the next 1 or 2 items are button texts
 // lists are linked lists, as we don't know a priori how long the lists will be
-typedef struct UiListItem {
-  char        *name;
-  struct UiListItem *next;
-} UiListItem;
-
-typedef struct UiItemList {
+typedef struct OrchardUiContext {
   unsigned int selected;
   unsigned int total;
-  struct UiListItem *items;
-} UiItemList;
-
-typedef struct OrchardUiContext {
-  struct UiItemList *itemlist;
+  char **itemlist;
 } OrchardUiContext;
 
 typedef struct _OrchardUi {

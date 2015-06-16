@@ -8,6 +8,7 @@ static uint8_t entry_selection = 0;
 static char entry[TEXTENTRY_MAXLEN + 1];  // +1 for the null terminator
 static uint8_t entry_position = 0;
 
+// Note: text entry UI assumes you will draw your own header graphic, using 5x8 font
 static void textentry_redraw(void) {
   font_t font;
   coord_t width, height;

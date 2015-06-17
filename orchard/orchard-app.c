@@ -8,12 +8,14 @@
 #include "orchard.h"
 #include "orchard-app.h"
 #include "orchard-events.h"
+#include "orchard-math.h"
 #include "captouch.h"
 #include "orchard-ui.h"
 #include "analog.h"
 #include "charger.h"
 #include "paging.h"
 #include "led.h"
+#include "accel.h"
 
 orchard_app_end();
 
@@ -51,8 +53,13 @@ static uint16_t  captouch_collected_state = 0;
 static unsigned long track_time;
 
 #define CHARGECHECK_INTERVAL 1000 // time between checking state of USB pins
+#define PING_MIN_INTERVAL  5000 // base time between pings
+#define PING_RAND_INTERVAL 2000 // randomization zone for pings
+
 static virtual_timer_t chargecheck_timer;
 static event_source_t chargecheck_timeout;
+static virtual_timer_t ping_timer;
+static event_source_t ping_timeout;
 
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
@@ -71,6 +78,10 @@ static void handle_radio_page(eventid_t id) {
   radioPagePopup();
 }
 
+static void handle_ping_timeout(eventid_t id) {
+  (void) id;
+}
+
 static void handle_radio_sex(eventid_t id) {
   (void) id;
   // TODO
@@ -80,6 +91,7 @@ static void handle_charge_state(eventid_t id) {
   (void)id;
   usbStat usbStatus;
   // this was dispatched because a usbdet_rdy event was received
+  struct accel_data accel; // for entropy call
 
   usbStatus = analogReadUsbStatus();
   if( lastUSBstatus != usbStatus ) {
@@ -109,7 +121,11 @@ static void handle_charge_state(eventid_t id) {
       ;
       // this is an internal error but what can we do about it? strings are expensive in 128k
     }
-  } 
+  }
+
+  // whenever this system task runs, add some entropy to the random number pool...
+  accelPoll(&accel);
+  addEntropy(accel.x ^ accel.y ^ accel.z);
 }
 
 static void handle_chargecheck_timeout(eventid_t id) {
@@ -367,6 +383,15 @@ static void run_chargecheck(void *arg) {
   chSysLockFromISR();
   chEvtBroadcastI(&chargecheck_timeout);
   chVTSetI(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);
+  chSysUnlockFromISR();
+}
+
+static void run_ping(void *arg) {
+  (void)arg;
+
+  chSysLockFromISR();
+  chEvtBroadcastI(&ping_timeout);
+  chVTSetI(&ping_timer, MS2ST(PING_MIN_INTERVAL + rand() % PING_RAND_INTERVAL), run_ping, NULL);
   chSysUnlockFromISR();
 }
 
@@ -690,6 +715,7 @@ void orchardAppInit(void) {
   chEvtObjectInit(&timer_expired);
   chEvtObjectInit(&keycollect_timeout);
   chEvtObjectInit(&chargecheck_timeout);
+  chEvtObjectInit(&ping_timeout);
   chEvtObjectInit(&ui_completed);
   chVTReset(&instance.timer);
 
@@ -717,9 +743,13 @@ void orchardAppInit(void) {
 
   evtTableHook(orchard_events, radio_page, handle_radio_page);
   evtTableHook(orchard_events, radio_sex, handle_radio_sex);
+  evtTableHook(orchard_events, ping_timeout, handle_ping_timeout);
 
   chVTReset(&chargecheck_timer);
   chVTSet(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);
+
+  chVTReset(&ping_timer);
+  chVTSet(&ping_timer, MS2ST(PING_MIN_INTERVAL + rand() % PING_RAND_INTERVAL), run_ping, NULL);
 
   jogdial_state.lastpos = -1; 
   jogdial_state.direction_intent = dirNone;

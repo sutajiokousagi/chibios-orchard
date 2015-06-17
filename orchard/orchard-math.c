@@ -2,7 +2,8 @@
 #include "orchard-math.h"
 #include "led.h"
 
-static unsigned int rstate = 0xfade1337;
+static uint32_t rstate[2] = {0xbabeface, 0xfade1337};
+static uint32_t key[2] = {0x243F6A88, 0x85A308D3}; // from pi
 
 unsigned int shift_lfsr(unsigned int v) {
   /*
@@ -52,9 +53,60 @@ unsigned int shift_lfsr(unsigned int v) {
   return v;
 }
 
+#define DELTA 0x9e3779b9
+#define MX (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)))
+ 
+void btea(uint32_t *v, int n, uint32_t const key[4]) {
+  uint32_t y, z, sum;
+  unsigned rounds, e;
+  int p;
+  if (n > 1) {          /* Coding Part */
+    rounds = 6 + 52/n;
+    sum = 0;
+    z = v[n-1];
+    do {
+      sum += DELTA;
+      e = (sum >> 2) & 3;
+      for (p=0; p<n-1; p++) {
+	y = v[p+1]; 
+	z = v[p] += MX;
+      }
+      y = v[0];
+      z = v[n-1] += MX;
+    } while (--rounds);
+  } else if (n < -1) {  /* Decoding Part */
+    n = -n;
+    rounds = 6 + 52/n;
+    sum = rounds*DELTA;
+    y = v[0];
+    do {
+      e = (sum >> 2) & 3;
+      for (p=n-1; p>0; p--) {
+	z = v[p-1];
+	y = v[p] -= MX;
+      }
+      z = v[n-1];
+      y = v[0] -= MX;
+      sum -= DELTA;
+    } while (--rounds);
+  }
+}
+
+void addEntropy(uint32_t value) {
+  if( value & 1 ) {
+    key[0] ^= value;
+    key[1] ^= chVTGetSystemTime();
+  } else {
+    key[1] ^= value;
+    key[0] ^= chVTGetSystemTime();
+  }
+  
+  btea(rstate, 2, key);
+}
+
 int rand (void) {
-  rstate = shift_lfsr(rstate);
-  return rstate;
+  btea( rstate, 2, key );
+  return rstate[0] ^ rstate[1];
 }
 
 // saturating subtract. returns a-b, stopping at 0. assumes 8-bit types

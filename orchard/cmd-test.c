@@ -100,3 +100,24 @@ void cmd_testall(BaseSequentialStream *chp, int argc, char *argv[])
   
 }
 orchard_command("testall", cmd_testall);
+
+static int should_stop(void) {
+  uint8_t bfr[1];
+  return chnReadTimeout(serialDriver, bfr, sizeof(bfr), 1);
+}
+
+void cmd_testrand(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void) chp;
+  (void) argc;
+  (void) argv;
+
+  int i = 0;
+  
+  while( !should_stop() ) {
+    if( (i % 6) == 0)
+      chprintf(chp, "\n\r");
+    chprintf(chp, "%08x ", (uint32_t) rand());
+    i++;
+  }
+}
+orchard_command("testrand", cmd_testrand);

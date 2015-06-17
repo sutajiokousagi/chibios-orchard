@@ -27,6 +27,7 @@
 #include "orchard-events.h"
 #include "orchard-app.h"
 #include "orchard-test.h"
+#include "orchard-math.h"
 #include "test-audit.h"
 
 #include "accel.h"
@@ -230,6 +231,7 @@ static void print_mcu_info(void) {
  */
 int main(void)
 {
+  struct accel_data accel; // for entropy init
 
   /*
    * System initializations.
@@ -286,6 +288,12 @@ int main(void)
 
   captouchCalibrate();
 
+  accelPoll(&accel);
+  addEntropy(accel.x ^ accel.y ^ accel.z);  // something with noise
+  addEntropy(SIM->UIDL);  // something unique to each device
+  addEntropy(SIM->UIDML);
+  addEntropy(SIM->UIDMH);
+  
   orchardTestRunAll(stream, orchardTestPoweron);
   
   // eventually get rid of this

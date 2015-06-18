@@ -17,6 +17,7 @@ typedef struct _RadioPacket {
 
 enum radio_protocols {
   radio_prot_paging      = 1,
+  radio_prot_ping        = 2,
   radio_prot_dut_to_peer = 6,
   radio_prot_peer_to_dut = 7,
 };

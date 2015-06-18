@@ -16,6 +16,9 @@
 #include "paging.h"
 #include "led.h"
 #include "accel.h"
+#include "genes.h"
+#include "storage.h"
+#include "radio.h"
 
 orchard_app_end();
 
@@ -80,7 +83,11 @@ static void handle_radio_page(eventid_t id) {
 
 static void handle_ping_timeout(eventid_t id) {
   (void) id;
-  
+  const struct genes *family;
+  family = (const struct genes *) storageGetData(GENE_BLOCK);
+
+  radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_ping,
+	    strlen(family->name) + 1, family->name);
 }
 
 static void handle_radio_sex(eventid_t id) {

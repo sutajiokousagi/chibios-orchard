@@ -80,6 +80,7 @@ static void handle_radio_page(eventid_t id) {
 
 static void handle_ping_timeout(eventid_t id) {
   (void) id;
+  
 }
 
 static void handle_radio_sex(eventid_t id) {

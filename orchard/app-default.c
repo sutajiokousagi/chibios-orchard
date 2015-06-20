@@ -24,6 +24,8 @@ static void redraw_ui(void) {
 
   numlines = (height / fontheight) - 1;   // one for the title bar
 
+  gdispFillArea(0, header_height, width, height - header_height, Black);
+  
   friendsLock();
   friends = friendsGet();
   starti = friend_index - (friend_index % numlines);
@@ -77,9 +79,12 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       if (shift > 6)
         shift = 0;
       setShift(shift);
+      redraw_ui();
     }
-    else if ( (event->key.code == keyRight) && (event->key.flags == keyDown))
+    else if ( (event->key.code == keyRight) && (event->key.flags == keyDown)) {
       effectsNextPattern();
+      redraw_ui();
+    }
   } else if(event->type == radioEvent) {
     redraw_ui();
   }

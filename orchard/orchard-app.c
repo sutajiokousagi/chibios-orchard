@@ -102,8 +102,10 @@ static void handle_ping_timeout(eventid_t id) {
 
   // cleanup every other ping we send, to make sure friends that are
   // nearby build up credit over time to max credits
-  if( cleanup_state )
+  if( cleanup_state ) {
     friend_cleanup();
+    chEvtBroadcast(&radio_app);
+  }
   cleanup_state = !cleanup_state;
 }
 
@@ -166,23 +168,27 @@ void friend_cleanup(void) {
 }
 
 int friend_comp(const void *a, const void *b) {
-  char *mya;
-  char *myb;
+  char **mya;
+  char **myb;
   
-  mya = (char *)a;
-  myb = (char *)b;
+  mya = (char **)a;
+  myb = (char **)b;
 
-  if( mya == NULL && myb == NULL )
+  if( *mya == NULL && *myb == NULL )
     return 0;
 
-  if( mya == NULL )
-    return -1;
-
-  if( myb == NULL )
+  if( *mya == NULL )
     return 1;
 
-  // compare with the leading friend-credit count in place...
-  return strncmp(mya, myb, GENE_NAMELENGTH + 1);
+  if( *myb == NULL )
+    return -1;
+  
+  if( (*mya)[0] != (*myb)[0] ) {
+    return (*mya)[0] > (*myb)[0] ? -1 : 1;
+  } else {
+    // sort alphabetically from here
+    return strncmp(&((*mya)[1]), &((*myb)[1]), GENE_NAMELENGTH + 1);
+  }
 }
 
 void friendsSort(void) {

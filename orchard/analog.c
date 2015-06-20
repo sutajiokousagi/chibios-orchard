@@ -14,7 +14,6 @@
 
 static adcsample_t mic_sample[MIC_SAMPLE_DEPTH];
 static uint8_t mic_return[MIC_SAMPLE_DEPTH];
-mutex_t adc_mutex;
 
 #define ADC_GRPCELCIUS_NUM_CHANNELS   2
 #define ADC_GRPCELCIUS_BUF_DEPTH      1

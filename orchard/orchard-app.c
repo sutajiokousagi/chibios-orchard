@@ -64,7 +64,6 @@ static virtual_timer_t ping_timer;
 static event_source_t ping_timeout;
 #define PING_MIN_INTERVAL  5000 // base time between pings
 #define PING_RAND_INTERVAL 2000 // randomization zone for pings
-#define MAX_FRIENDS  50   // max # of friends to track
 static char *friends[MAX_FRIENDS]; // array of pointers to friends' names; first byte is priority metric
 #define FRIENDS_INIT_CREDIT  4  // defines how long a friend record stays around before expiration
 // max level of credit a friend can have; defines how long a record can stay around
@@ -110,14 +109,17 @@ static void handle_ping_timeout(eventid_t id) {
 
 char *friend_lookup(char *name) {
   int i;
-  
+
+  osalMutexLock(&friend_mutex);
   for( i = 0; i < MAX_FRIENDS; i++ ) {
     if( friends[i] != NULL ) {
       if(0 == strncmp(&(friends[i][1]), name, GENE_NAMELENGTH)) {
+	osalMutexUnlock(&friend_mutex);
 	return friends[i];
       }
     }
   }
+  osalMutexUnlock(&friend_mutex);
   return NULL;
 }
 
@@ -129,14 +131,17 @@ char *friend_add(char *name) {
   if( record != NULL )
     return record;  // friend already exists, don't add it again
 
+  osalMutexLock(&friend_mutex);
   for( i = 0; i < MAX_FRIENDS; i++ ) {
     if( friends[i] == NULL ) {
       friends[i] = (char *) chHeapAlloc(NULL, GENE_NAMELENGTH + 2); // space for NULL + metric byte
       friends[i][0] = FRIENDS_INIT_CREDIT;
       strncpy(&(friends[i][1]), name, GENE_NAMELENGTH);
+      osalMutexUnlock(&friend_mutex);
       return friends[i];
     }
   }
+  osalMutexUnlock(&friend_mutex);
 
   // if we got here, we couldn't add the friend because we ran out of space
   return NULL;
@@ -146,6 +151,7 @@ char *friend_add(char *name) {
 void friend_cleanup(void) {
   uint32_t i;
 
+  osalMutexLock(&friend_mutex);
   for( i = 0; i < MAX_FRIENDS; i++ ) {
     if( friends[i] == NULL )
       continue;
@@ -156,6 +162,45 @@ void friend_cleanup(void) {
       friends[i] = NULL;
     }
   }
+  osalMutexUnlock(&friend_mutex);
+}
+
+int friend_comp(const void *a, const void *b) {
+  char *mya;
+  char *myb;
+  
+  mya = (char *)a;
+  myb = (char *)b;
+
+  if( mya == NULL && myb == NULL )
+    return 0;
+
+  if( mya == NULL )
+    return -1;
+
+  if( myb == NULL )
+    return 1;
+
+  // compare with the leading friend-credit count in place...
+  return strncmp(mya, myb, GENE_NAMELENGTH + 1);
+}
+
+void friendsSort(void) {
+  osalMutexLock(&friend_mutex);
+  qsort(friends, MAX_FRIENDS, sizeof(char *), friend_comp);
+  osalMutexUnlock(&friend_mutex);
+}
+
+void friendsLock(void) {
+  osalMutexLock(&friend_mutex);
+}
+
+void friendsUnlock(void) {
+  osalMutexUnlock(&friend_mutex);
+}
+
+const char **friendsGet(void) {
+  return (const char **) friends;   // you shouldn't modify this record outside of here, hence const
 }
 
 static void radio_ping_received(uint8_t prot, uint8_t src, uint8_t dst,
@@ -855,6 +900,7 @@ void orchardAppInit(void) {
   for( i = 0; i < MAX_FRIENDS; i++ ) {
     friends[i] = NULL;
   }
+  osalMutexObjectInit(&friend_mutex);
 }
 
 void orchardAppRestart(void) {

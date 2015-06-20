@@ -34,6 +34,11 @@ void orchardAppExit(void);
 void orchardAppTimer(const OrchardAppContext *context,
                      uint32_t usecs,
                      bool repeating);
+void friendsSort(void);
+const char **friendsGet(void);
+void friendsLock(void);
+void friendsUnlock(void);
+#define MAX_FRIENDS  50   // max # of friends to track
 
 typedef struct _OrchardAppContext {
   struct orchard_app_instance *instance;

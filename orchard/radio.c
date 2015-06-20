@@ -85,7 +85,6 @@ struct _KRadioDevice {
 
 KRadioDevice KRADIO1;
 
-
 static uint8_t const default_registers[] = {
   /* Radio operation mode initialization @0x01*/
   RADIO_OpMode, OpMode_Sequencer_On | OpMode_Listen_Off | OpMode_StandBy,

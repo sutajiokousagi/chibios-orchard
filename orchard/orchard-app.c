@@ -19,6 +19,7 @@
 #include "genes.h"
 #include "storage.h"
 #include "radio.h"
+#include "TransceiverReg.h"
 
 orchard_app_end();
 
@@ -55,14 +56,25 @@ static uint16_t  captouch_collected_state = 0;
 #define TRACK_INTERVAL 1  // trackpad debounce in ms
 static unsigned long track_time;
 
-#define CHARGECHECK_INTERVAL 1000 // time between checking state of USB pins
-#define PING_MIN_INTERVAL  5000 // base time between pings
-#define PING_RAND_INTERVAL 2000 // randomization zone for pings
-
 static virtual_timer_t chargecheck_timer;
 static event_source_t chargecheck_timeout;
+#define CHARGECHECK_INTERVAL 1000 // time between checking state of USB pins
+
 static virtual_timer_t ping_timer;
 static event_source_t ping_timeout;
+#define PING_MIN_INTERVAL  5000 // base time between pings
+#define PING_RAND_INTERVAL 2000 // randomization zone for pings
+#define MAX_FRIENDS  50   // max # of friends to track
+static char *friends[MAX_FRIENDS]; // array of pointers to friends' names; first byte is priority metric
+#define FRIENDS_INIT_CREDIT  4  // defines how long a friend record stays around before expiration
+// max level of credit a friend can have; defines how long a record can stay around
+// once a friend goes away. Roughly equal to
+// 2 * (PING_MIN_INTERVAL + PING_RAND_INTERVAL / 2 * MAX_CREDIT) milliseconds
+#define FRIENDS_MAX_CREDIT   10
+static uint8_t cleanup_state = 0;
+mutex_t friend_mutex;
+
+void friend_cleanup(void);
 
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
 #define MAIN_MENU_VALUE ((1 << 11) | (1 << 0))
@@ -88,7 +100,82 @@ static void handle_ping_timeout(eventid_t id) {
 
   radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_ping,
 	    strlen(family->name) + 1, family->name);
+
+  // cleanup every other ping we send, to make sure friends that are
+  // nearby build up credit over time to max credits
+  if( cleanup_state )
+    friend_cleanup();
+  cleanup_state = !cleanup_state;
 }
+
+char *friend_lookup(char *name) {
+  int i;
+  
+  for( i = 0; i < MAX_FRIENDS; i++ ) {
+    if( friends[i] != NULL ) {
+      if(0 == strncmp(&(friends[i][1]), name, GENE_NAMELENGTH)) {
+	return friends[i];
+      }
+    }
+  }
+  return NULL;
+}
+
+char *friend_add(char *name) {
+  char *record;
+  uint32_t i;
+
+  record = friend_lookup(name);
+  if( record != NULL )
+    return record;  // friend already exists, don't add it again
+
+  for( i = 0; i < MAX_FRIENDS; i++ ) {
+    if( friends[i] == NULL ) {
+      friends[i] = (char *) chHeapAlloc(NULL, GENE_NAMELENGTH + 2); // space for NULL + metric byte
+      friends[i][0] = FRIENDS_INIT_CREDIT;
+      strncpy(&(friends[i][1]), name, GENE_NAMELENGTH);
+      return friends[i];
+    }
+  }
+
+  // if we got here, we couldn't add the friend because we ran out of space
+  return NULL;
+}
+
+// to be called periodically to decrement credits and de-alloc friends we haven't seen in a while
+void friend_cleanup(void) {
+  uint32_t i;
+
+  for( i = 0; i < MAX_FRIENDS; i++ ) {
+    if( friends[i] == NULL )
+      continue;
+
+    friends[i][0]--;
+    if( friends[i][0] == 0 ) {
+      chHeapFree(friends[i]);
+      friends[i] = NULL;
+    }
+  }
+}
+
+static void radio_ping_received(uint8_t prot, uint8_t src, uint8_t dst,
+                                   uint8_t length, const void *data) {
+  (void) prot;
+  (void) src;
+  (void) dst;
+  (void) length;
+  char *friend;
+
+  friend = friend_lookup((char *) data);
+  if( friend == NULL )
+    friend = friend_add((char *) data);
+
+  if(friend[0] < FRIENDS_MAX_CREDIT)
+    friend[0]++;
+
+  chEvtBroadcast(&radio_app);
+}
+
 
 static void handle_radio_sex(eventid_t id) {
   (void) id;
@@ -715,6 +802,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
 }
 
 void orchardAppInit(void) {
+  int i;
 
   orchard_app_list = orchard_app_start();
   instance.app = orchard_app_list;
@@ -752,6 +840,7 @@ void orchardAppInit(void) {
   evtTableHook(orchard_events, radio_page, handle_radio_page);
   evtTableHook(orchard_events, radio_sex, handle_radio_sex);
   evtTableHook(orchard_events, ping_timeout, handle_ping_timeout);
+  radioSetHandler(radioDriver, radio_prot_ping, radio_ping_received);
 
   chVTReset(&chargecheck_timer);
   chVTSet(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);
@@ -762,6 +851,10 @@ void orchardAppInit(void) {
   jogdial_state.lastpos = -1; 
   jogdial_state.direction_intent = dirNone;
   jogdial_state.lasttime = chVTGetSystemTime();
+
+  for( i = 0; i < MAX_FRIENDS; i++ ) {
+    friends[i] = NULL;
+  }
 }
 
 void orchardAppRestart(void) {

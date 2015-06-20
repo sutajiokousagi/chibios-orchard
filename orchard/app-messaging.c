@@ -73,7 +73,7 @@ void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
       // send a message
       txseq++;
-      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, 1,
+      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_paging,
                 strlen(family->name) + 1, family->name);
     }
   }

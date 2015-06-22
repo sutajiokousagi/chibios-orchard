@@ -3,7 +3,7 @@
 #define GENE_OFFSET 0
 #define GENE_VERSION 1
 
-#define GENE_NAMELENGTH 16    // null terminated, so 15 char name max
+#define GENE_NAMELENGTH 20    // null terminated, so 19 char name max
 
 typedef struct genes {
   uint32_t  signature;
@@ -12,3 +12,4 @@ typedef struct genes {
 } genes;
 
 void geneStart(void);
+void generateName(char *result);

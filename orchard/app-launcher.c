@@ -6,6 +6,10 @@
 #include "orchard.h"
 #include "orchard-app.h"
 
+#include "storage.h"
+#include "genes.h"
+#include "gasgauge.h"
+
 struct launcher_list_item {
   const char        *name;
   const OrchardApp  *entry;
@@ -21,8 +25,7 @@ static void redraw_list(struct launcher_list *list) {
 
   char tmp[20];
   uint8_t i;
-
-  chsnprintf(tmp, sizeof(tmp), "%d of %d apps", list->selected + 1, list->total);
+  const struct genes *family;
 
   coord_t width;
   coord_t height;
@@ -33,6 +36,9 @@ static void redraw_list(struct launcher_list *list) {
   uint8_t app_modulus;
   uint8_t max_list;
 
+  family = (const struct genes *) storageGetData(GENE_BLOCK);
+  //  chsnprintf(tmp, sizeof(tmp), "%d of %d apps", list->selected + 1, list->total);
+  
   orchardGfxStart();
   // draw title bar
   font = gdispOpenFont("fixed_5x8");
@@ -42,8 +48,13 @@ static void redraw_list(struct launcher_list *list) {
 
   gdispClear(Black);
   gdispFillArea(0, 0, width, height, White);
+
+  chsnprintf(tmp, sizeof(tmp), "%s", family->name);
   gdispDrawStringBox(0, 0, width, height,
-                     tmp, font, Black, justifyCenter);
+                     tmp, font, Black, justifyLeft);
+  chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
+  gdispDrawStringBox(0, 0, width, height,
+                     tmp, font, Black, justifyRight);
 
   // draw app list
   width = gdispGetWidth();
@@ -131,6 +142,9 @@ void launcher_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     else if ((event->key.flags == keyDown) && (event->key.code == keySelect)) {
       orchardAppRun(list->items[list->selected].entry);
     }
+    redraw_list(list);
+  } else if (event->type == adcEvent) {
+    // to update % charge state based on USB detect status ping
     redraw_list(list);
   }
 }

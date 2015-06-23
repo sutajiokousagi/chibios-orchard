@@ -828,7 +828,7 @@ void listEffects(void) {
 
 
 static void redraw_ui(void) {
-  char tmp[20];
+  char tmp[24];
   const OrchardEffects *curfx;
   
   coord_t width;
@@ -847,7 +847,11 @@ static void redraw_ui(void) {
   gdispClear(Black);
   gdispFillArea(0, 0, width, height, White);
   gdispDrawStringBox(0, 0, width, height,
-                     tmp, font, Black, justifyCenter);
+                     tmp, font, Black, justifyLeft);
+  chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
+  gdispDrawStringBox(0, 0, width, height,
+                     tmp, font, Black, justifyRight);
+  
   gdispCloseFont(font);
 
   gdispFlush();

@@ -97,9 +97,11 @@ static void handle_ping_timeout(eventid_t id) {
   const struct genes *family;
   family = (const struct genes *) storageGetData(GENE_BLOCK);
 
+  radioAcquire(radioDriver);
   radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_ping,
 	    strlen(family->name) + 1, family->name);
-
+  radioRelease(radioDriver);
+    
   // cleanup every other ping we send, to make sure friends that are
   // nearby build up credit over time to max credits
   if( cleanup_state ) {

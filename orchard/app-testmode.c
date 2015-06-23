@@ -52,8 +52,10 @@ static void testpeer_event(OrchardAppContext *context,
     chprintf(stream, "received %08x, rebroadcasting...\n\r", test_rxdat);
     chsnprintf(datstr, sizeof(datstr), "%08x", test_rxdat);
     orchardTestPrompt("received:", datstr, 0);
+    radioAcquire(radioDriver);
     radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_peer_to_dut,
               4, &test_rxdat);
+    radioRelease(radioDriver);
   }
 }
 

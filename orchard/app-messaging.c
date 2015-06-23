@@ -90,8 +90,10 @@ void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
       // send a page
       if( (pagecount < SPAM_LIMIT) && !cooldown_active ) {
+	radioAcquire(radioDriver);
 	radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_paging,
 		  strlen(family->name) + 1, family->name);
+	radioRelease(radioDriver);
       }
       pagecount++;
       

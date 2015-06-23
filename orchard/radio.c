@@ -81,9 +81,11 @@ struct _KRadioDevice {
   enum encoding_type      encoding;
   SPIDriver               *driver;
   thread_reference_t      thread;
+  mutex_t                 radio_mutex;
 };
 
 KRadioDevice KRADIO1;
+
 
 static uint8_t const default_registers[] = {
   /* Radio operation mode initialization @0x01*/
@@ -392,6 +394,14 @@ void radioStop(KRadioDevice *radio) {
   radio_set(radio, RADIO_OpMode, 0x80); // force into sleep mode immediately
 }
 
+void radioAcquire(KRadioDevice *radio) {
+  osalMutexLock(&(radio->radio_mutex));
+}
+
+void radioRelease(KRadioDevice *radio) {
+  osalMutexUnlock(&(radio->radio_mutex));
+}
+
 void radioStart(KRadioDevice *radio, SPIDriver *spip) {
 
   unsigned int reg;
@@ -434,6 +444,8 @@ void radioStart(KRadioDevice *radio, SPIDriver *spip) {
   radio_set(radio, RADIO_OpMode, OpMode_Sequencer_On
                                | OpMode_Listen_Off
                                | OpMode_Receiver);
+
+  osalMutexObjectInit(&(radio->radio_mutex));  
 }
 
 void radioSetDefaultHandler(KRadioDevice *radio,
@@ -691,8 +703,10 @@ OrchardTestResult test_radio(const char *my_name, OrchardTestType test_type) {
         chsnprintf(promptA, sizeof(promptA), "radio tx: %d", i+1 );
         chsnprintf(promptB, sizeof(promptB), "retry: %d", j++ );
         orchardTestPrompt(promptA, promptB, 0);
+	radioAcquire(radioDriver);
         radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_dut_to_peer,
                   sizeof(nonce), &nonce);
+	radioRelease(radioDriver);
         if (chVTGetSystemTime() - starttime > RADIO_TEST_TIMEOUT_MS) {
           orchardTestPrompt("radio test", "timeout fail!", 0);
           return orchardResultFail;

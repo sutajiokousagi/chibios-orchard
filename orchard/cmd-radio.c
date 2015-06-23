@@ -141,7 +141,9 @@ static void cmd_msg(BaseSequentialStream *chp, int argc, char *argv[]) {
   addr = strtoul(argv[0], NULL, 0);
   chprintf(chp, "Sending '%s' to address %d\r\n", argv[1], addr);
   while(1) {
+    radioAcquire(radioDriver);
     radioSend(radioDriver, addr, 0, strlen(argv[1]) + 1, argv[1]);
+    radioRelease(radioDriver);
   }
 }
 orchard_command("msg", cmd_msg);

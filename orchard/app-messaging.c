@@ -10,14 +10,14 @@ static uint8_t pagecount = 0;
 static uint8_t cooldown_active = 0;
 
 #define SPAM_LIMIT 5    // max # messages to page before cooldown kicks in
-#define SPAM_DECAY 4000 // time to decay spam timer
+#define SPAM_DECAY 2500 // time to decay spam timer
 
 static void redraw_ui(void) {
   coord_t width;
   coord_t height;
   font_t font;
   char title[] = "Paging mode";
-  char message[16];
+  char message[20];
 
   orchardGfxStart();
   // draw the title bar
@@ -43,8 +43,9 @@ static void redraw_ui(void) {
     gdispDrawStringBox(0, height * 5, width, height,
 		       message, font, White, justifyCenter);
   } else {
+    chsnprintf(message, sizeof(message), "cooldown active %d", pagecount);
     gdispDrawStringBox(0, height * 5, width, height,
-		       "cooldown active", font, White, justifyCenter);
+		       message, font, White, justifyCenter);
   }
   
   gdispFlush();
@@ -75,9 +76,9 @@ void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   if( (chVTGetSystemTime() - last_page) > SPAM_DECAY ) {
     if( pagecount > 0 ) {
-      pagecount--;
+      if( cooldown_active )
+	pagecount--;
       last_page = chVTGetSystemTime();
-      chprintf(stream, "dec %d\n\r", pagecount);
     }
   }
 

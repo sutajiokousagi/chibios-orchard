@@ -14,35 +14,53 @@ static void redraw_ui(void) {
   coord_t width;
   coord_t height;
   font_t font;
-  char title[] = "Messenger test";
   char seqstr[16];
 
   orchardGfxStart();
   // draw the title bar
-  font = gdispOpenFont("fixed_5x8");
+  font = gdispOpenFont("ui2");
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
 
+#if 0
   // draw title box
   gdispClear(Black);
   gdispFillArea(0, 0, width, height, White);
   gdispDrawStringBox(0, 0, width, height,
                      title, font, Black, justifyCenter);
 
-#if 0
   // draw txseq
   chsnprintf(seqstr, 16, "%d", txseq);
   gdispDrawStringBox(0, height * 2, width, height,
                      seqstr, font, White, justifyCenter);
-#endif
   // draw rxseq
   chsnprintf(seqstr, 16, "%d", rxseq);
   gdispDrawStringBox(0, height * 3, width, height,
                      seqstr, font, White, justifyCenter);
+#endif
   
+  gdispFillArea(0, 8, width, height, Black);
   // draw message
-  gdispDrawStringBox(0, height * 4, width, height,
+  gdispDrawStringBox(0, height * 2, width, height,
                      message, font, White, justifyCenter);
+
+
+  switch(rand() & 0x3) {
+  case 0:
+    chsnprintf(seqstr, 16, "loves you!");
+    break;
+  case 1:
+    chsnprintf(seqstr, 16, "says whassup!");
+    break;
+  case 2:
+    chsnprintf(seqstr, 16, "says hello!");
+    break;
+  case 3:
+    chsnprintf(seqstr, 16, "sends hugs!");
+    break;
+  }
+  gdispDrawStringBox(0, height * 4, width, height,
+		     seqstr, font, White, justifyCenter);
   
   gdispFlush();
   orchardGfxEnd();

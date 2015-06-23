@@ -275,9 +275,6 @@ int main(void)
   uiStart();
   orchardAppInit();
 
-  geneStart();
-  pagingStart();
-
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);
   evtTableHook(orchard_events, captouch_changed, key_mod);
@@ -294,6 +291,9 @@ int main(void)
   addEntropy(SIM->UIDML);
   addEntropy(SIM->UIDMH);
   
+  geneStart();  // this has to start after random pool is initied
+  pagingStart();
+
   orchardTestRunAll(stream, orchardTestPoweron);
   
   // eventually get rid of this

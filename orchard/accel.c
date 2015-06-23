@@ -411,7 +411,7 @@ msg_t accelPoll(struct accel_data *data) {
                            TIME_INFINITE);
   i2cReleaseBus(driver);
 
-#if ORCHARD_BOARD_REV == ORCHARD_REV_EVT1
+#if (ORCHARD_BOARD_REV == ORCHARD_REV_EVT1) || (ORCHARD_BOARD_REV == ORCHARD_REV_DVT1)
   data->x  = ((rx[1] & 0xff)) << 4;
   data->x |= ((rx[2] >> 4) & 0x0f);
   

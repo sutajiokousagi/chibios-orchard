@@ -12,6 +12,7 @@ static void redraw_ui(void) {
   color_t text_color = White;
   color_t bg_color = Black;
   const char **friends;
+  char tmp[20];
   
   friendsSort();
 
@@ -42,7 +43,11 @@ static void redraw_ui(void) {
     
     gdispFillArea(0, header_height + j * fontheight, width, fontheight, bg_color);
     gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
-		       &(friends[i][1]), font, text_color, justifyCenter);
+		       &(friends[i][1]), font, text_color, justifyLeft);
+
+    chsnprintf(tmp, sizeof(tmp), "%d", (int) friends[i][0]);
+    gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
+		       tmp, font, text_color, justifyRight);
     
   }
   friendsUnlock();

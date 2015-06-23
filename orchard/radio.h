@@ -49,5 +49,7 @@ void radioSetHandler(KRadioDevice *radio, uint8_t prot,
                                      const void *data));
 
 void radioInterrupt(EXTDriver *extp, expchannel_t channel);
+void radioAcquire(KRadioDevice *radio);
+void radioRelease(KRadioDevice *radio);
 
 #endif /* __ORCHARD_RADIO_H__ */

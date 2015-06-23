@@ -80,6 +80,8 @@ void generateName(char *result) {
   osalDbgAssert( i < GENE_NAMELENGTH, "Name generated exceeds max length, revisit name database!\n\r" );
 }
 
+
+// for testing, mostly
 void cmd_gename(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void) argc;
   (void) argv;
@@ -88,7 +90,6 @@ void cmd_gename(BaseSequentialStream *chp, int argc, char *argv[]) {
   generateName(genName);
   chprintf(chp, "%s\n\r", genName);
 }
-
 orchard_command("gename", cmd_gename);
 
 

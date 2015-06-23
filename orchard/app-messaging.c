@@ -5,17 +5,19 @@
 #include "storage.h"
 #include <string.h>
 
-#define MSG_MAXLEN 16
-static char message[MSG_MAXLEN];
-static uint32_t rxseq = 0;
-static uint32_t txseq = 0;
+static uint32_t last_page;
+static uint8_t pagecount = 0;
+static uint8_t cooldown_active = 0;
+
+#define SPAM_LIMIT 5    // max # messages to page before cooldown kicks in
+#define SPAM_DECAY 4000 // time to decay spam timer
 
 static void redraw_ui(void) {
   coord_t width;
   coord_t height;
   font_t font;
-  char title[] = "Messenger test";
-  char seqstr[16];
+  char title[] = "Paging mode";
+  char message[16];
 
   orchardGfxStart();
   // draw the title bar
@@ -29,19 +31,21 @@ static void redraw_ui(void) {
   gdispDrawStringBox(0, 0, width, height,
                      title, font, Black, justifyCenter);
 
-  // draw txseq
-  chsnprintf(seqstr, 16, "%d", txseq);
   gdispDrawStringBox(0, height * 2, width, height,
-                     seqstr, font, White, justifyCenter);
+                     "Announce yourself", font, White, justifyCenter);
   
-  // draw rxseq
-  chsnprintf(seqstr, 16, "%d", rxseq);
   gdispDrawStringBox(0, height * 3, width, height,
-                     seqstr, font, White, justifyCenter);
+                     "to everyone nearby!", font, White, justifyCenter);
   
-  // draw message
-  gdispDrawStringBox(0, height * 4, width, height,
-                     message, font, White, justifyCenter);
+  // draw cooldown info
+  if( !cooldown_active ) {
+    chsnprintf(message, sizeof(message), "%d of %d used", pagecount, SPAM_LIMIT);
+    gdispDrawStringBox(0, height * 5, width, height,
+		       message, font, White, justifyCenter);
+  } else {
+    gdispDrawStringBox(0, height * 5, width, height,
+		       "cooldown active", font, White, justifyCenter);
+  }
   
   gdispFlush();
   gdispCloseFont(font);
@@ -57,7 +61,7 @@ static uint32_t messenger_init(OrchardAppContext *context) {
 static void messenger_start(OrchardAppContext *context) {
 
   (void)context;
-  chsnprintf(message, MSG_MAXLEN, "%s", "nothing yet");
+  last_page = chVTGetSystemTime();
   redraw_ui();
 }
 
@@ -69,21 +73,43 @@ void messenger_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   
   family = (const struct genes *) storageGetData(GENE_BLOCK);
 
-  if (event->type == keyEvent) {
-    if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
-      // send a message
-      txseq++;
-      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_paging,
-                strlen(family->name) + 1, family->name);
+  if( (chVTGetSystemTime() - last_page) > SPAM_DECAY ) {
+    if( pagecount > 0 ) {
+      pagecount--;
+      last_page = chVTGetSystemTime();
+      chprintf(stream, "dec %d\n\r", pagecount);
     }
   }
-  redraw_ui();
+
+  if( cooldown_active ) {
+    if( pagecount == 0 )
+      cooldown_active = 0;
+  }
   
+  if (event->type == keyEvent) {
+    if ( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
+      // send a page
+      if( (pagecount < SPAM_LIMIT) && !cooldown_active ) {
+	radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_paging,
+		  strlen(family->name) + 1, family->name);
+      }
+      pagecount++;
+      
+      if( pagecount >= SPAM_LIMIT ) {
+	cooldown_active = 1;
+	pagecount = SPAM_LIMIT;
+      }
+
+      last_page = chVTGetSystemTime();
+    }
+  }
+  
+  redraw_ui();
 }
 
 static void messenger_exit(OrchardAppContext *context) {
   (void)context;
 }
 
-orchard_app("Messenger test",
+orchard_app("Announce Yourself",
     messenger_init, messenger_start, messenger_event, messenger_exit);

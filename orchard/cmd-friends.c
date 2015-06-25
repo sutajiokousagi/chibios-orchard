@@ -5,6 +5,7 @@
 #include "orchard-shell.h"
 #include "orchard-app.h"
 #include "genes.h"
+#include "radio.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -61,3 +62,32 @@ void cmd_friendping(BaseSequentialStream *chp, int argc, char *argv[]) {
   chEvtBroadcast(&radio_app);
 }
 orchard_command("friendping", cmd_friendping);
+
+static int should_stop(void) {
+  uint8_t bfr[1];
+  return chnReadTimeout(serialDriver, bfr, sizeof(bfr), 1);
+}
+
+void cmd_friendsim(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void) chp;
+  (void) argc;
+  (void) argv;
+
+  char friendlist[16][GENE_NAMELENGTH];
+  uint32_t i;
+
+  // generate a list of random names
+  for(i = 0; i < 16; i++ ) {
+    generateName(friendlist[i]);
+  }
+  
+  while(!should_stop()) {
+    i = rand() & 0xF; // maybe we should do it in-order to guarantee all addresses are pinged?
+    radioAcquire(radioDriver);
+    radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_ping,
+	      strlen(friendlist[i]) + 1, friendlist[i]);
+    radioRelease(radioDriver);
+    chThdSleepMilliseconds((5000 + rand() % 2000) / 16); // simulate timeouts
+  }
+}
+orchard_command("friendsim", cmd_friendsim);

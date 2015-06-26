@@ -2,12 +2,15 @@
 #include "led.h"
 
 static uint8_t friend_index = 0;
+static uint8_t numlines = 1;
+static uint8_t friend_total = 0;
+
+#define LED_UI_FONT  "fixed_5x8"
 
 static void redraw_ui(void) {
   font_t font;
   coord_t width, height;
   coord_t fontheight, header_height;
-  uint8_t numlines;
   uint8_t i, starti, j;
   color_t text_color = White;
   color_t bg_color = Black;
@@ -17,13 +20,11 @@ static void redraw_ui(void) {
   friendsSort();
 
   orchardGfxStart();
-  font = gdispOpenFont("fixed_5x8");
+  font = gdispOpenFont(LED_UI_FONT);
   width = gdispGetWidth();
   height = gdispGetHeight();
   fontheight = gdispGetFontMetric(font, fontHeight);
   header_height = fontheight;
-
-  numlines = (height / fontheight) - 1;   // one for the title bar
 
   gdispFillArea(0, header_height, width, height - header_height, Black);
   
@@ -65,7 +66,19 @@ static uint32_t led_init(OrchardAppContext *context) {
 static void led_start(OrchardAppContext *context) {
   
   (void)context;
+  font_t font;
+  coord_t height;
+  coord_t fontheight;
 
+  orchardGfxStart();
+  // determine # of lines total displayble on the screen based on the font
+  font = gdispOpenFont(LED_UI_FONT);
+  height = gdispGetHeight();
+  fontheight = gdispGetFontMetric(font, fontHeight);
+  numlines = (height / fontheight) - 1;   // one for the title bar
+  gdispCloseFont(font);
+  orchardGfxEnd();
+  
   listEffects();
   
   effectsSetPattern(0);  // pick default pattern
@@ -78,17 +91,40 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   uint8_t shift;
   
   if (event->type == keyEvent) {
-    if ((event->key.code == keyLeft)  && (event->key.flags == keyDown) ) {
-      shift = getShift();
-      shift++;
-      if (shift > 6)
-        shift = 0;
-      setShift(shift);
-      redraw_ui();
-    }
-    else if ( (event->key.code == keyRight) && (event->key.flags == keyDown)) {
-      effectsNextPattern();
-      redraw_ui();
+    if (event->key.flags == keyDown) {
+      if ( event->key.code == keyLeft ) {
+	shift = getShift();
+	shift++;
+	if (shift > 6)
+	  shift = 0;
+	setShift(shift);
+	redraw_ui();
+      }
+      else if ( event->key.code == keyRight ) {
+	effectsNextPattern();
+	redraw_ui();
+      }
+      else if( event->key.code == keyCW ) {
+	if( friend_total != 0 )
+	  friend_index = friend_index + 1 % friend_total;
+	else
+	  friend_index = 0;
+	redraw_ui();
+      } else if( event->key.code == keyCCW) {
+	if( friend_total != 0 ) {
+	  if( friend_index == 0 )
+	    friend_index = friend_total;
+	  friend_index--;
+	} else {
+	  friend_index = 0;
+	}
+	redraw_ui();
+      } else if( event->key.code == keySelect ) {
+	if( friend_total != 0 ) {
+	  // trigger sex protocol
+	}
+	redraw_ui();
+      }
     }
   } else if(event->type == radioEvent) {
     redraw_ui();

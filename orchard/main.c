@@ -275,6 +275,9 @@ int main(void)
   uiStart();
   orchardAppInit();
 
+  // disable USB power source by default
+  gpioxSetPadMode(GPIOX, usbOutPad, GPIOX_OUT_PUSHPULL | GPIOX_VAL_HIGH);
+
   evtTableHook(orchard_events, shell_terminated, shell_termination_handler);
   evtTableHook(orchard_events, orchard_app_terminated, orchard_app_restart);
   evtTableHook(orchard_events, captouch_changed, key_mod);

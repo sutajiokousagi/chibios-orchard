@@ -44,6 +44,8 @@ static void redraw_ui(void) {
   const char **friends;
   char tmp[20];
 
+  ledRedrawUiHack(); // ui partially comes from another source file :-/
+  
   // theory: we just need to lockout sorting
   // in the case that a new friend is added, it gets put
   // on the bottom of the list -- so it won't affect our current
@@ -172,8 +174,7 @@ static void led_start(OrchardAppContext *context) {
   orchardGfxEnd();
   
   listEffects();
-  
-  effectsSetPattern(effectsGetPattern());  // force a UI redraw without changing pattern
+
   redraw_ui();
 }
 

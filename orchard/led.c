@@ -48,7 +48,7 @@ static effects_config fx_config;
 static uint8_t fx_index = 0;  // current effect
 static uint8_t fx_max = 0;    // max # of effects
 
-static uint8_t shift = 4;  // start a little bit dimmer
+static uint8_t shift = 2;  // start a little bit dimmer
 
 static uint32_t bump_amount = 0;
 static uint8_t bumped = 0;

@@ -6,6 +6,10 @@ static uint8_t numlines = 1;
 static uint8_t friend_total = 0;
 
 #define LED_UI_FONT  "fixed_5x8"
+#define REFRACTORY_PERIOD 5000  // timeout for having sex
+#define UI_LOCKOUT_TIME 6000  // timeout on friend list sorting/deletion after UI interaction
+
+static uint32_t last_ui_time = 0;
 
 static void redraw_ui(void) {
   font_t font;
@@ -16,8 +20,23 @@ static void redraw_ui(void) {
   color_t bg_color = Black;
   const char **friends;
   char tmp[20];
-  
-  friendsSort();
+
+  // theory: we just need to lockout sorting
+  // in the case that a new friend is added, it gets put
+  // on the bottom of the list -- so it won't affect our current
+  // index state
+  // in the case that an existing friend is pinged, that's also
+  // fine as the record updates but doesn't change order
+  // in the case that a friend record fades out, we would possibly
+  // see the list shrink and the current index could become invalid.
+  // however, since the list is sorted by ping count, and nearby friends
+  // would have a strong ping count, we probably wouldn't see this as
+  // a problem -- it would only be trouble if you're trying to have
+  // sex with someone at the edge of reception, which would be unreliable
+  // anyways and some difficulty in selecting the friend due to fading
+  // names would give you a clue of the problem
+  if( (chVTGetSystemTime() - last_ui_time) > UI_LOCKOUT_TIME )
+    friendsSort();
 
   orchardGfxStart();
   font = gdispOpenFont(LED_UI_FONT);
@@ -70,6 +89,7 @@ static void led_start(OrchardAppContext *context) {
   coord_t height;
   coord_t fontheight;
 
+  last_ui_time = chVTGetSystemTime();
   orchardGfxStart();
   // determine # of lines total displayble on the screen based on the font
   font = gdispOpenFont(LED_UI_FONT);
@@ -110,6 +130,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	else
 	  friend_index = 0;
 	redraw_ui();
+	last_ui_time = chVTGetSystemTime();
       } else if( event->key.code == keyCCW) {
 	if( friend_total != 0 ) {
 	  if( friend_index == 0 )
@@ -119,7 +140,9 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	  friend_index = 0;
 	}
 	redraw_ui();
+	last_ui_time = chVTGetSystemTime();
       } else if( event->key.code == keySelect ) {
+	last_ui_time = chVTGetSystemTime();
 	if( friend_total != 0 ) {
 	  // trigger sex protocol
 	}

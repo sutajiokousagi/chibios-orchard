@@ -10,7 +10,7 @@ static  const char item1[] = "item 1";
 static  const char item2[] = "item 2";
 static  const char item3[] = "item 3";
 
-struct OrchardUiContext listUiContext;
+static struct OrchardUiContext listUiContext;
 uint8_t selected = 0;
 
 static void redraw_ui(void) {
@@ -53,7 +53,7 @@ static void testlist_start(OrchardAppContext *context) {
   listUiContext.total = 3;
   listUiContext.selected = 0;
   
-  listUiContext.itemlist = (char **) chHeapAlloc(NULL, sizeof(char *) * 4);
+  listUiContext.itemlist = (const char **) chHeapAlloc(NULL, sizeof(char *) * 4);
   if( listUiContext.itemlist == NULL )
     return;
   listUiContext.itemlist[0] = title;

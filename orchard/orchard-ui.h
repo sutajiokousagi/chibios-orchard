@@ -21,7 +21,7 @@ typedef struct _OrchardAppContext OrchardAppContext;
 typedef struct OrchardUiContext {
   unsigned int selected;
   unsigned int total;
-  char **itemlist;
+  const char **itemlist;
 } OrchardUiContext;
 
 typedef struct _OrchardUi {

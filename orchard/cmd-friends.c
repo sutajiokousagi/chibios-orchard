@@ -68,6 +68,7 @@ static int should_stop(void) {
   return chnReadTimeout(serialDriver, bfr, sizeof(bfr), 1);
 }
 
+// generate a list of random names and broadcast them until told to stop
 void cmd_friendsim(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void) chp;
   (void) argc;
@@ -76,7 +77,6 @@ void cmd_friendsim(BaseSequentialStream *chp, int argc, char *argv[]) {
   char friendlist[16][GENE_NAMELENGTH];
   uint32_t i;
 
-  // generate a list of random names
   for(i = 0; i < 16; i++ ) {
     generateName(friendlist[i]);
   }
@@ -91,3 +91,4 @@ void cmd_friendsim(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 }
 orchard_command("friendsim", cmd_friendsim);
+

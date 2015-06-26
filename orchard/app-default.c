@@ -1,5 +1,9 @@
 #include "orchard-app.h"
 #include "led.h"
+#include "genes.h"
+
+#include "orchard-ui.h"
+#include <string.h>
 
 static uint8_t friend_index = 0;
 static uint8_t numlines = 1;
@@ -10,6 +14,15 @@ static uint8_t friend_total = 0;
 #define UI_LOCKOUT_TIME 6000  // timeout on friend list sorting/deletion after UI interaction
 
 static uint32_t last_ui_time = 0;
+
+static  const char title[] = "Have sex with";
+static  const char item1[] = "Yes";
+static  const char item2[] = "No";
+static struct OrchardUiContext listUiContext;
+
+static void initiate_sex(void) {
+  
+}
 
 static void redraw_ui(void) {
   font_t font;
@@ -90,6 +103,41 @@ static void redraw_ui(void) {
   orchardGfxEnd();
 }
 
+static void confirm_sex(OrchardAppContext *context) {
+  const char **friends;
+  char partner[GENE_NAMELENGTH];
+  const OrchardUi *listUi;
+
+  if( friend_total == 0 )
+    return;
+
+  friendsLock();
+  friends = friendsGet();
+  if( friends[friend_index] == NULL ) {
+    friendsUnlock();
+    return;
+  }
+  strncpy(partner, friends[friend_index], GENE_NAMELENGTH);
+  friendsUnlock();
+
+  listUi = getUiByName("list");
+  listUiContext.total = 2;  // two items, yes and no
+  listUiContext.selected = 0;
+  listUiContext.itemlist = (const char **) chHeapAlloc(NULL, sizeof(char *) * 3); // 3 lines incl header
+  if( listUiContext.itemlist == NULL )
+    return;
+  listUiContext.itemlist[0] = title;
+  listUiContext.itemlist[1] = item1;
+  listUiContext.itemlist[2] = item2;
+
+  if( listUi != NULL ) {
+    context->instance->uicontext = &listUiContext;
+    context->instance->ui = listUi;
+  }
+  listUi->start(context);
+  
+}
+
 static uint32_t led_init(OrchardAppContext *context) {
 
   (void)context;
@@ -123,6 +171,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
   (void)context;
   uint8_t shift;
+  uint8_t selected = 0;
   
   if (event->type == keyEvent) {
     if (event->key.flags == keyDown) {
@@ -159,11 +208,24 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	last_ui_time = chVTGetSystemTime();
 	if( friend_total != 0 ) {
 	  // trigger sex protocol
+	  confirm_sex(context);
 	}
 	redraw_ui();
       }
     }
   } else if(event->type == radioEvent) {
+    redraw_ui();
+  } else if( event->type == uiEvent ) {
+    last_ui_time = chVTGetSystemTime();
+    
+    chHeapFree(listUiContext.itemlist); // free the itemlist passed to the UI
+    selected = (uint8_t) context->instance->ui_result;
+    context->instance->ui = NULL;
+    context->instance->uicontext = NULL;
+
+    if(selected == 0) // 0 means we said yes based on list item order in the UI
+      initiate_sex();
+    
     redraw_ui();
   }
 }

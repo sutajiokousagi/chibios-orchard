@@ -130,6 +130,20 @@ char *friend_lookup(char *name) {
   return NULL;
 }
 
+uint8_t friendCount() {
+  int i;
+  uint8_t friends = 0;
+  
+  osalMutexLock(&friend_mutex);
+  for( i = 0; i < MAX_FRIENDS; i++ ) {
+    if( friends[i] != NULL )
+      friends++;
+  }
+  osalMutexUnlock(&friend_mutex);
+  
+  return friends;
+}
+
 char *friend_add(char *name) {
   char *record;
   uint32_t i;

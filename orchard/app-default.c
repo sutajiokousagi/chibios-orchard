@@ -38,6 +38,13 @@ static void redraw_ui(void) {
   if( (chVTGetSystemTime() - last_ui_time) > UI_LOCKOUT_TIME )
     friendsSort();
 
+  friend_total = friendCount();
+  // reset the index in case the total # of friends shrank on us while we weren't looking
+  if( (friend_index >= friend_total) && (friend_total > 0) )
+    friend_index = friend_total - 1;
+  if( friend_total == 0 )
+    friend_index = 0;
+
   orchardGfxStart();
   font = gdispOpenFont(LED_UI_FONT);
   width = gdispGetWidth();
@@ -46,31 +53,38 @@ static void redraw_ui(void) {
   header_height = fontheight;
 
   gdispFillArea(0, header_height, width, height - header_height, Black);
-  
-  friendsLock();
-  friends = friendsGet();
-  starti = friend_index - (friend_index % numlines);
-  for( i = starti, j = 0; i < starti + numlines; i++, j++ ) {
-    if( friends[i] == NULL )
-      continue;
-    if( i == friend_index ) {
-      text_color = Black;
-      bg_color = White;
-    } else {
-      text_color = White;
-      bg_color = Black;
-    }
-    
-    gdispFillArea(0, header_height + j * fontheight, width, fontheight, bg_color);
-    gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
-		       &(friends[i][1]), font, text_color, justifyLeft);
 
-    chsnprintf(tmp, sizeof(tmp), "%d", (int) friends[i][0]);
-    gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
-		       tmp, font, text_color, justifyRight);
+  if( friend_total > 0 ) {
+    friendsLock();
+    friends = friendsGet();
+    starti = friend_index - (friend_index % numlines);
+    for( i = starti, j = 0; i < starti + numlines; i++, j++ ) {
+      if( friends[i] == NULL )
+	continue;
+      if( i == friend_index ) {
+	text_color = Black;
+	bg_color = White;
+      } else {
+	text_color = White;
+	bg_color = Black;
+      }
     
+      gdispFillArea(0, header_height + j * fontheight, width, fontheight, bg_color);
+      gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
+			 &(friends[i][1]), font, text_color, justifyLeft);
+
+      chsnprintf(tmp, sizeof(tmp), "%d", (int) friends[i][0]);
+      gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
+			 tmp, font, text_color, justifyRight);
+    
+    }
+    friendsUnlock();
+  } else {
+      gdispDrawStringBox(0, header_height + 4 * fontheight, width, fontheight,
+			 "no friends in range", font, text_color, justifyCenter);
+      gdispDrawStringBox(0, header_height + 5 * fontheight, width, fontheight,
+			 ":-(", font, text_color, justifyCenter);
   }
-  friendsUnlock();
   
   gdispFlush();
   orchardGfxEnd();

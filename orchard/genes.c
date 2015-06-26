@@ -100,7 +100,6 @@ static void init_genes(uint32_t block) {
   family.signature = GENE_SIGNATURE;
   family.version = GENE_VERSION;
     
-  // TODO: pick a name based upon a name lookup table so it's a more intuitive name
   generateName(genName);
   strncpy(family.name, genName, GENE_NAMELENGTH);
 

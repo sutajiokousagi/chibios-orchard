@@ -21,7 +21,17 @@ static  const char item2[] = "No";
 static struct OrchardUiContext listUiContext;
 
 static void initiate_sex(void) {
-  
+
+  // put up message indicate sex initiation
+  // add completion bar for mutation rate + accelerometer hook
+
+  // send radio message to request sex
+
+  // wait until timeout for sex protocol to return
+
+  // if protocol returns, create children
+
+  // if protocol fails, indicate failure in UI
 }
 
 static void redraw_ui(void) {
@@ -93,9 +103,9 @@ static void redraw_ui(void) {
     }
     friendsUnlock();
   } else {
-      gdispDrawStringBox(0, header_height + 4 * fontheight, width, fontheight,
+      gdispDrawStringBox(0, header_height + 3 * fontheight, width, fontheight,
 			 "no friends in range", font, text_color, justifyCenter);
-      gdispDrawStringBox(0, header_height + 5 * fontheight, width, fontheight,
+      gdispDrawStringBox(0, header_height + 4 * fontheight, width, fontheight,
 			 ":-(", font, text_color, justifyCenter);
   }
   
@@ -163,8 +173,8 @@ static void led_start(OrchardAppContext *context) {
   
   listEffects();
   
-  //  effectsSetPattern(0);  // pick default pattern
-
+  effectsSetPattern(effectsGetPattern());  // force a UI redraw without changing pattern
+  redraw_ui();
 }
 
 void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {

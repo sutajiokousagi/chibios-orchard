@@ -21,6 +21,9 @@
 #include "radio.h"
 #include "TransceiverReg.h"
 
+#include "shell.h" // for friend testing function
+#include "orchard-shell.h" // for friend testing function
+
 orchard_app_end();
 
 static const OrchardApp *orchard_app_list;
@@ -150,6 +153,25 @@ char *friend_add(char *name) {
   // if we got here, we couldn't add the friend because we ran out of space
   return NULL;
 }
+
+// generate a one-time list of random names and populate the friend list
+// for testing only
+void cmd_friendlocal(BaseSequentialStream *chp, int argc, char *argv[]) {
+  char tempName[GENE_NAMELENGTH];
+  uint32_t i;
+  uint32_t total;
+  
+  if( argc != 1 ) {
+    chprintf(chp, "usage: friendlocal <friendcount>\n\r");
+  }
+  total = strtoul(argv[0], NULL, 0);
+
+  for(i = 0; i < total; i++ ) {
+    generateName(tempName);
+    friend_add(tempName);
+  }
+}
+orchard_command("friendlocal", cmd_friendlocal);
 
 // to be called periodically to decrement credits and de-alloc friends we haven't seen in a while
 void friend_cleanup(void) {

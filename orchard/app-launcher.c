@@ -21,6 +21,9 @@ struct launcher_list {
   struct launcher_list_item items[0];
 };
 
+static uint32_t last_ui_time = 0;
+#define BLINKY_DEFAULT_DELAY 30000 // in milliseconds
+
 static void redraw_list(struct launcher_list *list) {
 
   char tmp[20];
@@ -35,6 +38,9 @@ static void redraw_list(struct launcher_list *list) {
   uint8_t visible_apps;
   uint8_t app_modulus;
   uint8_t max_list;
+  int32_t ui_timeout;
+
+  ui_timeout = (BLINKY_DEFAULT_DELAY - (chVTGetSystemTime() - last_ui_time)) / 1000;
 
   family = (const struct genes *) storageGetData(GENE_BLOCK);
   //  chsnprintf(tmp, sizeof(tmp), "%d of %d apps", list->selected + 1, list->total);
@@ -52,7 +58,7 @@ static void redraw_list(struct launcher_list *list) {
   chsnprintf(tmp, sizeof(tmp), "%s", family->name);
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyLeft);
-  chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
+  chsnprintf(tmp, sizeof(tmp), "%d %d%%", ui_timeout, ggStateofCharge());
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyRight);
 
@@ -121,14 +127,19 @@ static void launcher_start(OrchardAppContext *context) {
 
   list->selected = 3;
 
+  last_ui_time = chVTGetSystemTime();
   redraw_list(list);
 }
 
 void launcher_event(OrchardAppContext *context, const OrchardAppEvent *event) {
-
   struct launcher_list *list = (struct launcher_list *)context->priv;
+  int32_t ui_timeout;
+  const OrchardApp *led_app;
+
+  ui_timeout = (BLINKY_DEFAULT_DELAY - (chVTGetSystemTime() - last_ui_time)) / 1000;
 
   if (event->type == keyEvent) {
+    last_ui_time = chVTGetSystemTime();
     if ((event->key.flags == keyDown) && (event->key.code == keyCW)) {
       list->selected++;
       if (list->selected >= list->total)
@@ -146,6 +157,12 @@ void launcher_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   } else if (event->type == adcEvent) {
     // to update % charge state based on USB detect status ping
     redraw_list(list);
+  }
+
+  if( ui_timeout <= 0 ) {
+    led_app = orchardAppByName("Blinkies!");
+    if( led_app != NULL )
+      orchardAppRun(led_app);
   }
 }
 

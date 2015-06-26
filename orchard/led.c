@@ -14,6 +14,7 @@
 #include "orchard-test.h"
 #include "test-audit.h"
 #include "gasgauge.h"
+#include "analog.h"
 
 #include <string.h>
 #include <math.h>
@@ -826,6 +827,9 @@ void listEffects(void) {
   }
 }
 
+void ledRedrawUiHack(void) {
+  redraw_ui();
+}
 
 static void redraw_ui(void) {
   char tmp[24];
@@ -834,7 +838,10 @@ static void redraw_ui(void) {
   coord_t width;
   coord_t height;
   font_t font;
+  usbStat usbStatus;
 
+  usbStatus = analogReadUsbStatus();
+  
   curfx = orchard_effects_start();
   curfx += fx_index;
   chsnprintf(tmp, sizeof(tmp), "%s", curfx->name);
@@ -848,7 +855,11 @@ static void redraw_ui(void) {
   gdispFillArea(0, 0, width, height, White);
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyLeft);
-  chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
+  if( usbStatus == usbStatNC )
+    chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
+  else
+    chsnprintf(tmp, sizeof(tmp), "*%d%%", ggStateofCharge());
+    
   gdispDrawStringBox(0, 0, width, height,
                      tmp, font, Black, justifyRight);
   

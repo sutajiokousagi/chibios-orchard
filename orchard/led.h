@@ -48,6 +48,8 @@ void uiLedSet(uint8_t index, Color c);
 
 void listEffects(void);
 
+void ledRedrawUiHack(void);
+
 #define EFFECTS_REDRAW_MS 35
 
 #endif /* __LED_H__ */

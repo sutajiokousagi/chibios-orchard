@@ -39,5 +39,6 @@ void gpioxRegisterHandler(void *port,
                           void (*handler)(void *port, int pad, int mode));
 
 #define oledResPad 6
+#define usbOutPad 4
 
 #endif /* __GPIOX_H__ */

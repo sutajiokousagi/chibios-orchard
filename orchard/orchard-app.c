@@ -130,7 +130,7 @@ char *friend_lookup(char *name) {
   return NULL;
 }
 
-uint8_t friendCount() {
+uint8_t friendCount(void) {
   int i;
   uint8_t friends = 0;
   

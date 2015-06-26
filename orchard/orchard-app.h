@@ -38,7 +38,7 @@ void friendsSort(void);
 const char **friendsGet(void);
 void friendsLock(void);
 void friendsUnlock(void);
-uint8_t friendCount();
+uint8_t friendCount(void);
 #define MAX_FRIENDS  50   // max # of friends to track
 
 typedef struct _OrchardAppContext {

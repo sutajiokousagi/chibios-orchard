@@ -209,6 +209,27 @@ static void lightGeneFB(struct effects_config *config) {
   uint8_t loop = config->loop & 0xFF;
   HsvColor hsvC;
   RgbColor rgbC;
+  int i;
+  
+  for( i = 0; i < count; i++ ) {
+    hsvC.h = loop + (i * (512 / count));
+
+    hsvC.s = 210;
+    hsvC.v = 128;
+    
+    rgbC = HsvToRgb(hsvC);
+    ledSetRGB(fb, i, rgbC.r, rgbC.g, rgbC.b, shift);
+  }
+}
+orchard_effects("lightgene", lightGeneFB);
+
+#if 0
+static void lightGeneFB(struct effects_config *config) {
+  uint8_t *fb = config->hwconfig->fb;
+  int count = config->count;
+  uint8_t loop = config->loop & 0xFF;
+  HsvColor hsvC;
+  RgbColor rgbC;
   
   int i;
 
@@ -235,6 +256,7 @@ static void lightGeneFB(struct effects_config *config) {
   }
 }
 orchard_effects("lightgene", lightGeneFB);
+#endif
 
 static void strobePatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -368,7 +390,7 @@ static void testPatternFB(struct effects_config *config) {
 #endif
  
 }
-orchard_effects("test-pattern", testPatternFB);
+orchard_effects("testPattern", testPatternFB);
 
 static void shootPatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -463,7 +485,7 @@ static void waveRainbowFB(struct effects_config *config) {
     ledSetColor(fb, i, alphaPix(Wheel(((i * 256 / count) + waveloop) & 255), (uint8_t) c), shift);
   }  
 }
-orchard_effects("/wave-rainbow/", waveRainbowFB);
+orchard_effects("WaveRainbow", waveRainbowFB);
 
 static void directedRainbowFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -532,7 +554,7 @@ static uint32_t asb_l(int i) {
       return i;
   return -i;
 }
-orchard_effects("directed-rainbow", directedRainbowFB);
+orchard_effects("directedRainbow", directedRainbowFB);
 
 #define DROP_INT 600
 #define BUMP_TIMEOUT 2300
@@ -641,7 +663,7 @@ static void rainbowDropFB(struct effects_config *config) {
 
   shift = oldshift;
 }
-orchard_effects("Rainbow-drop", rainbowDropFB);
+orchard_effects("rainbowDrop", rainbowDropFB);
 
 
 static void larsonScannerFB(struct effects_config *config) {
@@ -679,7 +701,7 @@ static void larsonScannerFB(struct effects_config *config) {
   }
 
 }
-orchard_effects("larson-scanner", larsonScannerFB);
+orchard_effects("larsonScanner", larsonScannerFB);
 
 #define BUMP_DEBOUNCE 300 // 300ms debounce to next bump
 

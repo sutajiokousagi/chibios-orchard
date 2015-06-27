@@ -1,7 +1,7 @@
 #define GENE_SIGNATURE  0x424D3135  // BM15
 #define GENE_BLOCK  0
 #define GENE_OFFSET 0
-#define GENE_VERSION 1
+#define GENE_VERSION 3
 
 #define GENE_NAMELENGTH 20    // null terminated, so 19 char name max
 

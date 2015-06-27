@@ -93,9 +93,7 @@ static void handle_radio_page(eventid_t id) {
   oldfx = effectsGetPattern();
   effectsSetPattern(effectsNameLookup("strobe"));
   radioPagePopup();
-  chThdSleepMilliseconds(PAGE_DISPLAY_MS);
   effectsSetPattern(oldfx);
-  radioPagePopup();
 }
 
 static void handle_ping_timeout(eventid_t id) {

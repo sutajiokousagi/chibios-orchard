@@ -22,9 +22,10 @@ static void redraw_ui(void) {
   width = gdispGetWidth();
   height = gdispGetFontMetric(font, fontHeight);
 
+  gdispClear(Black);
+  
 #if 0
   // draw title box
-  gdispClear(Black);
   gdispFillArea(0, 0, width, height, White);
   gdispDrawStringBox(0, 0, width, height,
                      title, font, Black, justifyCenter);
@@ -70,7 +71,6 @@ void radioPagePopup(void) {
   
   redraw_ui();
   chThdSleepMilliseconds(PAGE_DISPLAY_MS);
-
 }
 
 static void radio_message_received(uint8_t prot, uint8_t src, uint8_t dst,

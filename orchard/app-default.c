@@ -48,9 +48,6 @@ static void redraw_ui(void) {
   color_t bg_color = Black;
   const char **friends;
   char tmp[24];
-  usbStat usbStatus;
-
-  usbStatus = analogReadUsbStatus();
 
   // theory: we just need to lockout sorting
   // in the case that a new friend is added, it gets put
@@ -89,10 +86,12 @@ static void redraw_ui(void) {
   chsnprintf(tmp, sizeof(tmp), "%s", effectsCurName());
   gdispDrawStringBox(0, 0, width, header_height,
                      tmp, font, Black, justifyLeft);
-  if( usbStatus == usbStatNC )
+
+  if( friend_total > 0 )
+    chsnprintf(tmp, sizeof(tmp), "%d/%d %d%%", friend_index + 1, friend_total,
+	       ggStateofCharge());
+  else 
     chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
-  else
-    chsnprintf(tmp, sizeof(tmp), "*%d%%", ggStateofCharge());
     
   gdispDrawStringBox(0, 0, width, header_height,
                      tmp, font, Black, justifyRight);
@@ -118,7 +117,11 @@ static void redraw_ui(void) {
       gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
 			 &(friends[i][1]), font, text_color, justifyLeft);
 
-      chsnprintf(tmp, sizeof(tmp), "%d", (int) friends[i][0]);
+      // 16 is based on the total space available given other UI constraints
+      // it will cut the last 4 characters off of some names but improves
+      // legibility of the "n of m" motif which is important for navigating lost
+      // lists of items
+      chsnprintf(tmp, 16, "%d", (int) friends[i][0]);
       gdispDrawStringBox(0, header_height + j * fontheight, width, fontheight,
 			 tmp, font, text_color, justifyRight);
     

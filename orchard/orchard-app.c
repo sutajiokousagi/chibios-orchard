@@ -73,6 +73,8 @@ static char *friends[MAX_FRIENDS]; // array of pointers to friends' names; first
 // once a friend goes away. Roughly equal to
 // 2 * (PING_MIN_INTERVAL + PING_RAND_INTERVAL / 2 * MAX_CREDIT) milliseconds
 #define FRIENDS_MAX_CREDIT   10
+#define FRIENDS_SORT_HYSTERESIS 3 
+
 static uint8_t cleanup_state = 0;
 mutex_t friend_mutex;
 
@@ -220,8 +222,10 @@ int friend_comp(const void *a, const void *b) {
 
   if( *myb == NULL )
     return -1;
-  
-  if( (*mya)[0] != (*myb)[0] ) {
+
+  if( ((*mya)[0] != (*myb)[0]) &&
+      (((*mya)[0] < (FRIENDS_MAX_CREDIT - FRIENDS_SORT_HYSTERESIS)) ||
+       ((*myb)[0] < (FRIENDS_MAX_CREDIT - FRIENDS_SORT_HYSTERESIS))) ) {
     return (*mya)[0] > (*myb)[0] ? -1 : 1;
   } else {
     // sort alphabetically from here

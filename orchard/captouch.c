@@ -270,7 +270,7 @@ void captouchCalibrate(void) {
   coord_t height;
   font_t font;
   uint8_t i;
-  char attemptstr[16];
+  char attemptstr[24];
 
   orchardGfxStart();
   font = gdispOpenFont("fixed_5x8");
@@ -278,6 +278,10 @@ void captouchCalibrate(void) {
   height = gdispGetFontMetric(font, fontHeight);
 
   gdispClear(Black);
+
+  chsnprintf(attemptstr, 24, "Ver %s", gitversion);
+  gdispDrawStringBox(0, 0, width, height,
+                     attemptstr, font, White, justifyCenter);
   
   gdispDrawStringBox(0, height * 2, width, height,
                      "Calibrating", font, White, justifyCenter);

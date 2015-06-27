@@ -72,8 +72,8 @@ static char *friends[MAX_FRIENDS]; // array of pointers to friends' names; first
 // max level of credit a friend can have; defines how long a record can stay around
 // once a friend goes away. Roughly equal to
 // 2 * (PING_MIN_INTERVAL + PING_RAND_INTERVAL / 2 * MAX_CREDIT) milliseconds
-#define FRIENDS_MAX_CREDIT   10
-#define FRIENDS_SORT_HYSTERESIS 3 
+#define FRIENDS_MAX_CREDIT   12
+#define FRIENDS_SORT_HYSTERESIS 4 
 
 static uint8_t cleanup_state = 0;
 mutex_t friend_mutex;
@@ -109,6 +109,9 @@ static void handle_ping_timeout(eventid_t id) {
     
   // cleanup every other ping we send, to make sure friends that are
   // nearby build up credit over time to max credits
+
+  // if the system is unstable, tweak this parameter to reduce the
+  // clean-up rate
   if( cleanup_state ) {
     friend_cleanup();
     chEvtBroadcast(&radio_app);

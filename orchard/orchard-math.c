@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "orchard-math.h"
 #include "led.h"
+#include "fixmath.h"
 
 static uint32_t rstate[2] = {0xbabeface, 0xfade1337};
 static uint32_t key[2] = {0x243F6A88, 0x85A308D3}; // from pi
@@ -147,3 +148,20 @@ Color satadd_8p( Color c, uint8_t val ) {
   return rc;
 }
 
+int16_t map(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
+{
+  fix16_t x16, in_min16, in_max16, out_min16, out_max16;
+  fix16_t result16;
+
+  x16 = fix16_from_int(x);
+  in_min16 = fix16_from_int(in_min);
+  in_max16 = fix16_from_int(in_max);
+  out_min16 = fix16_from_int(out_min);
+  out_max16 = fix16_from_int(out_max);
+
+  result16 = fix16_add(fix16_div(fix16_mul(fix16_sub(x16, in_min16), fix16_sub(out_max16, out_min16)),
+				 fix16_sub(in_max16, in_min16)), out_min16);
+  return fix16_to_int(result16);
+  
+  //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}

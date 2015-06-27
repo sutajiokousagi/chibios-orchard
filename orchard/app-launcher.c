@@ -22,7 +22,7 @@ struct launcher_list {
 };
 
 static uint32_t last_ui_time = 0;
-#define BLINKY_DEFAULT_DELAY 30000 // in milliseconds
+#define BLINKY_DEFAULT_DELAY 60000 // in milliseconds
 
 static void redraw_list(struct launcher_list *list) {
 

@@ -14,7 +14,6 @@
 #include "orchard-test.h"
 #include "test-audit.h"
 #include "gasgauge.h"
-#include "analog.h"
 
 #include <string.h>
 #include <math.h>
@@ -28,7 +27,6 @@ static void ledSetColor(void *ptr, int x, Color c, uint8_t shift);
 static void ledSetRGBClipped(void *fb, uint32_t i,
                       uint8_t r, uint8_t g, uint8_t b, uint8_t shift);
 static Color ledGetColor(void *ptr, int x);
-static void redraw_ui(void);
 
 // hardware configuration information
 // max length is different from actual length because some
@@ -713,13 +711,19 @@ static void draw_pattern(void) {
 void effectsSetPattern(uint8_t index) {
   if(index > fx_max) {
     fx_index = 0;
-    redraw_ui();
     return;
   }
 
   fx_index = index;
   patternChanged = 1;
-  redraw_ui();
+}
+
+const char *effectsCurName(void) {
+  const OrchardEffects *curfx;
+  curfx = orchard_effects_start();
+  curfx += fx_index;
+  
+  return (const char *) curfx->name;
 }
 
 uint8_t effectsNameLookup(const char *name) {
@@ -749,7 +753,6 @@ void effectsNextPattern(void) {
   fx_index = (fx_index + 1) % fx_max;
   
   patternChanged = 1;
-  redraw_ui();
 }
 
 void effectsPrevPattern(void) {
@@ -760,7 +763,6 @@ void effectsPrevPattern(void) {
   }
   
   patternChanged = 1;
-  redraw_ui();
 }
 
 static void blendFbs(void) {
@@ -825,49 +827,6 @@ void listEffects(void) {
     chprintf(stream, "%s\n\r", curfx->name );
     curfx++;
   }
-}
-
-void ledRedrawUiHack(void) {
-  redraw_ui();
-}
-
-static void redraw_ui(void) {
-  char tmp[24];
-  const OrchardEffects *curfx;
-  
-  coord_t width;
-  coord_t height;
-  font_t font;
-  usbStat usbStatus;
-
-  usbStatus = analogReadUsbStatus();
-  
-  curfx = orchard_effects_start();
-  curfx += fx_index;
-  chsnprintf(tmp, sizeof(tmp), "%s", curfx->name);
-
-  orchardGfxStart();
-  font = gdispOpenFont("fixed_5x8");
-  width = gdispGetWidth();
-  height = gdispGetFontMetric(font, fontHeight);
-
-  gdispClear(Black);
-  gdispFillArea(0, 0, width, height, White);
-  gdispDrawStringBox(0, 0, width, height,
-                     tmp, font, Black, justifyLeft);
-  if( usbStatus == usbStatNC )
-    chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
-  else
-    chsnprintf(tmp, sizeof(tmp), "*%d%%", ggStateofCharge());
-    
-  gdispDrawStringBox(0, 0, width, height,
-                     tmp, font, Black, justifyRight);
-  
-  gdispCloseFont(font);
-
-  gdispFlush();
-  orchardGfxEnd();
-  
 }
 
 void effectsStart(void) {

@@ -1,7 +1,12 @@
+#include "ch.h"
+#include "hal.h"
+
 #include "orchard-app.h"
 #include "led.h"
 #include "genes.h"
 
+#include "gasgauge.h"
+#include "analog.h"
 #include "orchard-ui.h"
 #include <string.h>
 
@@ -36,16 +41,17 @@ static void initiate_sex(void) {
 
 static void redraw_ui(void) {
   font_t font;
-  coord_t width, height;
+  coord_t width;
   coord_t fontheight, header_height;
   uint8_t i, starti, j;
   color_t text_color = White;
   color_t bg_color = Black;
   const char **friends;
-  char tmp[20];
+  char tmp[24];
+  usbStat usbStatus;
 
-  ledRedrawUiHack(); // ui partially comes from another source file :-/
-  
+  usbStatus = analogReadUsbStatus();
+
   // theory: we just need to lockout sorting
   // in the case that a new friend is added, it gets put
   // on the bottom of the list -- so it won't affect our current
@@ -73,12 +79,26 @@ static void redraw_ui(void) {
   orchardGfxStart();
   font = gdispOpenFont(LED_UI_FONT);
   width = gdispGetWidth();
-  height = gdispGetHeight();
   fontheight = gdispGetFontMetric(font, fontHeight);
   header_height = fontheight;
 
-  gdispFillArea(0, header_height, width, height - header_height, Black);
+  gdispClear(Black);
 
+  // generate the title bar
+  gdispFillArea(0, 0, width, header_height - 1, White);
+  chsnprintf(tmp, sizeof(tmp), "%s", effectsCurName());
+  gdispDrawStringBox(0, 0, width, header_height,
+                     tmp, font, Black, justifyLeft);
+  if( usbStatus == usbStatNC )
+    chsnprintf(tmp, sizeof(tmp), "%d%%", ggStateofCharge());
+  else
+    chsnprintf(tmp, sizeof(tmp), "*%d%%", ggStateofCharge());
+    
+  gdispDrawStringBox(0, 0, width, header_height,
+                     tmp, font, Black, justifyRight);
+  
+
+  // generate the friends list
   if( friend_total > 0 ) {
     friendsLock();
     friends = friendsGet();
@@ -110,6 +130,8 @@ static void redraw_ui(void) {
       gdispDrawStringBox(0, header_height + 4 * fontheight, width, fontheight,
 			 ":-(", font, text_color, justifyCenter);
   }
+  
+  gdispCloseFont(font);
   
   gdispFlush();
   orchardGfxEnd();
@@ -200,7 +222,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       }
       else if( event->key.code == keyCW ) {
 	if( friend_total != 0 )
-	  friend_index = friend_index + 1 % friend_total;
+	  friend_index = (friend_index + 1) % friend_total;
 	else
 	  friend_index = 0;
 	redraw_ui();

@@ -48,7 +48,7 @@ void uiLedSet(uint8_t index, Color c);
 
 void listEffects(void);
 
-void ledRedrawUiHack(void);
+const char *effectsCurName(void);
 
 #define EFFECTS_REDRAW_MS 35
 

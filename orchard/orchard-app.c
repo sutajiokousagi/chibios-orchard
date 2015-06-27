@@ -20,6 +20,7 @@
 #include "storage.h"
 #include "radio.h"
 #include "TransceiverReg.h"
+#include "gasgauge.h"
 
 #include "shell.h" // for friend testing function
 #include "orchard-shell.h" // for friend testing function
@@ -317,6 +318,11 @@ static void handle_charge_state(eventid_t id) {
   // whenever this system task runs, add some entropy to the random number pool...
   accelPoll(&accel);
   addEntropy(accel.x ^ accel.y ^ accel.z);
+
+  // check if battery is too low, and shut down if it is
+  if( ggVoltage() < 3250 ) {  // 3.3V (3300mV) is threshold for OLED failure; 50mV for margin
+    chargerShipMode();  // requires plugging in to re-active battery
+  }
 }
 
 static void handle_chargecheck_timeout(eventid_t id) {

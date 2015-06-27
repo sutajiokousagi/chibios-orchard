@@ -11,5 +11,8 @@ typedef struct genes {
   char      name[GENE_NAMELENGTH];
 } genes;
 
+typedef struct genome {
+} genome;
+
 void geneStart(void);
 void generateName(char *result);

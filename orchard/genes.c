@@ -5,6 +5,7 @@
 
 #include "storage.h"
 #include "genes.h"
+#include "orchard-math.h"
 
 #include "orchard-shell.h"
 

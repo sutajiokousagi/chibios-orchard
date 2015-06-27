@@ -20,7 +20,7 @@ static uint8_t friend_total = 0;
 
 static uint32_t last_ui_time = 0;
 
-static  const char title[] = "Have sex with";
+static char title[32];
 static  const char item1[] = "Yes";
 static  const char item2[] = "No";
 static struct OrchardUiContext listUiContext;
@@ -163,6 +163,9 @@ static void confirm_sex(OrchardAppContext *context) {
   listUiContext.itemlist = (const char **) chHeapAlloc(NULL, sizeof(char *) * 3); // 3 lines incl header
   if( listUiContext.itemlist == NULL )
     return;
+
+  chsnprintf(title, sizeof(title), "Sex with %s", &(partner[1]));
+  
   listUiContext.itemlist[0] = title;
   listUiContext.itemlist[1] = item1;
   listUiContext.itemlist[2] = item2;
@@ -217,18 +220,15 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	if (shift > 6)
 	  shift = 0;
 	setShift(shift);
-	redraw_ui();
       }
       else if ( event->key.code == keyRight ) {
 	effectsNextPattern();
-	redraw_ui();
       }
       else if( event->key.code == keyCW ) {
 	if( friend_total != 0 )
 	  friend_index = (friend_index + 1) % friend_total;
 	else
 	  friend_index = 0;
-	redraw_ui();
 	last_ui_time = chVTGetSystemTime();
       } else if( event->key.code == keyCCW) {
 	if( friend_total != 0 ) {
@@ -238,7 +238,6 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	} else {
 	  friend_index = 0;
 	}
-	redraw_ui();
 	last_ui_time = chVTGetSystemTime();
       } else if( event->key.code == keySelect ) {
 	last_ui_time = chVTGetSystemTime();
@@ -246,11 +245,10 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	  // trigger sex protocol
 	  confirm_sex(context);
 	}
-	redraw_ui();
       }
     }
   } else if(event->type == radioEvent) {
-    redraw_ui();
+    // placeholder
   } else if( event->type == uiEvent ) {
     last_ui_time = chVTGetSystemTime();
     
@@ -261,9 +259,11 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
     if(selected == 0) // 0 means we said yes based on list item order in the UI
       initiate_sex();
-    
-    redraw_ui();
   }
+  
+  // redraw UI on any event
+  if( context->instance->ui == NULL )
+    redraw_ui();
 }
 
 static void led_exit(OrchardAppContext *context) {

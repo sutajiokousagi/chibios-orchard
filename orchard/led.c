@@ -60,6 +60,7 @@ static unsigned long offset = 0;
 static unsigned int waverate = 10;
 static unsigned int waveloop = 0;
 static unsigned int patternChanged = 0;
+static uint32_t reftime_lg = 0;
 
 static int wavesign = -1;
 
@@ -209,21 +210,99 @@ static Color Wheel(uint8_t wheelPos) {
 
 static void do_lightgene(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
-  int count = config->count;
-  uint8_t loop = config->loop & 0xFF;
+  uint32_t count = config->count;
+  uint32_t loop = config->loop & 0xFF;
+  uint32_t shoot;
   HsvColor hsvC;
   RgbColor rgbC;
-  int i;
+  uint32_t i;
+  uint32_t tau;
+  uint32_t curtime, indextime;
+  fix16_t time, space;
+  fix16_t twopi;
+  fix16_t spacetime;
+  uint8_t overrideHSV = 0;
+  uint8_t overshift;
   // diploid is static to this function and set when the lightgene is selected
+
+  tau = (uint32_t) map(diploid.cd_rate, 0, 255, 250, 8000);
+  curtime = chVTGetSystemTime();
+  if( (curtime - reftime_lg) > tau )
+    reftime_lg = curtime;
+  indextime = reftime_lg - curtime;
   
   for( i = 0; i < count; i++ ) {
-    hsvC.h = loop + (i * (512 / count));
+    overrideHSV = 0;
+    // compute one pixel's color
+    // count is the current pixel index
+    // loop is the current point in effect cycle, e.g. all effects loop on a 0-255 basis
 
-    hsvC.s = 210;
-    hsvC.v = 128;
+    // hue chromosome
+    if( ((diploid.hue_ratedir >> 8) & 0xF) > 7 ) {
+      hsvC.h = (256L / count) * ((i + (loop * (uint32_t)(diploid.hue_ratedir & 0xF))) & 0xFF);
+    } else {
+      hsvC.h = (256L / count) * ((i - (loop * (uint32_t)(diploid.hue_ratedir & 0xF))) & 0xFF);
+    }
+    hsvC.h = map( hsvC.h, 0, 255, diploid.hue_base, diploid.hue_bound );
+
+    // saturation chromosome
+    hsvC.s = diploid.sat;
+
+    // compute the value overlay
+    // use cos b/c value is 1.0 when input is 0
+    // value = 255 * cos( cd_period * 2pi * (i/(count-1))
+    //                    +/- (indextime / tau(cd_rate)) * 2pi )
+    // sign of rate is determined by cd_dir
+
+    twopi = fix16_mul( fix16_from_int(2), fix16_pi );
+    // space = 2pi * diploid.cd_period * (i / (count-1))
+    space = fix16_mul(twopi, fix16_mul( fix16_from_int(diploid.cd_period),
+					 fix16_div(fix16_from_int(i), fix16_from_int(count-1)) ));
+
+    // time = 2pi * indextime / tau
+    time = fix16_mul(twopi, fix16_div( fix16_from_int(indextime), fix16_from_int(tau) ));
+
+    // space +/- time based on direction
+    if( diploid.cd_dir > 128 ) {
+      spacetime = fix16_add( space, time );
+    } else {
+      spacetime = fix16_sub( space, time );
+    }
+
+    // hsv.v = 255 * cos(spacetime)
+    hsvC.v = (uint8_t) fix16_to_int( fix16_mul( fix16_from_int(255), fix16_cos(spacetime)) );
+
+    // now compute lin effect, but only if the threshold is met
+    if( diploid.lin < 20 ) {  // rare variant after a summing expression
+      shoot = loop % count;
+      if( shoot == i ) {
+	overrideHSV = 1;
+      }
+    }
+
+    // now compute strobe effect, but only if the threshold is met
+    if( diploid.strobe < 10 ) {
+      // for now, do nothing...this one is a pain in the ass to implement and probably not too interesting anyways
+    }
+
+    //// TODO: accelerometer effect -- modulate saturation based on accelerometer hits
     
-    rgbC = HsvToRgb(hsvC);
-    ledSetRGB(fb, i, rgbC.r, rgbC.g, rgbC.b, shift);
+
+    
+    //// microphone effect -- modulate hue base/bounds? -- do we even do this, it's pretty hard?
+    // I think for the microphone, we should do an "idle mode" for the default screen that puts up the microphone app
+    // yes, I think that's better and more obivous & easier -- let's do that instead as a feature
+    
+    // go from RGB to HSV for a particular pixel
+    if( !overrideHSV ) {
+      rgbC = HsvToRgb(hsvC);
+      ledSetRGB(fb, i, rgbC.r, rgbC.g, rgbC.b, shift);
+    } else {
+      overshift = shift - 2; // make this effect brighter so it's obvious
+      if( overshift > 4 )
+	overshift = 4;
+      ledSetRGB(fb, i, 255, 255, 255, overshift);
+    }
   }
 }
 

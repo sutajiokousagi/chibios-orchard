@@ -109,6 +109,8 @@ void computeGeneExpression(const genome *hapM, const genome *hapP,
   expr->strobe = satadd_8(hapM->strobe, hapP->strobe);
   expr->accel = satadd_8(hapM->accel, hapP->accel);
   expr->mic = satadd_8(hapM->mic, hapP->mic);
+  // names come from the maternal side in this society
+  strncpy(expr->name, hapM->name, GENE_NAMELENGTH);
 }
 
 static void generate_gene(struct genome *haploid) {

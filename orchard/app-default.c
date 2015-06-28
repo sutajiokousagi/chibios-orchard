@@ -10,6 +10,9 @@
 #include "orchard-ui.h"
 #include <string.h>
 
+#include "fixmath.h"
+#include "fix16_fft.h"
+
 static uint8_t friend_index = 0;
 static uint8_t numlines = 1;
 static uint8_t friend_total = 0;
@@ -18,12 +21,19 @@ static uint8_t friend_total = 0;
 #define REFRACTORY_PERIOD 5000  // timeout for having sex
 #define UI_LOCKOUT_TIME 6000  // timeout on friend list sorting/deletion after UI interaction
 
+#define OSCOPE_IDLE_TIME 30000  // 30 seconds of idle, and we switch to an oscilloscope mode UI...because it's pretty
+
 static uint32_t last_ui_time = 0;
+static uint32_t last_oscope_time = 0;
 
 static char title[32];
 static  const char item1[] = "Yes";
 static  const char item2[] = "No";
 static struct OrchardUiContext listUiContext;
+
+static uint8_t mode = 0;  // used by the oscope routine
+static uint8_t oscope_running = 0;
+static uint8_t *samples;
 
 static void initiate_sex(void) {
 
@@ -37,6 +47,120 @@ static void initiate_sex(void) {
   // if protocol returns, create children
 
   // if protocol fails, indicate failure in UI
+}
+
+static void agc(uint8_t  *sample) {
+  uint8_t min, max;
+  uint8_t scale = 1;
+  int16_t temp;
+  uint8_t i;
+
+  // cheesy AGC to get something on the screen even if it's pretty quiet
+  // e.g., "comfort noise"
+  // note abstraction violation: we're going to hard-code this for a screen height of 64
+  if( sample == NULL )
+    return;
+
+  min = 255; max = 0;
+  for( i = 0; i < MIC_SAMPLE_DEPTH; i++ ) {
+    if( sample[i] > max )
+      max = sample[i];
+    if( sample[i] < min )
+      min = sample[i];
+  }
+
+  if( (max - min) < 128 )
+    scale = 2;
+  if( (max - min) < 64 )
+    scale = 4;
+  if( (max - min) < 32 )
+    scale = 8;
+  if( (max - min) < 16 )
+    scale = 16;
+  
+  for( i = 0; i < MIC_SAMPLE_DEPTH; i++ ) {
+    temp = sample[i];
+    temp -= 128;
+    temp *= scale;
+    temp += 128;
+    sample[i] = (uint8_t) temp;
+  }
+}
+
+static void agc_fft(uint8_t  *sample) {
+  uint8_t min, max;
+  uint8_t scale = 1;
+  int16_t temp;
+  uint8_t i;
+
+  // cheesy AGC to get something on the screen even if it's pretty quiet
+  // e.g., "comfort noise"
+  // note abstraction violation: we're going to hard-code this for a screen height of 64
+  if( sample == NULL )
+    return;
+
+  min = 255; max = 0;
+  for( i = 2; i < MIC_SAMPLE_DEPTH; i++ ) {
+    if( sample[i] > max )
+      max = sample[i];
+    if( sample[i] < min )
+      min = sample[i];
+  }
+
+  if( (max - min) < 128 )
+    scale = 2;
+  if( (max - min) < 64 )
+    scale = 4;
+  if( (max - min) < 32 )
+    scale = 8;
+  if( (max - min) < 16 )
+    scale = 16;
+  
+  for( i = 0; i < MIC_SAMPLE_DEPTH; i++ ) {
+    temp = sample[i];
+    temp *= scale;
+    sample[i] = (uint8_t) temp;
+  }
+}
+
+static void do_oscope(void) {
+  coord_t height;
+  uint8_t i;
+  uint8_t scale;
+  fix16_t real[MIC_SAMPLE_DEPTH];
+  fix16_t imag[MIC_SAMPLE_DEPTH];
+
+  agc( samples );
+  
+  if ( mode ) {
+    fix16_fft(samples, real, imag, MIC_SAMPLE_DEPTH);
+    for( i = 0; i < MIC_SAMPLE_DEPTH; i++ ) {
+      samples[i] = fix16_to_int( fix16_sqrt(fix16_sadd(fix16_mul(real[i],real[i]),
+						       fix16_mul(imag[i],imag[i]))) );
+    }
+    
+    agc_fft(samples);
+  }
+  
+  orchardGfxStart();
+  height = gdispGetHeight();
+  scale = 256 / height;
+
+  gdispClear(Black);
+
+  for( i = 1; i < MIC_SAMPLE_DEPTH; i++ ) {
+    if( samples != NULL ) {
+      // below for dots, change starting index to i=0
+      //      gdispDrawPixel((coord_t)i, (coord_t) (255 - samples[i]) / scale , White);
+      gdispDrawLine((coord_t)i-1, (coord_t) (255 - samples[i-1]) / scale, 
+		    (coord_t)i, (coord_t) (255 - samples[i]) / scale, 
+		    White);
+    } else
+      gdispDrawPixel((coord_t)i, (coord_t) 32, White);
+  }
+
+  gdispFlush();
+  orchardGfxEnd();
 }
 
 static void redraw_ui(void) {
@@ -63,6 +187,12 @@ static void redraw_ui(void) {
   // sex with someone at the edge of reception, which would be unreliable
   // anyways and some difficulty in selecting the friend due to fading
   // names would give you a clue of the problem
+  if( oscope_running ) {
+    // do oscope stuff
+    do_oscope();
+    return;
+  }
+  
   if( (chVTGetSystemTime() - last_ui_time) > UI_LOCKOUT_TIME )
     friendsSort();
 
@@ -196,6 +326,8 @@ static void led_start(OrchardAppContext *context) {
   coord_t fontheight;
 
   last_ui_time = chVTGetSystemTime();
+  last_oscope_time = chVTGetSystemTime();
+  oscope_running = 0;
   orchardGfxStart();
   // determine # of lines total displayble on the screen based on the font
   font = gdispOpenFont(LED_UI_FONT);
@@ -234,6 +366,8 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	else
 	  friend_index = 0;
 	last_ui_time = chVTGetSystemTime();
+	last_oscope_time = chVTGetSystemTime();
+	oscope_running = 0;
       } else if( event->key.code == keyCCW) {
 	if( friend_total != 0 ) {
 	  if( friend_index == 0 )
@@ -243,8 +377,14 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	  friend_index = 0;
 	}
 	last_ui_time = chVTGetSystemTime();
+	last_oscope_time = chVTGetSystemTime();
+	oscope_running = 0;
       } else if( event->key.code == keySelect ) {
 	last_ui_time = chVTGetSystemTime();
+	// oscope timer does not reset on select as it should swap between FFT and time domain mode
+	if( oscope_running ) {
+	  mode = !mode;
+	}
 	if( friend_total != 0 ) {
 	  // trigger sex protocol
 	  confirm_sex(context);
@@ -263,11 +403,26 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 
     if(selected == 0) // 0 means we said yes based on list item order in the UI
       initiate_sex();
+  } else if( event->type == adcEvent) {
+    if( oscope_running ) {
+      if( event->adc.code == adcCodeMic ) {
+	samples = analogReadMic();
+	redraw_ui();
+      }
+      analogUpdateMic();
+    }
   }
   
   // redraw UI on any event
-  if( context->instance->ui == NULL )
+  if( context->instance->ui == NULL ) {
     redraw_ui();
+
+    // only kick off oscope if we're not in a UI mode...
+    if( ((chVTGetSystemTime() - last_oscope_time) > OSCOPE_IDLE_TIME) && !oscope_running ) {
+      analogUpdateMic(); // this kicks off the ADC sampling; once this returns, the UI will swap modes automagically
+      oscope_running = 1;
+    }
+  }
 }
 
 static void led_exit(OrchardAppContext *context) {

@@ -93,8 +93,8 @@ void cmd_gename(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 orchard_command("gename", cmd_gename);
 
-void computeGeneExpression(const struct genome *hapM, const struct genome *hapP,
-			   struct genome *expr) {
+void computeGeneExpression(const genome *hapM, const genome *hapP,
+			   genome *expr) {
 
   expr->cd_period = 6 - satadd_8_limit(hapM->cd_period, hapP->cd_period, 6);
   expr->cd_rate = (uint8_t) ((uint16_t) hapM->cd_rate + (uint16_t) hapP->cd_rate) / 2;

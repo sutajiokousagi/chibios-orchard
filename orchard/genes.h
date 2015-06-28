@@ -38,3 +38,5 @@ typedef struct genes {
 
 void geneStart(void);
 void generateName(char *result);
+void computeGeneExpression(const genome *hapM, const genome *hapP, genome *expr);
+

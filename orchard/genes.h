@@ -1,7 +1,7 @@
 #define GENE_SIGNATURE  0x424D3135  // BM15
 #define GENE_BLOCK  0
 #define GENE_OFFSET 0
-#define GENE_VERSION 3
+#define GENE_VERSION 4
 
 #define GENE_NAMELENGTH 20    // null terminated, so 19 char name max
 
@@ -18,8 +18,8 @@ typedef struct genome {
   uint8_t  cd_rate;
   uint8_t  cd_dir;
   uint8_t  sat;
-  uint8_t  hue;
   uint8_t  hue_ratedir;
+  uint8_t  hue_base;
   uint8_t  hue_bound;
   uint8_t  lin;
   uint8_t  strobe;
@@ -32,7 +32,8 @@ typedef struct genes {
   uint32_t  signature;
   uint32_t  version;
   char      name[GENE_NAMELENGTH];
-  genome    individual[GENE_FAMILYSIZE];
+  genome    haploidM[GENE_FAMILYSIZE]; // maternal copy
+  genome    haploidP[GENE_FAMILYSIZE]; // paternal copy
 } genes;
 
 void geneStart(void);

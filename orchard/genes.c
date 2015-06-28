@@ -93,23 +93,41 @@ void cmd_gename(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 orchard_command("gename", cmd_gename);
 
-static void generate_gene(struct genome *individual) {
+void computeGeneExpression(const struct genome *hapM, const struct genome *hapP,
+			   struct genome *expr) {
+
+  expr->cd_period = 6 - satadd_8_limit(hapM->cd_period, hapP->cd_period, 6);
+  expr->cd_rate = (uint8_t) ((uint16_t) hapM->cd_rate + (uint16_t) hapP->cd_rate) / 2;
+  expr->cd_dir = satadd_8(hapM->cd_dir, hapP->cd_dir);
+  expr->sat = satadd_8(hapM->sat, hapP->sat);
+  expr->hue_ratedir = 9 - satadd_8_limit(hapM->hue_ratedir & 0xF, hapP->hue_ratedir & 0xF, 9);
+  expr->hue_ratedir |= (satadd_8_limit( (hapM->hue_ratedir >> 8) & 0xF,
+					(hapP->hue_ratedir >> 8) & 0xF, 15) << 8);
+  expr->hue_base = satsub_8(hapM->hue_base, hapP->hue_base);
+  expr->hue_bound = 255 - satsub_8(hapM->hue_bound, hapP->hue_bound);
+  expr->lin = satadd_8(hapM->lin, hapP->lin);
+  expr->strobe = satadd_8(hapM->strobe, hapP->strobe);
+  expr->accel = satadd_8(hapM->accel, hapP->accel);
+  expr->mic = satadd_8(hapM->mic, hapP->mic);
+}
+
+static void generate_gene(struct genome *haploid) {
   char genName[GENE_NAMELENGTH];
 
-  individual->cd_period = map((int16_t) rand() & 0xFF, 0, 255, 0, 6);
-  individual->cd_rate = (uint8_t) rand() & 0xFF;
-  individual->cd_dir = (uint8_t) rand() & 0xFF;
-  individual->sat = (uint8_t) rand() & 0xFF;
-  individual->hue = (uint8_t) rand() & 0xFF;
-  individual->hue_ratedir = (uint8_t) rand() & 0xFF;
-  individual->hue_bound = (uint8_t) rand() & 0xFF;
-  individual->lin = (uint8_t) rand() & 0xFF;
-  individual->strobe = (uint8_t) rand() & 0xFF;
-  individual->accel = (uint8_t) rand() & 0xFF;
-  individual->mic = (uint8_t) rand() & 0xFF;
+  haploid->cd_period = map((int16_t) rand() & 0xFF, 0, 255, 0, 6);
+  haploid->cd_rate = (uint8_t) rand() & 0xFF;
+  haploid->cd_dir = (uint8_t) rand() & 0xFF;
+  haploid->sat = (uint8_t) rand() & 0xFF;
+  haploid->hue_base = (uint8_t) rand() & 0xFF;
+  haploid->hue_ratedir = (uint8_t) rand() & 0xFF;
+  haploid->hue_bound = (uint8_t) rand() & 0xFF;
+  haploid->lin = (uint8_t) rand() & 0xFF;
+  haploid->strobe = (uint8_t) rand() & 0xFF;
+  haploid->accel = (uint8_t) rand() & 0xFF;
+  haploid->mic = (uint8_t) rand() & 0xFF;
   
   generateName(genName);
-  strncpy(individual->name, genName, GENE_NAMELENGTH);
+  strncpy(haploid->name, genName, GENE_NAMELENGTH);
 }
 
 #if 0
@@ -126,9 +144,25 @@ void cmd_testmap(BaseSequentialStream *chp, int argc, char *argv[]) {
 orchard_command("testmap", cmd_testmap);
 #endif
 
+void print_haploid(BaseSequentialStream *chp, const genome *haploid) {
+  chprintf(chp, "Individual %s:\n\r", haploid->name );
+  chprintf(chp, " %3d cd_period\n\r", haploid->cd_period );
+  chprintf(chp, " %3d cd_rate\n\r", haploid->cd_rate );
+  chprintf(chp, " %3d cd_dir\n\r", haploid->cd_dir );
+  chprintf(chp, " %3d sat\n\r", haploid->sat );
+  chprintf(chp, " %3d hue_base\n\r", haploid->hue_base );
+  chprintf(chp, " %3d hue_ratedir\n\r", haploid->hue_ratedir );
+  chprintf(chp, " %3d hue_bound\n\r", haploid->hue_bound );
+  chprintf(chp, " %3d lin\n\r", haploid->lin );
+  chprintf(chp, " %3d strobe\n\r", haploid->strobe );
+  chprintf(chp, " %3d accel\n\r", haploid->accel );
+  chprintf(chp, " %3d mic\n\r", haploid->mic );
+}
+
 void cmd_geneseq(BaseSequentialStream *chp, int argc, char *argv[]) {
   uint8_t which;
   const struct genes *family;
+  struct genome diploid;
 
   family = (const struct genes *) storageGetData(GENE_BLOCK);
   
@@ -150,18 +184,14 @@ void cmd_geneseq(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "Invalid genome version\n\r" );
     return;
   }
-  chprintf(chp, "Individual %s:\n\r", family->individual[which].name );
-  chprintf(chp, " %3d cd_period\n\r", family->individual[which].cd_period );
-  chprintf(chp, " %3d cd_rate\n\r", family->individual[which].cd_rate );
-  chprintf(chp, " %3d cd_dir\n\r", family->individual[which].cd_dir );
-  chprintf(chp, " %3d sat\n\r", family->individual[which].sat );
-  chprintf(chp, " %3d hue\n\r", family->individual[which].hue );
-  chprintf(chp, " %3d hue_ratedir\n\r", family->individual[which].hue_ratedir );
-  chprintf(chp, " %3d hue_bound\n\r", family->individual[which].hue_bound );
-  chprintf(chp, " %3d lin\n\r", family->individual[which].lin );
-  chprintf(chp, " %3d strobe\n\r", family->individual[which].strobe );
-  chprintf(chp, " %3d accel\n\r", family->individual[which].accel );
-  chprintf(chp, " %3d mic\n\r", family->individual[which].mic );
+  chprintf(chp, "--Maternal Haploid--\n\r");
+  print_haploid(chp, &(family->haploidM[which]));
+  chprintf(chp, "--Paternal Haploid--\n\r");
+  print_haploid(chp, &(family->haploidP[which]));
+
+  chprintf(chp, "--Diploid expression--\n\r");
+  computeGeneExpression(&(family->haploidM[which]), &(family->haploidP[which]), &diploid);
+  print_haploid(chp, (const genome *) &diploid);
 }
 orchard_command("geneseq", cmd_geneseq);
 
@@ -177,7 +207,8 @@ static void init_genes(uint32_t block) {
   strncpy(family.name, genName, GENE_NAMELENGTH);
 
   for( i = 0; i < GENE_FAMILYSIZE; i++ ) {
-    generate_gene(&family.individual[i]);
+    generate_gene(&family.haploidM[i]);
+    generate_gene(&family.haploidP[i]);
   }
 
   storagePatchData(block, (uint32_t *) &family, GENE_OFFSET, sizeof(struct genes));

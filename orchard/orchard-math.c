@@ -128,6 +128,16 @@ uint8_t satadd_8(uint8_t a, uint8_t b) {
     return (uint8_t) (c & 0xFF);
 }
 
+// saturating add, returns a+b, stopping at limit. 
+uint8_t satadd_8_limit(uint8_t a, uint8_t b, uint8_t limit) {
+  uint16_t c = (uint16_t) a + (uint16_t) b;
+
+  if (c > limit)
+    return (uint8_t) limit;
+  else
+    return (uint8_t) (c & 0xFF);
+}
+
 // saturating subtract, acting on a whole RGB pixel
 Color satsub_8p(Color c, uint8_t val) {
   Color rc;

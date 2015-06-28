@@ -164,9 +164,13 @@ This chromosome will specify the overlay of a linear effect pattern ("rain drop"
 
 This should be a rare variant. When it is expressed, the rate of linear shooting, the color & saturation should be encodable. Extra linear droplets will always be injected in response to accelerometer stimulus. 
 
+Expression function is satadd(A,B), but lin is only active if the sum is <20. In other words, you have a net probability of 10% of a linear pattern coming out
+
 ##Strobe chromosome (strobe)
 
 This chromosome will specify if a strobing behavior is expressed. The strobing behavior isn't expressed regularly (that would be _so annoying_), but it can come out in response to certain stimuli, e.g. accelerometer hits, music, or touchsurface stimulation.
+
+Expression function is satadd(A,B), but strobing is only active if the sum is <10. In other words, you have a net probability of 5% of a strobing pattern coming out
 
 
 ##Accelerometer chromosome (accel)
@@ -180,6 +184,8 @@ What should the microphone do? The microphone is tricky beause it's computationa
 Maybe one parameter to tweak is to have the saturation and/or value modulated based upon sound intensity. So, if you're in a quiet place, the badge will appear washed out or dark; but if you go to a party area, it will become brighter and more saturated. 
 
 ##Touch surface chromosome (touch)
+
+(feature canceled)
 
 What does the touch surface do? I think in general, there should be a default behavior across all devices, regardless of the chromosome -- the touch surface is a stimulus that someone can use to modify the behavior, so it's environmental and not genetic. 
 

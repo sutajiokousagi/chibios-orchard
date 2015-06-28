@@ -49,6 +49,7 @@ void uiLedSet(uint8_t index, Color c);
 void listEffects(void);
 
 const char *effectsCurName(void);
+const char *lightgeneName(void);
 
 #define EFFECTS_REDRAW_MS 35
 

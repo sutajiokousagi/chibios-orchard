@@ -15,6 +15,8 @@
 #include "test-audit.h"
 #include "gasgauge.h"
 
+#include "genes.h"
+
 #include <string.h>
 #include <math.h>
 
@@ -63,6 +65,8 @@ static int wavesign = -1;
 
 static uint8_t ledExitRequest = 0;
 static uint8_t ledsOff = 1;
+
+static genome diploid;
 
 uint8_t effectsStop(void) {
   ledExitRequest = 1;
@@ -203,13 +207,14 @@ static Color Wheel(uint8_t wheelPos) {
   return c;
 }
 
-static void lightGeneFB(struct effects_config *config) {
+static void do_lightgene(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   int count = config->count;
   uint8_t loop = config->loop & 0xFF;
   HsvColor hsvC;
   RgbColor rgbC;
   int i;
+  // diploid is static to this function and set when the lightgene is selected
   
   for( i = 0; i < count; i++ ) {
     hsvC.h = loop + (i * (512 / count));
@@ -221,7 +226,31 @@ static void lightGeneFB(struct effects_config *config) {
     ledSetRGB(fb, i, rgbC.r, rgbC.g, rgbC.b, shift);
   }
 }
-orchard_effects("lightgene", lightGeneFB);
+
+static void lg0FB(struct effects_config *config) {
+  do_lightgene(config);
+}
+orchard_effects("lg0", lg0FB);
+
+static void lg1FB(struct effects_config *config) {
+  do_lightgene(config);
+}
+orchard_effects("lg1", lg1FB);
+
+static void lg2FB(struct effects_config *config) {
+  do_lightgene(config);
+}
+orchard_effects("lg2", lg2FB);
+
+static void lg3FB(struct effects_config *config) {
+  do_lightgene(config);
+}
+orchard_effects("lg3", lg3FB);
+
+static void lg4FB(struct effects_config *config) {
+  do_lightgene(config);
+}
+orchard_effects("lg4", lg4FB);
 
 #if 0
 static void lightGeneFB(struct effects_config *config) {
@@ -730,16 +759,6 @@ static void draw_pattern(void) {
   curfx->computeEffect(&fx_config);
 }
 
-void effectsSetPattern(uint8_t index) {
-  if(index > fx_max) {
-    fx_index = 0;
-    return;
-  }
-
-  fx_index = index;
-  patternChanged = 1;
-}
-
 const char *effectsCurName(void) {
   const OrchardEffects *curfx;
   curfx = orchard_effects_start();
@@ -767,14 +786,45 @@ uint8_t effectsNameLookup(const char *name) {
   return 0;  // name not found returns default effect
 }
 
+// checks to see if the current effect is one of the lightgenes
+// if it is, updates the diploid genome to the current effect
+void check_lightgene_hack(void) {
+  const struct genes *family;
+  uint8_t family_member = 0;
+  
+  if( strncmp(effectsCurName(), "lg", 2) == 0 ) {
+    family = (const struct genes *) storageGetData(GENE_BLOCK);
+    // handle lightgene special case
+    family_member = effectsCurName()[2] - '0';
+    computeGeneExpression(&(family->haploidM[family_member]),
+			  &(family->haploidP[family_member]), &diploid);
+  }
+}
+
+const char *lightgeneName(void) {
+  return diploid.name;
+}
+
+void effectsSetPattern(uint8_t index) {
+  if(index > fx_max) {
+    fx_index = 0;
+    return;
+  }
+
+  fx_index = index;
+  patternChanged = 1;
+  check_lightgene_hack();
+}
+
 uint8_t effectsGetPattern(void) {
   return fx_index;
 }
 
 void effectsNextPattern(void) {
   fx_index = (fx_index + 1) % fx_max;
-  
+
   patternChanged = 1;
+  check_lightgene_hack();
 }
 
 void effectsPrevPattern(void) {
@@ -785,6 +835,7 @@ void effectsPrevPattern(void) {
   }
   
   patternChanged = 1;
+  check_lightgene_hack();
 }
 
 static void blendFbs(void) {
@@ -869,6 +920,9 @@ void effectsStart(void) {
   draw_pattern();
   ledExitRequest = 0;
   ledsOff = 0;
+
+  strncpy( diploid.name, "err!", GENE_NAMELENGTH ); // in case someone references before init
+  
   chThdCreateStatic(waEffectsThread, sizeof(waEffectsThread),
       NORMALPRIO - 6, effects_thread, &led_config);
 }

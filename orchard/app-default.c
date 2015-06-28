@@ -83,7 +83,11 @@ static void redraw_ui(void) {
 
   // generate the title bar
   gdispFillArea(0, 0, width, header_height - 1, White);
-  chsnprintf(tmp, sizeof(tmp), "%s", effectsCurName());
+  if( strncmp(effectsCurName(), "lg", 2) != 0 )
+    chsnprintf(tmp, sizeof(tmp), "%s", effectsCurName());
+  else {
+    chsnprintf(tmp, sizeof(tmp), "%s", lightgeneName());
+  }
   gdispDrawStringBox(0, 0, width, header_height,
                      tmp, font, Black, justifyLeft);
 

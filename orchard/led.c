@@ -67,7 +67,7 @@ static int wavesign = -1;
 static uint8_t ledExitRequest = 0;
 static uint8_t ledsOff = 1;
 
-static genome diploid;
+genome diploid;   // not static so we can debug in other files
 
 uint8_t effectsStop(void) {
   ledExitRequest = 1;
@@ -225,7 +225,7 @@ static void do_lightgene(struct effects_config *config) {
   uint8_t overshift;
   // diploid is static to this function and set when the lightgene is selected
 
-  tau = (uint32_t) map(diploid.cd_rate, 0, 255, 250, 8000);
+  tau = (uint32_t) map(diploid.cd_rate, 0, 255, 500, 4000);
   curtime = chVTGetSystemTime();
   if( (curtime - reftime_lg) > tau )
     reftime_lg = curtime;
@@ -238,12 +238,12 @@ static void do_lightgene(struct effects_config *config) {
     // loop is the current point in effect cycle, e.g. all effects loop on a 0-255 basis
 
     // hue chromosome
-    if( ((diploid.hue_ratedir >> 8) & 0xF) > 7 ) {
+    if( ((diploid.hue_ratedir >> 4) & 0xF) > 7 ) {
       hsvC.h = (256L / count) * ((i + (loop * (uint32_t)(diploid.hue_ratedir & 0xF))) & 0xFF);
     } else {
       hsvC.h = (256L / count) * ((i - (loop * (uint32_t)(diploid.hue_ratedir & 0xF))) & 0xFF);
     }
-    hsvC.h = map( hsvC.h, 0, 255, diploid.hue_base, diploid.hue_bound );
+    hsvC.h = map_16( hsvC.h, 0, 255, diploid.hue_base, diploid.hue_bound );
 
     // saturation chromosome
     hsvC.s = diploid.sat;
@@ -259,9 +259,11 @@ static void do_lightgene(struct effects_config *config) {
     space = fix16_mul(twopi, fix16_mul( fix16_from_int(diploid.cd_period),
 					 fix16_div(fix16_from_int(i), fix16_from_int(count-1)) ));
 
-    // time = 2pi * indextime / tau
+    // time = 2pi * (indextime) / tau
     time = fix16_mul(twopi, fix16_div( fix16_from_int(indextime), fix16_from_int(tau) ));
 
+    //    time = fix16_from_int(0);
+    
     // space +/- time based on direction
     if( diploid.cd_dir > 128 ) {
       spacetime = fix16_add( space, time );
@@ -270,7 +272,10 @@ static void do_lightgene(struct effects_config *config) {
     }
 
     // hsv.v = 255 * cos(spacetime)
-    hsvC.v = (uint8_t) fix16_to_int( fix16_mul( fix16_from_int(255), fix16_cos(spacetime)) );
+    hsvC.v = (uint8_t) fix16_to_int( fix16_sub( fix16_mul( fix16_from_int(128),
+							   fix16_add( fix16_from_int(1),
+								      fix16_cos(spacetime))),
+						fix16_from_int(1)));
 
     // now compute lin effect, but only if the threshold is met
     if( diploid.lin < 20 ) {  // rare variant after a summing expression

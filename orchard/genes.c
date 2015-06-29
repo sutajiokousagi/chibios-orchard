@@ -68,6 +68,8 @@ static const char *last_names[8] =
    "Blinky",
   };
 
+extern genome diploid;
+
 void generateName(char *result) {
   uint32_t r = rand();
   uint8_t i = 0;
@@ -101,8 +103,8 @@ void computeGeneExpression(const genome *hapM, const genome *hapP,
   expr->cd_dir = satadd_8(hapM->cd_dir, hapP->cd_dir);
   expr->sat = satadd_8(hapM->sat, hapP->sat);
   expr->hue_ratedir = 9 - satadd_8_limit(hapM->hue_ratedir & 0xF, hapP->hue_ratedir & 0xF, 9);
-  expr->hue_ratedir |= (satadd_8_limit( (hapM->hue_ratedir >> 8) & 0xF,
-					(hapP->hue_ratedir >> 8) & 0xF, 15) << 8);
+  expr->hue_ratedir |= (satadd_8_limit( (hapM->hue_ratedir >> 4) & 0xF,
+					(hapP->hue_ratedir >> 4) & 0xF, 15) << 8);
   expr->hue_base = satsub_8(hapM->hue_base, hapP->hue_base);
   expr->hue_bound = 255 - satsub_8(hapM->hue_bound, hapP->hue_bound);
   expr->lin = satadd_8(hapM->lin, hapP->lin);
@@ -149,17 +151,35 @@ orchard_command("testmap", cmd_testmap);
 void print_haploid(BaseSequentialStream *chp, const genome *haploid) {
   chprintf(chp, "Individual %s:\n\r", haploid->name );
   chprintf(chp, " %3d cd_period\n\r", haploid->cd_period );
-  chprintf(chp, " %3d cd_rate\n\r", haploid->cd_rate );
+  chprintf(chp, " %3d cd_rate = %d\n\r", haploid->cd_rate,
+	   map(haploid->cd_rate, 0, 255, 500, 4000));
   chprintf(chp, " %3d cd_dir\n\r", haploid->cd_dir );
   chprintf(chp, " %3d sat\n\r", haploid->sat );
   chprintf(chp, " %3d hue_base\n\r", haploid->hue_base );
-  chprintf(chp, " %3d hue_ratedir\n\r", haploid->hue_ratedir );
+  chprintf(chp, " %3d hue_ratedir = %d/%d\n\r", haploid->hue_ratedir,
+	   haploid->hue_ratedir >> 4 & 0xF, haploid->hue_ratedir & 0xF );
   chprintf(chp, " %3d hue_bound\n\r", haploid->hue_bound );
   chprintf(chp, " %3d lin\n\r", haploid->lin );
   chprintf(chp, " %3d strobe\n\r", haploid->strobe );
   chprintf(chp, " %3d accel\n\r", haploid->accel );
   chprintf(chp, " %3d mic\n\r", haploid->mic );
 }
+
+void cmd_genetweak(BaseSequentialStream *chp, int argc, char *argv[]) {
+  int8_t index, value;
+  
+  if( argc != 2 ) {
+    chprintf(chp, "Usage: gtweak <index> <value>\n\r");   
+  }
+  index = (uint8_t) strtoul(argv[0], NULL, 0);
+  value = (uint8_t) strtoul(argv[1], NULL, 0);
+
+  ((char *)&diploid)[index] = value;
+
+  chprintf( chp, "Revised structure.\n\r" );
+  print_haploid(chp, &diploid);
+}
+orchard_command("gtweak", cmd_genetweak);
 
 void cmd_geneseq(BaseSequentialStream *chp, int argc, char *argv[]) {
   uint8_t which;

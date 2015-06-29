@@ -158,7 +158,7 @@ Color satadd_8p( Color c, uint8_t val ) {
   return rc;
 }
 
-int16_t map(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
+int16_t map_16(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
 {
   fix16_t x16, in_min16, in_max16, out_min16, out_max16;
   fix16_t result16;
@@ -174,4 +174,9 @@ int16_t map(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t 
   return fix16_to_int(result16);
   
   //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+int map(int x, int in_min, int in_max, int out_min, int out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

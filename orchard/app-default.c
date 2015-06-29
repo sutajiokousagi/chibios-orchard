@@ -359,6 +359,8 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       }
       else if ( event->key.code == keyRight ) {
 	effectsNextPattern();
+	last_oscope_time = chVTGetSystemTime();
+	oscope_running = 0;
       }
       else if( event->key.code == keyCW ) {
 	if( friend_total != 0 )

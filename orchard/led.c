@@ -281,7 +281,7 @@ static void do_lightgene(struct effects_config *config) {
       hsvC.v = (uint8_t) (((uint16_t) hsvC.v * (uint16_t) hsvC.v) >> 8 & 0xFF);
 
     // now compute lin effect, but only if the threshold is met
-    if( diploid.lin < 20 ) {  // rare variant after a summing expression
+    if( diploid.lin < 90 ) {  // rare variant after a summing expression ~3% chance
       shoot = loop % count;
       if( shoot == i ) {
 	overrideHSV = 1;

@@ -225,7 +225,7 @@ static void do_lightgene(struct effects_config *config) {
   uint8_t overshift;
   // diploid is static to this function and set when the lightgene is selected
 
-  tau = (uint32_t) map(diploid.cd_rate, 0, 255, 500, 4000);
+  tau = (uint32_t) map(diploid.cd_rate, 0, 255, 700, 8000);
   curtime = chVTGetSystemTime();
   if( (curtime - reftime_lg) > tau )
     reftime_lg = curtime;
@@ -271,11 +271,14 @@ static void do_lightgene(struct effects_config *config) {
       spacetime = fix16_sub( space, time );
     }
 
-    // hsv.v = 255 * cos(spacetime)
-    hsvC.v = (uint8_t) fix16_to_int( fix16_sub( fix16_mul( fix16_from_int(128),
-							   fix16_add( fix16_from_int(1),
-								      fix16_cos(spacetime))),
-						fix16_from_int(1)));
+    // hsv.v = 127 * (1 + cos(spacetime))
+    hsvC.v = (uint8_t) fix16_to_int( fix16_mul( fix16_from_int(127),
+						fix16_add( fix16_from_int(1),
+							   fix16_cos(spacetime))));
+
+    if( diploid.nonlin > 127 )
+      // add some nonlinearity to gamma-correct brightness
+      hsvC.v = (uint8_t) (((uint16_t) hsvC.v * (uint16_t) hsvC.v) >> 8 & 0xFF);
 
     // now compute lin effect, but only if the threshold is met
     if( diploid.lin < 20 ) {  // rare variant after a summing expression
@@ -291,12 +294,6 @@ static void do_lightgene(struct effects_config *config) {
     }
 
     //// TODO: accelerometer effect -- modulate saturation based on accelerometer hits
-    
-
-    
-    //// microphone effect -- modulate hue base/bounds? -- do we even do this, it's pretty hard?
-    // I think for the microphone, we should do an "idle mode" for the default screen that puts up the microphone app
-    // yes, I think that's better and more obivous & easier -- let's do that instead as a feature
     
     // go from RGB to HSV for a particular pixel
     if( !overrideHSV ) {

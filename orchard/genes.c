@@ -99,7 +99,7 @@ void computeGeneExpression(const genome *hapM, const genome *hapP,
 			   genome *expr) {
 
   expr->cd_period = 6 - satadd_8_limit(hapM->cd_period, hapP->cd_period, 6);
-  expr->cd_rate = (uint8_t) ((uint16_t) hapM->cd_rate + (uint16_t) hapP->cd_rate) / 2;
+  expr->cd_rate = (uint8_t) (((uint16_t) hapM->cd_rate + (uint16_t) hapP->cd_rate) / 2);
   expr->cd_dir = satadd_8(hapM->cd_dir, hapP->cd_dir);
   expr->sat = satadd_8(hapM->sat, hapP->sat);
   expr->hue_ratedir = 9 - satadd_8_limit(hapM->hue_ratedir & 0xF, hapP->hue_ratedir & 0xF, 9);
@@ -110,7 +110,7 @@ void computeGeneExpression(const genome *hapM, const genome *hapP,
   expr->lin = satadd_8(hapM->lin, hapP->lin);
   expr->strobe = satadd_8(hapM->strobe, hapP->strobe);
   expr->accel = satadd_8(hapM->accel, hapP->accel);
-  expr->mic = satadd_8(hapM->mic, hapP->mic);
+  expr->nonlin = (uint8_t) (((uint16_t) hapM->nonlin + (uint16_t) hapP->nonlin) / 2); // avg it
   // names come from the maternal side in this society
   strncpy(expr->name, hapM->name, GENE_NAMELENGTH);
 }
@@ -128,7 +128,7 @@ static void generate_gene(struct genome *haploid) {
   haploid->lin = (uint8_t) rand() & 0xFF;
   haploid->strobe = (uint8_t) rand() & 0xFF;
   haploid->accel = (uint8_t) rand() & 0xFF;
-  haploid->mic = (uint8_t) rand() & 0xFF;
+  haploid->nonlin = (uint8_t) rand() & 0xFF;
   
   generateName(genName);
   strncpy(haploid->name, genName, GENE_NAMELENGTH);
@@ -152,7 +152,7 @@ void print_haploid(BaseSequentialStream *chp, const genome *haploid) {
   chprintf(chp, "Individual %s:\n\r", haploid->name );
   chprintf(chp, " %3d cd_period\n\r", haploid->cd_period );
   chprintf(chp, " %3d cd_rate = %d\n\r", haploid->cd_rate,
-	   map(haploid->cd_rate, 0, 255, 500, 4000));
+	   map(haploid->cd_rate, 0, 255, 700, 8000));
   chprintf(chp, " %3d cd_dir\n\r", haploid->cd_dir );
   chprintf(chp, " %3d sat\n\r", haploid->sat );
   chprintf(chp, " %3d hue_base\n\r", haploid->hue_base );
@@ -162,14 +162,15 @@ void print_haploid(BaseSequentialStream *chp, const genome *haploid) {
   chprintf(chp, " %3d lin\n\r", haploid->lin );
   chprintf(chp, " %3d strobe\n\r", haploid->strobe );
   chprintf(chp, " %3d accel\n\r", haploid->accel );
-  chprintf(chp, " %3d mic\n\r", haploid->mic );
+  chprintf(chp, " %3d nonlin\n\r", haploid->nonlin );
 }
 
 void cmd_genetweak(BaseSequentialStream *chp, int argc, char *argv[]) {
   int8_t index, value;
   
   if( argc != 2 ) {
-    chprintf(chp, "Usage: gtweak <index> <value>\n\r");   
+    chprintf(chp, "Usage: gtweak <index> <value>\n\r");
+    return;
   }
   index = (uint8_t) strtoul(argv[0], NULL, 0);
   value = (uint8_t) strtoul(argv[1], NULL, 0);

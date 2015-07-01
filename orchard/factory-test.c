@@ -45,6 +45,7 @@ struct factory_config {
   int         button_gpio;
   int         swclk_gpio;
   int         swdio_gpio;
+  int         verbose;
 };
 
 struct factory_flasher {
@@ -117,6 +118,11 @@ static int openocd_run(struct factory_flasher *factory) {
   }
 
   if (factory->openocd_pid == 0) {
+    if (!factory->cfg.verbose) {
+      close(STDIN_FILENO);
+      close(STDOUT_FILENO);
+      close(STDERR_FILENO);
+    }
     execvp(openocd_args[0], (char * const*) openocd_args);
     perror("Unable to exec");
     return -1;
@@ -169,6 +175,80 @@ err:
   return -1;
 }
 
+static int openocd_send(struct factory_flasher *factory, const char *msg) {
+  int ret;
+  int len;
+  char token = 0x1a;
+
+  len = strlen(msg);
+
+  ret = write(factory->openocd_sock, msg, len);
+  if (ret != len) {
+    perror("Unable to write");
+    return -1;
+  }
+
+  ret = write(factory->openocd_sock, &token, 1);
+  if (ret != 1) {
+    perror("Unable to write token");
+    return -1;
+  }
+  return 0;
+}
+
+static int openocd_recv(struct factory_flasher *factory, char *buf, int max) {
+  int ret;
+  int size;
+
+  size = 0;
+  while (size < max) {
+    char c;
+
+    ret = read(factory->openocd_sock, &c, 1);
+    if (ret != 1) {
+      perror("Unable to read");
+      return -1;
+    }
+
+    if (c == 0x1a)
+      return size;
+
+    buf[size++] = c;
+  }
+  return size;
+}
+
+static int check_swdid(struct factory_flasher *factory, uint32_t swdid) {
+  char buf[4096];
+  uint32_t found_id;
+  openocd_send(factory, "ocd_transport init");
+  openocd_recv(factory, buf, sizeof(buf));
+
+  // SWD IDCODE 0x00000000
+  // ----------^ 11 characters
+  found_id = strtoul(buf + 11, NULL, 0);
+  if (swdid == found_id)
+    return 0;
+
+  printf("SWD ID 0x%08x does not match found id 0x%08x\n", swdid, found_id);
+  return 1;
+}
+
+static int check_dapid(struct factory_flasher *factory, uint32_t dapid) {
+  char buf[4096];
+  uint32_t found_id;
+  openocd_send(factory, "ocd_dap apid");
+  openocd_recv(factory, buf, sizeof(buf));
+
+  found_id = strtoul(buf, NULL, 0);
+  if (dapid == found_id)
+    return 0;
+
+  printf("Buffer: [%s]\n", buf);
+  printf("DAP ID 0x%08x does not match found id 0x%08x\n", dapid, found_id);
+  return 1;
+}
+
 void print_help(const char *name) {
   printf("Usage:\n");
   printf("    %s\n", name);
@@ -177,6 +257,7 @@ void print_help(const char *name) {
   printf(" -k --swclk    GPIO pin to use for SWD clock\n");
   printf(" -d --swdio    GPIO pin to use for SWD data\n");
   printf(" -b --button   GPIO pin to use for Start button\n");
+  printf(" -v --verbose  Print more information\n");
 }
 
 int parse_args(struct factory_config *cfg, int argc, char **argv) {
@@ -190,10 +271,11 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
     {"swclk",  required_argument, NULL,  'k'},
     {"swdio",  required_argument, NULL,  'd'},
     {"reset",  required_argument, NULL,  'r'},
+    {"verbose",no_argument,       NULL,  'v'},
     {"help",   no_argument,       NULL,  'h'},
   };
 
-  while ((c = getopt_long(argc, argv, "c:k:d:b:h", long_options, &idx)) != -1) {
+  while ((c = getopt_long(argc, argv, "c:k:d:b:hv", long_options, &idx)) != -1) {
     switch (c) {
     case -1:
       return 0;
@@ -216,6 +298,10 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
 
     case 'd':
       cfg->swdio_gpio = strtoul(optarg, NULL, 0);
+      break;
+
+    case 'v':
+      cfg->verbose = 1;
       break;
 
     case 'h':
@@ -303,8 +389,21 @@ int main(int argc, char **argv) {
       tries++;
     }
 
+    if (factory.openocd_pid == -1) {
+      printf("OpenOCD quit.  Misconfiguration?");
+      return 1;
+    }
+
     printf("Connected to OpenOCD with fd %d after %d tries\n",
         factory.openocd_sock, tries);
+
+    if (check_swdid(&factory, 0x0bc11477))
+      return 1;
+    printf("SWD ID match\n");
+
+    if (check_dapid(&factory, 0x04770031))
+      return 1;
+    printf("DAP ID match\n");
   }
 
   return 0;

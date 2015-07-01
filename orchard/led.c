@@ -223,6 +223,8 @@ static void do_lightgene(struct effects_config *config) {
   fix16_t spacetime;
   uint8_t overrideHSV = 0;
   uint8_t overshift;
+  uint32_t hue_rate;
+  uint8_t hue_dir;
   // diploid is static to this function and set when the lightgene is selected
 
   tau = (uint32_t) map(diploid.cd_rate, 0, 255, 700, 8000);
@@ -237,12 +239,37 @@ static void do_lightgene(struct effects_config *config) {
     // count is the current pixel index
     // loop is the current point in effect cycle, e.g. all effects loop on a 0-255 basis
 
+    //// TODO: fix hue cycling -- it doesn't move as often as expected
+    //// TODO: fix hue continuity -- at the moment it has a discontinuity, should ramp up and down
     // hue chromosome
-    if( ((diploid.hue_ratedir >> 4) & 0xF) > 7 ) {
-      hsvC.h = (256L / count) * ((i + (loop * (uint32_t)(diploid.hue_ratedir & 0xF))) & 0xFF);
+    hue_rate = (uint32_t) diploid.hue_ratedir & 0xF;
+    hue_dir = (((diploid.hue_ratedir >> 4) & 0xF) > 7) ? 1 : 0;
+#if 0
+    if( hue_dir ) {
+      hsvC.h = (256L / count) * ((i + (loop * (uint32_t)hue_rate)) & 0xFF);
     } else {
-      hsvC.h = (256L / count) * ((i - (loop * (uint32_t)(diploid.hue_ratedir & 0xF))) & 0xFF);
+      hsvC.h = (256L / count) * ((i - (loop * (uint32_t)hue_rate)) & 0xFF);
     }
+#endif
+
+    /*
+      refactor: we want the pattern applied from 0-7 to be inversely applied from 8-15
+      0 1 2 3 4 5 6 7  7 6 5 4 3 2 1 0
+     */
+    if( hue_dir ) {
+      if( i < (count / 2) ) {
+	hsvC.h = (uint8_t) ((256L / (count / 2)) * (i + (loop * hue_rate)) - 1L);
+      } else {
+	hsvC.h = (uint8_t) ((256L / (count / 2)) * ((count - i) + (loop * hue_rate)) - 1L);
+      }
+    } else {
+      if( i < (count / 2) ) {
+	hsvC.h = (uint8_t) ((256L / (count / 2)) * (i - (loop * hue_rate)) - 1L);
+      } else {
+	hsvC.h = (uint8_t) ((256L / (count / 2)) * ((count - i) - (loop * hue_rate)) - 1L);
+      }
+    }
+    
     hsvC.h = map_16( hsvC.h, 0, 255, diploid.hue_base, diploid.hue_bound );
 
     // saturation chromosome

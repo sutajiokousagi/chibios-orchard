@@ -243,30 +243,23 @@ static void do_lightgene(struct effects_config *config) {
     //// TODO: fix hue continuity -- at the moment it has a discontinuity, should ramp up and down
     // hue chromosome
     hue_rate = (uint32_t) diploid.hue_ratedir & 0xF;
-    hue_dir = (((diploid.hue_ratedir >> 4) & 0xF) > 7) ? 1 : 0;
-#if 0
-    if( hue_dir ) {
-      hsvC.h = (256L / count) * ((i + (loop * (uint32_t)hue_rate)) & 0xFF);
-    } else {
-      hsvC.h = (256L / count) * ((i - (loop * (uint32_t)hue_rate)) & 0xFF);
-    }
-#endif
-
+    hue_dir = (((diploid.hue_ratedir >> 4) & 0xF) > 10) ? 1 : 0;
     /*
       refactor: we want the pattern applied from 0-7 to be inversely applied from 8-15
       0 1 2 3 4 5 6 7  7 6 5 4 3 2 1 0
      */
-    if( hue_dir ) {
-      if( i < (count / 2) ) {
-	hsvC.h = (uint8_t) ((256L / (count / 2)) * (i + (loop * hue_rate)) - 1L);
+    // 254L cheesily avoids rounding errors. 
+    if( !hue_dir ) {
+      if( i < (count / 2) ) { // common variant: cyclic
+	hsvC.h = (uint8_t) ((254L / (count / 2)) * (i + (loop * hue_rate)) - 0L);
       } else {
-	hsvC.h = (uint8_t) ((256L / (count / 2)) * ((count - i) + (loop * hue_rate)) - 1L);
+	hsvC.h = (uint8_t) ((254L / (count / 2)) * ((count - i) + (loop * hue_rate)) - 0L);
       }
     } else {
-      if( i < (count / 2) ) {
-	hsvC.h = (uint8_t) ((256L / (count / 2)) * (i - (loop * hue_rate)) - 1L);
+      if( i < (count / 2) ) { // rare variant: symmetric
+	hsvC.h = (uint8_t) ((254L / (count / 2)) * (i + (loop * hue_rate)) - 0L);
       } else {
-	hsvC.h = (uint8_t) ((256L / (count / 2)) * ((count - i) - (loop * hue_rate)) - 1L);
+	hsvC.h = (uint8_t) ((254L / (count / 2)) * ((count - i) - (loop * hue_rate)) - 0L);
       }
     }
     

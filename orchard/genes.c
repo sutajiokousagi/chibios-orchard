@@ -102,9 +102,14 @@ void computeGeneExpression(const genome *hapM, const genome *hapP,
   expr->cd_rate = (uint8_t) (((uint16_t) hapM->cd_rate + (uint16_t) hapP->cd_rate) / 2);
   expr->cd_dir = satadd_8(hapM->cd_dir, hapP->cd_dir);
   expr->sat = satadd_8(hapM->sat, hapP->sat);
+  //rate
   expr->hue_ratedir = 9 - satadd_8_limit(hapM->hue_ratedir & 0xF, hapP->hue_ratedir & 0xF, 9);
+  expr->hue_ratedir++;
+  if( expr->hue_ratedir == 10 )
+    expr->hue_ratedir = 0;
+  //direction
   expr->hue_ratedir |= (satadd_8_limit( (hapM->hue_ratedir >> 4) & 0xF,
-					(hapP->hue_ratedir >> 4) & 0xF, 15) << 8);
+					(hapP->hue_ratedir >> 4) & 0xF, 15) << 4);
   expr->hue_base = satsub_8(hapM->hue_base, hapP->hue_base);
   expr->hue_bound = 255 - satsub_8(hapM->hue_bound, hapP->hue_bound);
   expr->lin = satadd_8(hapM->lin, hapP->lin);

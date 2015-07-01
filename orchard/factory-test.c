@@ -22,6 +22,12 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <string.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <termios.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
@@ -33,11 +39,6 @@ const char *openocd_default_args[] = {
   "-c", "klx.cpu configure -rtos ChibiOS",
 };
 
-struct factory_flasher {
-  int   openocd_sock; /* TCL socket */
-  int   openocd_pid;  /* Process PID */
-};
-
 struct factory_config {
   const char *openocd_config;
   const char *serial_path;
@@ -46,39 +47,125 @@ struct factory_config {
   int         swdio_gpio;
 };
 
-static int openocd_run(struct factory_config *cfg) {
-  char const *openocd_args[ARRAY_SIZE(openocd_default_args) + 7];
+struct factory_flasher {
+  int                   openocd_sock; /* TCL socket */
+  int                   openocd_pid;  /* Process PID */
+  int                   serial_fd;    /* TTL UART file */
+  struct factory_config cfg;
+};
+
+struct factory_flasher *g_factory;
+
+static void reap_children(int signal) {
+  int status;
+  pid_t pid;
+
+  fprintf(stderr, "Got SIGCHLD\n");
+
+  while (-1 != (pid = waitpid(-1, &status, WNOHANG))) {
+    fprintf(stderr, "Child %d returned %d\n", pid, status);
+    g_factory->openocd_pid = -1;
+  }
+  fprintf(stderr, "Done reaping\n");
+}
+
+static void cleanup(void) {
+  if (g_factory->openocd_pid != -1)
+    kill(g_factory->openocd_pid, SIGTERM);
+
+  if (g_factory->openocd_sock != -1) {
+    (void) shutdown(g_factory->openocd_sock, SHUT_RDWR);
+    close(g_factory->openocd_sock);
+  }
+  g_factory->openocd_sock = -1;
+}
+
+static int openocd_run(struct factory_flasher *factory) {
+  const char *openocd_args[ARRAY_SIZE(openocd_default_args) + 7];
   char swdio_str[128];
   char swclk_str[128];
   unsigned int i;
 
-  snprintf(swdio_str, sizeof(swdio_str) - 1, "sysfsgpio_swdio_num %d",
-      cfg->swdio_gpio);
-  snprintf(swclk_str, sizeof(swclk_str) - 1, "sysfsgpio_swclk_num %d",
-      cfg->swclk_gpio);
   for (i = 0; i < ARRAY_SIZE(openocd_default_args); i++)
     openocd_args[i] = openocd_default_args[i];
 
-  if (cfg->swdio_gpio >= 0) {
+  if (factory->cfg.swdio_gpio >= 0) {
+    snprintf(swdio_str, sizeof(swdio_str) - 1, "sysfsgpio_swdio_num %d",
+        factory->cfg.swdio_gpio);
     openocd_args[i++] = "-c";
     openocd_args[i++] = swdio_str;
   }
 
-  if (cfg->swclk_gpio >= 0) {
+  if (factory->cfg.swclk_gpio >= 0) {
+    snprintf(swclk_str, sizeof(swclk_str) - 1, "sysfsgpio_swclk_num %d",
+        factory->cfg.swclk_gpio);
     openocd_args[i++] = "-c";
     openocd_args[i++] = swclk_str;
   }
 
-  if (cfg->openocd_config) {
+  if (factory->cfg.openocd_config) {
     openocd_args[i++] = "-f";
-    openocd_args[i++] = cfg->openocd_config;
+    openocd_args[i++] = factory->cfg.openocd_config;
   }
 
   openocd_args[i++] = NULL;
 
-  for (i = 0; openocd_args[i]; i++)
-    printf("arg[%d]: %s\n", i, openocd_args[i]);
+  factory->openocd_pid = fork();
+  if (factory->openocd_pid == -1) {
+    perror("Unable to fork");
+    return -1;
+  }
 
+  if (factory->openocd_pid == 0) {
+    execvp(openocd_args[0], (char * const*) openocd_args);
+    perror("Unable to exec");
+    return -1;
+  }
+
+  return factory->openocd_pid;
+}
+
+static int openocd_connect(struct factory_flasher *factory) {
+
+  const char *address = "127.0.0.1";
+  const int port = 6666;
+  struct sockaddr_in sockaddr;
+  int ret;
+
+  factory->openocd_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  
+  if (-1 == factory->openocd_sock) {
+    perror("cannot create socket");
+    return -1;
+  }
+  
+  memset(&sockaddr, 0, sizeof(sockaddr));
+  
+  sockaddr.sin_family = AF_INET;
+  sockaddr.sin_port = htons(port);
+  ret = inet_pton(AF_INET, address, &sockaddr.sin_addr);
+  
+  if (ret < 0) {
+    perror("Seems like INET support doesn't exist");
+    goto err;
+  }
+  else if (ret == 0) {
+    perror("Unable to connect to address");
+    goto err;
+  }
+
+  if (-1 == connect(factory->openocd_sock,
+                    (struct sockaddr *)&sockaddr,
+                    sizeof(sockaddr))) {
+    perror("connect failed");
+    goto err;
+  }
+
+  return 0;
+  
+err:
+  close(factory->openocd_sock);
+  factory->openocd_sock = -1;
   return -1;
 }
 
@@ -144,25 +231,80 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
   return 0;
 }
 
+static int serial_open(struct factory_flasher *factory) {
+  struct termios t;
+  int ret;
+
+  if (!factory->cfg.serial_path)
+    return 0;
+
+  factory->serial_fd = open(factory->cfg.serial_path, O_RDWR);
+  if (-1 == factory->serial_fd) {
+    perror("Unable to open serial port");
+    return -1;
+  }
+
+  ret = tcgetattr(factory->serial_fd, &t);
+  if (-1 == ret) {
+    perror("Failed to get attributes");
+    goto err;
+  }
+
+  cfsetispeed(&t, B115200);
+  cfsetospeed(&t, B115200);
+  cfmakeraw(&t);
+
+  ret = tcsetattr(factory->serial_fd, TCSANOW, &t);
+  if (-1 == ret) {
+    perror("Failed to set attributes");
+    goto err;
+  }
+
+err:
+  close(factory->serial_fd);
+  factory->serial_fd = -1;
+  return -1;
+}
+
 int main(int argc, char **argv) {
 
-  struct factory_config cfg;
+  struct factory_flasher factory;
+  g_factory = &factory;
 
-  memset(&cfg, 0, sizeof(cfg));
-  cfg.swclk_gpio = -1;
-  cfg.swdio_gpio = -1;
+  memset(&factory, 0, sizeof(factory));
+  factory.openocd_pid = -1;
+  factory.openocd_sock = -1;
+  factory.serial_fd = -1;
+  factory.cfg.swclk_gpio = -1;
+  factory.cfg.swdio_gpio = -1;
+
+  atexit(cleanup);
+  signal(SIGCHLD, reap_children);
 
   if (getuid() != 0) {
     fprintf(stderr, "%s must be run as root\n", argv[0]);
     return 1;
   }
 
-  if (parse_args(&cfg, argc, argv))
+  if (parse_args(&factory.cfg, argc, argv))
     return 1;
 
-  printf("OpenOCD will use config file: %s\n", cfg.openocd_config);
+  if (serial_open(&factory))
+    return -1;
+
   {
-    openocd_run(&cfg);
+    openocd_run(&factory);
+
+    int tries = 0;
+    /* Keep trying to connect as long as OpenOCD is still running */
+    while ((factory.openocd_pid != -1) && (factory.openocd_sock == -1)) {
+      usleep(50000);
+      openocd_connect(&factory);
+      tries++;
+    }
+
+    printf("Connected to OpenOCD with fd %d after %d tries\n",
+        factory.openocd_sock, tries);
   }
 
   return 0;

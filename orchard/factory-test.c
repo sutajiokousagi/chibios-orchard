@@ -327,8 +327,6 @@ static int openocd_write_image(struct factory *f, const char *elf) {
   if (openocd_recv(f, buf, sizeof(buf)) < 0)
     return -1;
 
-  printf("Buffer received: [%s]\n", buf);
-
   return strstr(buf, "Failed to write memory") != NULL;
 }
 
@@ -659,39 +657,50 @@ static int orchard_run_tests(struct factory *f) {
 /* Restart OpenOCD, and run tests as defined in the factory configuration. */
 static int run_tests(struct factory *f) {
   int ret;
+  int tries = 0;
+  int greater_tries = 0;
 
   ret = serial_open(f);
   if (ret)
     goto cleanup;
 
-  ret = openocd_run(f);
-  if (ret)
-    goto cleanup;
+  while (1) {
+    ret = openocd_run(f);
+    if (ret)
+      goto cleanup;
 
-  int tries = 0;
-  /* Keep trying to connect as long as OpenOCD is still running */
-  while ((f->openocd_pid != -1) && (f->openocd_sock == -1)) {
-    usleep(50000);
-    openocd_connect(f);
-    tries++;
+    /* Keep trying to connect as long as OpenOCD is still running */
+    while ((f->openocd_pid != -1) && (f->openocd_sock == -1)) {
+      usleep(50000);
+      openocd_connect(f);
+      tries++;
+    }
+
+    if ((f->openocd_pid == -1) || (f->openocd_sock == -1)) {
+      finfo(f, "OpenOCD quit.  Misconfiguration?");
+      ret = -1;
+      goto cleanup;
+    }
+
+    ret = check_swdid(f, 0x0bc11477);
+    if (ret)
+      goto try_again;
+    finfo(f, "SWD ID matches 0x0bc11477\n");
+
+    ret = check_dapid(f, 0x04770031);
+    if (ret)
+      goto try_again;
+    finfo(f, "DAP ID matches 0x04770031\n");
+
+    if (!validate_cpu(f))
+      break;
+
+try_again:
+    openocd_stop(f);
+    greater_tries++;
   }
 
-  if ((f->openocd_pid == -1) || (f->openocd_sock == -1)) {
-    finfo(f, "OpenOCD quit.  Misconfiguration?");
-    ret = -1;
-    goto cleanup;
-  }
-
-  ret = check_swdid(f, 0x0bc11477);
-  if (ret)
-    goto cleanup;
-  finfo(f, "SWD ID matches 0x0bc11477\n");
-
-  ret = check_dapid(f, 0x04770031);
-  if (ret)
-    goto cleanup;
-  finfo(f, "DAP ID matches 0x04770031\n");
-
+  fdbg(f, "Connected after %d tries\n", greater_tries);
   finfo(f, "SDID: 0x%08x\n", openocd_readmem(f, 0x40048024));
   finfo(f, "FCFG1: 0x%08x\n", openocd_readmem(f, 0x4004804C));
   finfo(f, "FCFG2: 0x%08x\n", openocd_readmem(f, 0x40048050));

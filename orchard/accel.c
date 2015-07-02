@@ -318,7 +318,7 @@ void accelEnableFreefall(int sensitivity, int debounce) {
   accel_set(REG_CTRL2, 0);
 
   /* Enable portrait/landscape detection */
-  accel_set(REG_PL_CFG, REG_PL_CFG_DBCNTM | REG_PL_CFG_PL_EN);
+  //  accel_set(REG_PL_CFG, REG_PL_CFG_DBCNTM | REG_PL_CFG_PL_EN);
 
   /* Set dynamic range to +/- 2g */
   accel_set(REG_XYZ_DATA_CFG, REG_XYZ_DATA_CFG_FS_2G);
@@ -330,14 +330,16 @@ void accelEnableFreefall(int sensitivity, int debounce) {
   accel_set(REG_FF_MT_COUNT, debounce);
 
   /* Pick INT2 for the IRQs we want to enable */
-  accel_set(REG_CTRL5, REG_CTRL5_INT_CFG_FF_MT | REG_CTRL5_INT_CFG_LNDPRT);
+  //  accel_set(REG_CTRL5, REG_CTRL5_INT_CFG_FF_MT | REG_CTRL5_INT_CFG_LNDPRT);
+  accel_set(REG_CTRL5, REG_CTRL5_INT_CFG_FF_MT);
 
   /* Enable accelerometer IRQs */
-  accel_set(REG_CTRL4, REG_CTRL4_INT_EN_FF_MT | REG_CTRL4_INT_EN_LNDPRT);
+  //accel_set(REG_CTRL4, REG_CTRL4_INT_EN_FF_MT | REG_CTRL4_INT_EN_LNDPRT);
+  accel_set(REG_CTRL4, REG_CTRL4_INT_EN_FF_MT);
 
   /* Read the register to clear pending events */
   (void)accel_get(REG_FF_MT_SRC);
-  (void)accel_get(REG_PL_STATUS);
+  //(void)accel_get(REG_PL_STATUS);
   (void)accel_get(REG_PULSE_SRC);
 
   /* Re-enable the accelerometer */
@@ -394,7 +396,7 @@ void accelStart(I2CDriver *i2cp) {
   gpioxSetPadMode(GPIOX, 3, GPIOX_IN | GPIOX_IRQ_FALLING);
 
   // enable freefall by default
-  accelEnableFreefall(0x18, 50);
+  accelEnableFreefall(20, 40); // first arg somewhere between 20-24, lower is more sensitive
   
 }
 

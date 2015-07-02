@@ -112,7 +112,7 @@ void computeGeneExpression(const genome *hapM, const genome *hapP,
   expr->hue_bound = 255 - satsub_8(hapM->hue_bound, hapP->hue_bound);
   expr->lin = satadd_8(hapM->lin, hapP->lin);
   expr->strobe = satadd_8(hapM->strobe, hapP->strobe);
-  expr->accel = satadd_8(hapM->accel, hapP->accel);
+  expr->accel = (uint8_t) (((uint16_t)hapM->accel + (uint16_t)hapP->accel) / 2);
   expr->nonlin = (uint8_t) (((uint16_t) hapM->nonlin + (uint16_t) hapP->nonlin) / 2); // avg it
   // names come from the maternal side in this society
   strncpy(expr->name, hapM->name, GENE_NAMELENGTH);

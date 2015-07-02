@@ -61,6 +61,7 @@ static unsigned int waverate = 10;
 static unsigned int waveloop = 0;
 static unsigned int patternChanged = 0;
 static uint32_t reftime_lg = 0;
+static uint8_t sat_offset = 0;
 
 static int wavesign = -1;
 
@@ -233,7 +234,14 @@ static void do_lightgene(struct effects_config *config) {
   if( (curtime - reftime_lg) > tau )
     reftime_lg = curtime;
   indextime = reftime_lg - curtime;
-  
+
+  if( bumped ) {
+    bumped = 0;
+    sat_offset = satadd_8(sat_offset, map(diploid.accel, 0, 255, 0, 64));
+  } else {
+    if( (loop % 3) == 0 )
+      sat_offset = satsub_8(sat_offset, 1);
+  }
   for( i = 0; i < count; i++ ) {
     overrideHSV = 0;
     // compute one pixel's color
@@ -268,7 +276,7 @@ static void do_lightgene(struct effects_config *config) {
     hsvC.h = map_16( hsvC.h, 0, 255, diploid.hue_base, diploid.hue_bound );
 
     // saturation chromosome
-    hsvC.s = diploid.sat;
+    hsvC.s = satadd_8(diploid.sat, sat_offset);
 
     // compute the value overlay
     // use cos b/c value is 1.0 when input is 0
@@ -315,8 +323,6 @@ static void do_lightgene(struct effects_config *config) {
       // for now, do nothing...this one is a pain in the ass to implement and probably not too interesting anyways
     }
 
-    //// TODO: accelerometer effect -- modulate saturation based on accelerometer hits
-    
     // go from RGB to HSV for a particular pixel
     if( !overrideHSV ) {
       rgbC = HsvToRgb(hsvC);

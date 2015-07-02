@@ -63,6 +63,8 @@ struct factory_config {
   int         swdio_gpio;
   int         verbose;
   int         daemon;
+  int         do_reprogram;
+  int         do_tests;
 };
 
 struct factory {
@@ -75,6 +77,7 @@ struct factory {
 };
 
 struct factory *g_factory;
+static int validate_cpu(struct factory *f);
 
 /*
  * In UNIX, when a child process dies we must call wait()/waitpid() to
@@ -88,6 +91,10 @@ static void handle_sigchld(int signal) {
 
   while (-1 != (pid = waitpid(-1, &status, WNOHANG)))
     g_factory->openocd_pid = -1;
+}
+
+static void handle_sigpipe(int signal) {
+  fprintf(stderr, "Got SIGPIPE\n");
 }
 
 static void fdbg(struct factory *f, const char *format, ...) {
@@ -124,6 +131,44 @@ static void ferr(struct factory *f, const char *format, ...) {
   va_start(ap, format);
   vprintf(format, ap);
   va_end(ap);
+}
+
+static int stream_wait_banner(struct factory *f, int fd, const char *banner) {
+  int banner_size = strlen(banner);
+  uint8_t buf[banner_size];
+  int tst;
+  int offset = 0;
+  int i;
+
+  tcdrain(fd);
+
+  while (1) {
+    int ret;
+    while (1 == (ret = read(fd, &buf[offset], 1))) {
+      
+      tst = (offset + 1) % sizeof(buf);
+      
+      i = 0;
+      while (tst != offset) {
+        if (banner[i] != buf[tst])
+          break;
+        tst++;
+        i++;
+        tst %= sizeof(buf);
+      }
+      if ((tst == offset) && (banner[i] == buf[tst]))
+        return 0;
+
+      offset++;
+      offset %= sizeof(buf);
+    }
+    if ((ret == -1) && (errno != EAGAIN))
+      return -1;
+
+    /* This can happen if we lose sync (e.g. board removed during test) */
+    if (validate_cpu(f))
+      return -1;
+  }
 }
 
 static int openocd_run(struct factory *f) {
@@ -263,6 +308,65 @@ static int openocd_recv(struct factory *f, char *buf, int max) {
   return size;
 }
 
+static int strbegins(const char *str, const char *begin) {
+  return !strncmp(str, begin, strlen(begin));
+}
+
+static int openocd_write_image(struct factory *f, const char *elf) {
+  char buf[256];
+
+  snprintf(buf, sizeof(buf) - 1, "ocd_flash write_image %s", elf);
+  openocd_send(f, buf);
+
+  memset(buf, 0, sizeof(buf));
+  if (openocd_recv(f, buf, sizeof(buf)) < 0)
+    return -1;
+
+  printf("Buffer received: [%s]\n", buf);
+
+  return strstr(buf, "Failed to write memory") != NULL;
+}
+
+static uint32_t openocd_readmem(struct factory *f, uint32_t addr) {
+  char buf[256];
+
+  snprintf(buf, sizeof(buf) - 1, "ocd_mdw 0x%08x", addr);
+  openocd_send(f, buf);
+
+  if (openocd_recv(f, buf, sizeof(buf)) < 0)
+    return 0;
+
+  // 0x40048024: 16151502
+  // -----------^ 12 characters
+  return strtoul(buf + 12, NULL, 16);
+}
+
+static int kinetis_check_security(struct factory *f) {
+  char buf[256];
+
+  snprintf(buf, sizeof(buf) - 1, "ocd_kinetis mdm check_security");
+  openocd_send(f, buf);
+
+  if (openocd_recv(f, buf, sizeof(buf)) < 0)
+    return -1;
+
+  if (strbegins(buf, "MDM: Chip is unsecured. Continuing."))
+    return 0;
+  return 1;
+}
+
+static int kinetis_mass_erase(struct factory *f) {
+  char buf[256];
+
+  snprintf(buf, sizeof(buf) - 1, "ocd_kinetis mdm mass_erase");
+  openocd_send(f, buf);
+
+  if (openocd_recv(f, buf, sizeof(buf)) < 0)
+    return -1;
+
+  return 0;
+}
+
 static int check_swdid(struct factory *f, uint32_t swdid) {
   char buf[4096];
   uint32_t found_id;
@@ -275,7 +379,7 @@ static int check_swdid(struct factory *f, uint32_t swdid) {
   if (swdid == found_id)
     return 0;
 
-  finfo(f, "SWD ID 0x%08x does not match found id 0x%08x\n", swdid, found_id);
+  ferr(f, "SWD ID 0x%08x does not match found id 0x%08x\n", swdid, found_id);
   return 1;
 }
 
@@ -289,20 +393,21 @@ static int check_dapid(struct factory *f, uint32_t dapid) {
   if (dapid == found_id)
     return 0;
 
-  fdbg(f, "Buffer: [%s]\n", buf);
-  fdbg(f, "DAP ID 0x%08x does not match found id 0x%08x\n", dapid, found_id);
+  ferr(f, "DAP ID 0x%08x does not match found id 0x%08x\n", dapid, found_id);
   return 1;
 }
 
 void print_help(const char *name) {
   printf("Usage:\n");
   printf("    %s\n", name);
-  printf(" -c --config   Config file to use with OpenOCD\n");
-  printf(" -s --serial   Serial port to use for monitoring\n");
-  printf(" -k --swclk    GPIO pin to use for SWD clock\n");
-  printf(" -d --swdio    GPIO pin to use for SWD data\n");
-  printf(" -b --button   GPIO pin to use for Start button\n");
-  printf(" -v --verbose  Print more information\n");
+  printf(" -c --config     Config file to use with OpenOCD\n");
+  printf(" -s --serial     Serial port to use for monitoring\n");
+  printf(" -k --swclk      GPIO pin to use for SWD clock\n");
+  printf(" -d --swdio      GPIO pin to use for SWD data\n");
+  printf(" -b --button     GPIO pin to use for Start button\n");
+  printf(" -r --no-program Skip the programming step\n");
+  printf(" -t --no-tests   Skip the testing step\n");
+  printf(" -v --verbose    Print more information\n");
 }
 
 int parse_args(struct factory_config *cfg, int argc, char **argv) {
@@ -310,23 +415,33 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
   int c;
   int idx = 0;
   static struct option long_options[] = {
-    {"config", required_argument, NULL,  'c'},
-    {"serial", required_argument, NULL,  's'},
-    {"button", required_argument, NULL,  'b'},
-    {"swclk",  required_argument, NULL,  'k'},
-    {"swdio",  required_argument, NULL,  'd'},
-    {"reset",  required_argument, NULL,  'r'},
-    {"verbose",no_argument,       NULL,  'v'},
-    {"help",   no_argument,       NULL,  'h'},
+    {"config",        required_argument, NULL,  'c'},
+    {"serial",        required_argument, NULL,  's'},
+    {"button",        required_argument, NULL,  'b'},
+    {"swclk",         required_argument, NULL,  'k'},
+    {"swdio",         required_argument, NULL,  'd'},
+    {"reset",         required_argument, NULL,  'r'},
+    {"verbose",       no_argument,       NULL,  'v'},
+    {"no-reprogram",  no_argument,       NULL,  'r'},
+    {"no-tests",      no_argument,       NULL,  't'},
+    {"help",          no_argument,       NULL,  'h'},
   };
 
-  while ((c = getopt_long(argc, argv, "c:k:d:b:hv", long_options, &idx)) != -1) {
+  while ((c = getopt_long(argc, argv, "c:k:d:b:hvrt", long_options, &idx)) != -1) {
     switch (c) {
     case -1:
       return 0;
 
     case 'c':
       cfg->openocd_config = optarg;
+      break;
+
+    case 'r':
+      cfg->do_reprogram = 0;
+      break;
+
+    case 't':
+      cfg->do_tests = 0;
       break;
 
     case 's':
@@ -386,6 +501,8 @@ static int serial_open(struct factory *f) {
   cfsetispeed(&t, B115200);
   cfsetospeed(&t, B115200);
   cfmakeraw(&t);
+  t.c_cc[VMIN] = 0;
+  t.c_cc[VTIME] = 3; /* This lets us monitor the CPU while waiting for data */
 
   ret = tcsetattr(f->serial_fd, TCSANOW, &t);
   if (-1 == ret) {
@@ -431,6 +548,91 @@ static int openocd_stop(struct factory *f) {
   return 0;
 }
 
+static int openocd_reset_halt(struct factory *f) {
+  char buf[256];
+  int tries = 0;
+  int ret;
+
+  do {
+    openocd_send(f, "reset halt");
+    openocd_recv(f, buf, sizeof(buf));
+
+    openocd_send(f, "klx.cpu curstate");
+    ret = openocd_recv(f, buf, sizeof(buf));
+    tries++;
+  } while ((ret >= 0) && !strbegins(buf, "halted"));
+
+  finfo(f, "Halted after %d tries\n", tries);
+  return 0;
+}
+
+static int openocd_reset(struct factory *f) {
+  char buf[256];
+
+  openocd_send(f, "reset");
+  return (openocd_recv(f, buf, sizeof(buf)) < 0);
+}
+
+static int validate_cpu(struct factory *f) {
+  int ret;
+
+  ret = openocd_readmem(f, 0x40048024);
+  if (ret != 0x16151502) {
+    ferr(f, "CPU ID was 0x%08x, not 0x16151502\n", ret);
+    return -1;
+  }
+  fdbg(f, "Correct CPU ID found: 0x%08x\n", ret);
+  return 0;
+}
+
+static int orchard_reprogram(struct factory *f) {
+
+  int ret;
+
+  if (openocd_reset_halt(f))
+    return -1;
+
+  ret = validate_cpu(f);
+  if (ret)
+    return ret;
+
+  ret = kinetis_check_security(f);
+  if (ret < 0)
+    return -1;
+  else if (ret > 0) {
+    finfo(f, "CPU is locked, doing a mass erase\n");
+    kinetis_mass_erase(f);
+  }
+  else
+    finfo(f, "CPU is unlocked\n");
+
+  finfo(f, "Writing image build/orchard.elf...\n");
+  ret = openocd_write_image(f, "build/orchard.elf");
+  if (ret)
+    return -1;
+
+  return 0;
+}
+
+static int writestr(int fd, char *str) {
+  return write(fd, str, strlen(str));
+}
+
+static int orchard_run_tests(struct factory *f) {
+
+  int ret;
+
+  ret = stream_wait_banner(f, f->serial_fd, "ch> ");
+  if (ret)
+    return ret;
+
+  ret = writestr(f->serial_fd, "testall 3\r\n");
+  if (ret <= 0)
+    return ret;
+
+  return stream_wait_banner(f, f->serial_fd, "ch> ");
+}
+
 /* Restart OpenOCD, and run tests as defined in the factory configuration. */
 static int run_tests(struct factory *f) {
   int ret;
@@ -460,12 +662,42 @@ static int run_tests(struct factory *f) {
   ret = check_swdid(f, 0x0bc11477);
   if (ret)
     goto cleanup;
-  finfo(f, "SWD ID match\n");
+  finfo(f, "SWD ID matches 0x0bc11477\n");
 
   ret = check_dapid(f, 0x04770031);
   if (ret)
     goto cleanup;
-  finfo(f, "DAP ID match\n");
+  finfo(f, "DAP ID matches 0x04770031\n");
+
+  finfo(f, "SDID: 0x%08x\n", openocd_readmem(f, 0x40048024));
+  finfo(f, "FCFG1: 0x%08x\n", openocd_readmem(f, 0x4004804C));
+  finfo(f, "FCFG2: 0x%08x\n", openocd_readmem(f, 0x40048050));
+  finfo(f, "UIDMH: 0x%08x\n", openocd_readmem(f, 0x40048058));
+  finfo(f, "UIDML: 0x%08x\n", openocd_readmem(f, 0x4004805C));
+  finfo(f, "UIDL: 0x%08x\n", openocd_readmem(f, 0x40048060));
+
+  if (f->cfg.do_reprogram) {
+    finfo(f, "Reprogramming board\n");
+    ret = orchard_reprogram(f);
+    if (ret)
+      goto cleanup;
+  }
+  else
+    finfo(f, "Skipping board reprogramming step\n");
+
+  finfo(f, "Resetting board\n");
+  ret = openocd_reset(f);
+  if (ret)
+    goto cleanup;
+
+  if (f->cfg.do_tests) {
+    finfo(f, "Running tests\n");
+    ret = orchard_run_tests(f);
+    if (ret)
+      goto cleanup;
+  }
+  else
+    finfo(f, "Skipping board testing step\n");
 
 cleanup:
   openocd_stop(f);
@@ -501,10 +733,15 @@ static int open_write_close(const char *name, const char *valstr)
 static int config_button_rpi(struct factory *f) {
   /* Couldn't get this code to work, using library instead */
 #if 1
-  return system("python -c \""
-                "import RPi.GPIO as GPIO; "
-                "GPIO.setmode(GPIO.BCM); "
-                "GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_UP)\"");
+  char pyprog[512];
+
+  snprintf(pyprog, sizeof(pyprog)-1, 
+        "python -c \""
+        "import RPi.GPIO as GPIO; "
+        "GPIO.setmode(GPIO.BCM); "
+        "GPIO.setup(%d, GPIO.IN, pull_up_down=GPIO.PUD_UP)\"",
+        f->cfg.button_gpio);
+  return system(pyprog);
 #else
 static void delay_clocks(int cycles) {
   int i;
@@ -610,23 +847,29 @@ cleanup:
   return ret;
 }
 
-static int wait_for_button_press(struct factory *f) {
+static int button_pressed(struct factory *f) {
+
   char bfr;
   int ret;
 
   if (f->button_fd == -1)
-    return 0;
+    return 1;
 
-  fdbg(f, "Waiting for button press...\n");
-  do {
-    lseek(f->button_fd, 0, SEEK_SET);
-    ret = read(f->button_fd, &bfr, sizeof(bfr));
+  lseek(f->button_fd, 0, SEEK_SET);
+  ret = read(f->button_fd, &bfr, sizeof(bfr));
 
-    if (ret < 0) {
-      ferr(f, "Unable to read GPIO value: %s\n", strerror(errno));
-      return -1;
-    }
-  } while (bfr == '1');
+  if (ret < 0) {
+    ferr(f, "Unable to read GPIO value: %s\n", strerror(errno));
+    return -1;
+  }
+
+  return (bfr == '0');
+}
+
+static int wait_for_button_press(struct factory *f) {
+
+  finfo(f, "Waiting for button press...\n");
+  while (!button_pressed(f));
   fdbg(f, "Button press detected\n");
   return 0;
 }
@@ -644,9 +887,12 @@ int main(int argc, char **argv) {
   f.cfg.swclk_gpio = -1;
   f.cfg.swdio_gpio = -1;
   f.cfg.button_gpio = -1;
+  f.cfg.do_reprogram = 1;
+  f.cfg.do_tests = 1;
 
   atexit(cleanup);
   signal(SIGCHLD, handle_sigchld);
+  signal(SIGPIPE, handle_sigpipe);
 
   if (getuid() != 0) {
     fprintf(stderr, "%s must be run as root\n", argv[0]);

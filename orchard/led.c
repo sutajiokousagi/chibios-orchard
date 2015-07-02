@@ -211,7 +211,7 @@ static Color Wheel(uint8_t wheelPos) {
 static void do_lightgene(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   uint32_t count = config->count;
-  uint32_t loop = config->loop & 0xFF;
+  uint32_t loop = config->loop & 0x1FF;
   uint32_t shoot;
   HsvColor hsvC;
   RgbColor rgbC;
@@ -225,6 +225,7 @@ static void do_lightgene(struct effects_config *config) {
   uint8_t overshift;
   uint32_t hue_rate;
   uint8_t hue_dir;
+  uint32_t hue_temp;
   // diploid is static to this function and set when the lightgene is selected
 
   tau = (uint32_t) map(diploid.cd_rate, 0, 255, 700, 8000);
@@ -239,8 +240,7 @@ static void do_lightgene(struct effects_config *config) {
     // count is the current pixel index
     // loop is the current point in effect cycle, e.g. all effects loop on a 0-255 basis
 
-    //// TODO: fix hue cycling -- it doesn't move as often as expected
-    //// TODO: fix hue continuity -- at the moment it has a discontinuity, should ramp up and down
+    //// TODO: fix hue cycling -- it moves way too fast to be interesting
     // hue chromosome
     hue_rate = (uint32_t) diploid.hue_ratedir & 0xF;
     hue_dir = (((diploid.hue_ratedir >> 4) & 0xF) > 10) ? 1 : 0;
@@ -248,18 +248,22 @@ static void do_lightgene(struct effects_config *config) {
       refactor: we want the pattern applied from 0-7 to be inversely applied from 8-15
       0 1 2 3 4 5 6 7  7 6 5 4 3 2 1 0
      */
-    // 254L cheesily avoids rounding errors. 
+    // 254L cheesily avoids rounding errors.
     if( !hue_dir ) {
-      if( i < (count / 2) ) { // common variant: cyclic
-	hsvC.h = (uint8_t) ((254L / (count / 2)) * (i + (loop * hue_rate)) - 0L);
-      } else {
-	hsvC.h = (uint8_t) ((254L / (count / 2)) * ((count - i) + (loop * hue_rate)) - 0L);
+      hue_temp = ((256L / (count / 2)) * i + (loop * hue_rate)) - 0L;
+      hue_temp &= 0x1FF;
+      if( hue_temp <= 0xFF )
+	hsvC.h = (uint8_t) hue_temp;
+      else {
+	hsvC.h = (uint8_t) (511-hue_temp);
       }
     } else {
-      if( i < (count / 2) ) { // rare variant: symmetric
-	hsvC.h = (uint8_t) ((254L / (count / 2)) * (i + (loop * hue_rate)) - 0L);
-      } else {
-	hsvC.h = (uint8_t) ((254L / (count / 2)) * ((count - i) - (loop * hue_rate)) - 0L);
+      hue_temp = ((256L / (count / 2)) * i - (loop * hue_rate)) - 0L;
+      hue_temp &= 0x1FF;
+      if( hue_temp <= 0xFF )
+	hsvC.h = (uint8_t) hue_temp;
+      else {
+	hsvC.h = (uint8_t) (511-hue_temp);
       }
     }
     

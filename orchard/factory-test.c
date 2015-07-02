@@ -13,10 +13,18 @@
  * This test program will flash the DUT and will then run all tests.  If
  * you need to run individual tests, or flash the board separately, arguments
  * may be passed to this program.
+ *
+ * An example invocation might be:
+    sudo ./factory-test \
+           --swclk 20 \
+           --swdio 21 \
+           --button 26 \
+           --serial /dev/ttyAMA0 
  */
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,6 +38,11 @@
 #include <termios.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
+enum log_levels {
+  LOGF_NONE = 0,
+  LOGF_INFO = 1,
+  LOGF_DEBUG = 2,
+};
 
 const char *openocd_default_args[] = {
   "openocd",
@@ -46,42 +59,58 @@ struct factory_config {
   int         swclk_gpio;
   int         swdio_gpio;
   int         verbose;
+  int         daemon;
 };
 
-struct factory_flasher {
+struct factory {
   int                   openocd_sock; /* TCL socket */
   int                   openocd_pid;  /* Process PID */
   int                   serial_fd;    /* TTL UART file */
+  struct termios        serial_old_termios; /* Restore settings on exit */
   struct factory_config cfg;
 };
 
-struct factory_flasher *g_factory;
+struct factory *g_factory;
 
-static void reap_children(int signal) {
+/*
+ * In UNIX, when a child process dies we must call wait()/waitpid() to
+ * reap the child, otherwise we'll get zombie processes.  The standard way
+ * to do this (and what we do here) is to listen for SIGCHLD which indicates
+ * that a child process has stopped or terminated, and then call waidpid().
+ */
+static void handle_sigchld(int signal) {
   int status;
   pid_t pid;
 
-  fprintf(stderr, "Got SIGCHLD\n");
-
-  while (-1 != (pid = waitpid(-1, &status, WNOHANG))) {
-    fprintf(stderr, "Child %d returned %d\n", pid, status);
+  while (-1 != (pid = waitpid(-1, &status, WNOHANG)))
     g_factory->openocd_pid = -1;
-  }
-  fprintf(stderr, "Done reaping\n");
 }
 
-static void cleanup(void) {
-  if (g_factory->openocd_pid != -1)
-    kill(g_factory->openocd_pid, SIGTERM);
+static void fdbg(struct factory *f, const char *format, ...) {
 
-  if (g_factory->openocd_sock != -1) {
-    (void) shutdown(g_factory->openocd_sock, SHUT_RDWR);
-    close(g_factory->openocd_sock);
-  }
-  g_factory->openocd_sock = -1;
+  va_list ap;
+
+  if (f->cfg.verbose < LOGF_DEBUG)
+    return;
+
+  va_start(ap, format);
+  vprintf(format, ap);
+  va_end(ap);
 }
 
-static int openocd_run(struct factory_flasher *factory) {
+static void finfo(struct factory *f, const char *format, ...) {
+
+  va_list ap;
+
+  if (f->cfg.verbose < LOGF_INFO)
+    return;
+
+  va_start(ap, format);
+  vprintf(format, ap);
+  va_end(ap);
+}
+
+static int openocd_run(struct factory *f) {
   const char *openocd_args[ARRAY_SIZE(openocd_default_args) + 7];
   char swdio_str[128];
   char swclk_str[128];
@@ -90,35 +119,35 @@ static int openocd_run(struct factory_flasher *factory) {
   for (i = 0; i < ARRAY_SIZE(openocd_default_args); i++)
     openocd_args[i] = openocd_default_args[i];
 
-  if (factory->cfg.swdio_gpio >= 0) {
+  if (f->cfg.swdio_gpio >= 0) {
     snprintf(swdio_str, sizeof(swdio_str) - 1, "sysfsgpio_swdio_num %d",
-        factory->cfg.swdio_gpio);
+        f->cfg.swdio_gpio);
     openocd_args[i++] = "-c";
     openocd_args[i++] = swdio_str;
   }
 
-  if (factory->cfg.swclk_gpio >= 0) {
+  if (f->cfg.swclk_gpio >= 0) {
     snprintf(swclk_str, sizeof(swclk_str) - 1, "sysfsgpio_swclk_num %d",
-        factory->cfg.swclk_gpio);
+        f->cfg.swclk_gpio);
     openocd_args[i++] = "-c";
     openocd_args[i++] = swclk_str;
   }
 
-  if (factory->cfg.openocd_config) {
+  if (f->cfg.openocd_config) {
     openocd_args[i++] = "-f";
-    openocd_args[i++] = factory->cfg.openocd_config;
+    openocd_args[i++] = f->cfg.openocd_config;
   }
 
   openocd_args[i++] = NULL;
 
-  factory->openocd_pid = fork();
-  if (factory->openocd_pid == -1) {
+  f->openocd_pid = fork();
+  if (f->openocd_pid == -1) {
     perror("Unable to fork");
     return -1;
   }
 
-  if (factory->openocd_pid == 0) {
-    if (!factory->cfg.verbose) {
+  if (f->openocd_pid == 0) {
+    if (f->cfg.verbose < LOGF_DEBUG) {
       close(STDIN_FILENO);
       close(STDOUT_FILENO);
       close(STDERR_FILENO);
@@ -128,19 +157,19 @@ static int openocd_run(struct factory_flasher *factory) {
     return -1;
   }
 
-  return factory->openocd_pid;
+  return 0;
 }
 
-static int openocd_connect(struct factory_flasher *factory) {
+static int openocd_connect(struct factory *f) {
 
   const char *address = "127.0.0.1";
   const int port = 6666;
   struct sockaddr_in sockaddr;
   int ret;
 
-  factory->openocd_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  f->openocd_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   
-  if (-1 == factory->openocd_sock) {
+  if (-1 == f->openocd_sock) {
     perror("cannot create socket");
     return -1;
   }
@@ -160,7 +189,7 @@ static int openocd_connect(struct factory_flasher *factory) {
     goto err;
   }
 
-  if (-1 == connect(factory->openocd_sock,
+  if (-1 == connect(f->openocd_sock,
                     (struct sockaddr *)&sockaddr,
                     sizeof(sockaddr))) {
     perror("connect failed");
@@ -170,25 +199,25 @@ static int openocd_connect(struct factory_flasher *factory) {
   return 0;
   
 err:
-  close(factory->openocd_sock);
-  factory->openocd_sock = -1;
+  close(f->openocd_sock);
+  f->openocd_sock = -1;
   return -1;
 }
 
-static int openocd_send(struct factory_flasher *factory, const char *msg) {
+static int openocd_send(struct factory *f, const char *msg) {
   int ret;
   int len;
   char token = 0x1a;
 
   len = strlen(msg);
 
-  ret = write(factory->openocd_sock, msg, len);
+  ret = write(f->openocd_sock, msg, len);
   if (ret != len) {
     perror("Unable to write");
     return -1;
   }
 
-  ret = write(factory->openocd_sock, &token, 1);
+  ret = write(f->openocd_sock, &token, 1);
   if (ret != 1) {
     perror("Unable to write token");
     return -1;
@@ -196,7 +225,7 @@ static int openocd_send(struct factory_flasher *factory, const char *msg) {
   return 0;
 }
 
-static int openocd_recv(struct factory_flasher *factory, char *buf, int max) {
+static int openocd_recv(struct factory *f, char *buf, int max) {
   int ret;
   int size;
 
@@ -204,7 +233,7 @@ static int openocd_recv(struct factory_flasher *factory, char *buf, int max) {
   while (size < max) {
     char c;
 
-    ret = read(factory->openocd_sock, &c, 1);
+    ret = read(f->openocd_sock, &c, 1);
     if (ret != 1) {
       perror("Unable to read");
       return -1;
@@ -218,11 +247,11 @@ static int openocd_recv(struct factory_flasher *factory, char *buf, int max) {
   return size;
 }
 
-static int check_swdid(struct factory_flasher *factory, uint32_t swdid) {
+static int check_swdid(struct factory *f, uint32_t swdid) {
   char buf[4096];
   uint32_t found_id;
-  openocd_send(factory, "ocd_transport init");
-  openocd_recv(factory, buf, sizeof(buf));
+  openocd_send(f, "ocd_transport init");
+  openocd_recv(f, buf, sizeof(buf));
 
   // SWD IDCODE 0x00000000
   // ----------^ 11 characters
@@ -230,22 +259,22 @@ static int check_swdid(struct factory_flasher *factory, uint32_t swdid) {
   if (swdid == found_id)
     return 0;
 
-  printf("SWD ID 0x%08x does not match found id 0x%08x\n", swdid, found_id);
+  finfo(f, "SWD ID 0x%08x does not match found id 0x%08x\n", swdid, found_id);
   return 1;
 }
 
-static int check_dapid(struct factory_flasher *factory, uint32_t dapid) {
+static int check_dapid(struct factory *f, uint32_t dapid) {
   char buf[4096];
   uint32_t found_id;
-  openocd_send(factory, "ocd_dap apid");
-  openocd_recv(factory, buf, sizeof(buf));
+  openocd_send(f, "ocd_dap apid");
+  openocd_recv(f, buf, sizeof(buf));
 
   found_id = strtoul(buf, NULL, 0);
   if (dapid == found_id)
     return 0;
 
-  printf("Buffer: [%s]\n", buf);
-  printf("DAP ID 0x%08x does not match found id 0x%08x\n", dapid, found_id);
+  fdbg(f, "Buffer: [%s]\n", buf);
+  fdbg(f, "DAP ID 0x%08x does not match found id 0x%08x\n", dapid, found_id);
   return 1;
 }
 
@@ -301,7 +330,7 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
       break;
 
     case 'v':
-      cfg->verbose = 1;
+      cfg->verbose++;
       break;
 
     case 'h':
@@ -317,94 +346,147 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
   return 0;
 }
 
-static int serial_open(struct factory_flasher *factory) {
+static int serial_open(struct factory *f) {
   struct termios t;
   int ret;
 
-  if (!factory->cfg.serial_path)
+  if (!f->cfg.serial_path)
     return 0;
 
-  factory->serial_fd = open(factory->cfg.serial_path, O_RDWR);
-  if (-1 == factory->serial_fd) {
+  f->serial_fd = open(f->cfg.serial_path, O_RDWR);
+  if (-1 == f->serial_fd) {
     perror("Unable to open serial port");
     return -1;
   }
 
-  ret = tcgetattr(factory->serial_fd, &t);
+  ret = tcgetattr(f->serial_fd, &t);
   if (-1 == ret) {
     perror("Failed to get attributes");
     goto err;
   }
+  f->serial_old_termios = t;
 
   cfsetispeed(&t, B115200);
   cfsetospeed(&t, B115200);
   cfmakeraw(&t);
 
-  ret = tcsetattr(factory->serial_fd, TCSANOW, &t);
+  ret = tcsetattr(f->serial_fd, TCSANOW, &t);
   if (-1 == ret) {
     perror("Failed to set attributes");
     goto err;
   }
 
+  return 0;
+
 err:
-  close(factory->serial_fd);
-  factory->serial_fd = -1;
+  close(f->serial_fd);
+  f->serial_fd = -1;
   return -1;
+}
+
+static int serial_close(struct factory *f) {
+
+  if (f->serial_fd == -1)
+    return 0;
+
+  tcsetattr(f->serial_fd, TCSANOW, &f->serial_old_termios);
+  close(f->serial_fd);
+  f->serial_fd = -1;
+
+  return 0;
+}
+
+static int openocd_stop(struct factory *f) {
+
+  if (f->openocd_pid != -1)
+    kill(f->openocd_pid, SIGTERM);
+  /* Don't reset openocd_pid, since it will be caught by the handler. */
+#warning "Make sure this doesn't need a waitpid here, too"
+
+  if (f->openocd_sock != -1) {
+    (void) shutdown(f->openocd_sock, SHUT_RDWR);
+    close(f->openocd_sock);
+  }
+  f->openocd_sock = -1;
+
+  return 0;
+}
+
+/* Restart OpenOCD, and run tests as defined in the factory configuration. */
+static int run_tests(struct factory *f) {
+  int ret;
+
+  ret = serial_open(f);
+  if (ret)
+    goto cleanup;
+
+  ret = openocd_run(f);
+  if (ret)
+    goto cleanup;
+
+  int tries = 0;
+  /* Keep trying to connect as long as OpenOCD is still running */
+  while ((f->openocd_pid != -1) && (f->openocd_sock == -1)) {
+    usleep(50000);
+    openocd_connect(f);
+    tries++;
+  }
+
+  if ((f->openocd_pid == -1) || (f->openocd_sock == -1)) {
+    finfo(f, "OpenOCD quit.  Misconfiguration?");
+    ret = -1;
+    goto cleanup;
+  }
+
+  ret = check_swdid(f, 0x0bc11477);
+  if (ret)
+    goto cleanup;
+  finfo(f, "SWD ID match\n");
+
+  ret = check_dapid(f, 0x04770031);
+  if (ret)
+    goto cleanup;
+  finfo(f, "DAP ID match\n");
+
+cleanup:
+  openocd_stop(f);
+  serial_close(f);
+
+  return ret;
+}
+
+/* Clean up child processes on exit */
+static void cleanup(void) {
+  openocd_stop(g_factory);
+  serial_close(g_factory);
 }
 
 int main(int argc, char **argv) {
 
-  struct factory_flasher factory;
-  g_factory = &factory;
+  struct factory f;
+  g_factory = &f;
 
-  memset(&factory, 0, sizeof(factory));
-  factory.openocd_pid = -1;
-  factory.openocd_sock = -1;
-  factory.serial_fd = -1;
-  factory.cfg.swclk_gpio = -1;
-  factory.cfg.swdio_gpio = -1;
+  memset(&f, 0, sizeof(f));
+  f.openocd_pid = -1;
+  f.openocd_sock = -1;
+  f.serial_fd = -1;
+  f.cfg.swclk_gpio = -1;
+  f.cfg.swdio_gpio = -1;
 
   atexit(cleanup);
-  signal(SIGCHLD, reap_children);
+  signal(SIGCHLD, handle_sigchld);
 
   if (getuid() != 0) {
     fprintf(stderr, "%s must be run as root\n", argv[0]);
     return 1;
   }
 
-  if (parse_args(&factory.cfg, argc, argv))
+  if (parse_args(&f.cfg, argc, argv))
     return 1;
 
-  if (serial_open(&factory))
-    return -1;
-
-  {
-    openocd_run(&factory);
-
-    int tries = 0;
-    /* Keep trying to connect as long as OpenOCD is still running */
-    while ((factory.openocd_pid != -1) && (factory.openocd_sock == -1)) {
-      usleep(50000);
-      openocd_connect(&factory);
-      tries++;
-    }
-
-    if (factory.openocd_pid == -1) {
-      printf("OpenOCD quit.  Misconfiguration?");
-      return 1;
-    }
-
-    printf("Connected to OpenOCD with fd %d after %d tries\n",
-        factory.openocd_sock, tries);
-
-    if (check_swdid(&factory, 0x0bc11477))
-      return 1;
-    printf("SWD ID match\n");
-
-    if (check_dapid(&factory, 0x04770031))
-      return 1;
-    printf("DAP ID match\n");
-  }
+  do {
+    run_tests(&f);
+  } while (f.cfg.daemon);
 
   return 0;
 }

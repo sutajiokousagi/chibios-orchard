@@ -239,7 +239,7 @@ static void do_lightgene(struct effects_config *config) {
     bumped = 0;
     sat_offset = satadd_8(sat_offset, map(diploid.accel, 0, 255, 0, 64));
   } else {
-    if( (loop % 3) == 0 )
+    if( (loop % 3) == 0 )  // cheesy make the time constant to baseline longer.
       sat_offset = satsub_8(sat_offset, 1);
   }
   for( i = 0; i < count; i++ ) {

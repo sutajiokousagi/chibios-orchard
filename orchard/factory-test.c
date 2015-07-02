@@ -762,6 +762,11 @@ try_again:
   if (ret)
     goto cleanup;
 
+  if (f->serial_fd == -1) {
+    finfo(f, "No serial port specified, skipping tests\n");
+    goto cleanup;
+  }
+
   ret = stream_wait_banner(f, f->serial_fd, "ch> ");
   if (ret)
     goto cleanup;

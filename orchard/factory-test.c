@@ -47,6 +47,12 @@ enum log_levels {
   LOGF_DEBUG = 3,
 };
 
+enum test_state {
+  TEST_FAIL,
+  TEST_INPROGRESS,
+  TEST_PASS,
+};
+
 const char *openocd_default_args[] = {
   "openocd",
   "-c", "interface sysfsgpio",
@@ -58,11 +64,15 @@ const char *openocd_default_args[] = {
 struct factory_config {
   const char *openocd_config;
   const char *serial_path;
+  const char *image;
   const char **specific_test_names;
   uint32_t    specific_tests;
   int         button_gpio;
   int         swclk_gpio;
   int         swdio_gpio;
+  int         green_gpio;
+  int         yellow_gpio;
+  int         red_gpio;
   int         verbose;
   int         daemon;
   int         do_program;
@@ -74,6 +84,10 @@ struct factory {
   int                   openocd_sock; /* TCL socket */
   int                   openocd_pid;  /* Process PID */
   int                   serial_fd;    /* TTL UART file */
+  int                   green_fd;     /* GPIO fd for green LED */
+  int                   yellow_fd;    /* GPIO fd for yellow LED */
+  int                   red_fd;       /* GPIO fd for red LED */
+  enum test_state       test_state;   /* Currently-displayed state */
   struct termios        serial_old_termios; /* Restore settings on exit */
   struct factory_config cfg;
 };
@@ -101,6 +115,12 @@ static void handle_sigchld(int signal) {
 static void handle_sigterm(int signal) {
   openocd_stop(g_factory);
   serial_close(g_factory);
+  if (g_factory->button_fd) {
+    close(g_factory->button_fd);
+    g_factory->button_fd = -1;
+  }
+  g_factory->cfg.daemon = 0;
+  exit(1);
 }
 
 static void fdbg(struct factory *f, const char *format, ...) {
@@ -111,7 +131,7 @@ static void fdbg(struct factory *f, const char *format, ...) {
     return;
 
   va_start(ap, format);
-  vprintf(format, ap);
+  vfprintf(stderr, format, ap);
   va_end(ap);
 }
 
@@ -123,7 +143,7 @@ static void finfo(struct factory *f, const char *format, ...) {
     return;
 
   va_start(ap, format);
-  vprintf(format, ap);
+  vfprintf(stderr, format, ap);
   va_end(ap);
 }
 
@@ -135,7 +155,7 @@ static void ferr(struct factory *f, const char *format, ...) {
     return;
 
   va_start(ap, format);
-  vprintf(format, ap);
+  vfprintf(stderr, format, ap);
   va_end(ap);
 }
 
@@ -408,12 +428,16 @@ void print_help(const char *name) {
   printf("    %s\n", name);
   printf(" -c --config     Config file to use with OpenOCD\n");
   printf(" -s --serial     Serial port to use for monitoring\n");
+  printf(" -e --elf        ELF image to program\n");
   printf(" -k --swclk      GPIO pin to use for SWD clock\n");
   printf(" -d --swdio      GPIO pin to use for SWD data\n");
   printf(" -b --button     GPIO pin to use for Start button\n");
+  printf(" -0 --green      GPIO pin to use for Green LED\n");
+  printf(" -1 --yellow     GPIO pin to use for Yellow LED\n");
+  printf(" -2 --red        GPIO pin to use for RED LED\n");
   printf(" -p --no-program Skip the programming step\n");
   printf(" -t --no-tests   Skip the testing step\n");
-  printf(" -l --run-test   Runs a specific test.  May be specified multiple times.\n");
+  printf(" -r --run-test   Runs a specific test.  May be specified multiple times.\n");
   printf(" -v --verbose    Increase verbosity.  May be specified multiple times.\n");
 }
 
@@ -424,9 +448,13 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
   static struct option long_options[] = {
     {"config",        required_argument, NULL,  'c'},
     {"serial",        required_argument, NULL,  's'},
+    {"elf",           required_argument, NULL,  'e'},
     {"button",        required_argument, NULL,  'b'},
     {"swclk",         required_argument, NULL,  'k'},
     {"swdio",         required_argument, NULL,  'd'},
+    {"green",         required_argument, NULL,  '0'},
+    {"yellow",        required_argument, NULL,  '1'},
+    {"red",           required_argument, NULL,  '2'},
     {"run-test",      required_argument, NULL,  'r'},
     {"verbose",       no_argument,       NULL,  'v'},
     {"no-program",    no_argument,       NULL,  'p'},
@@ -434,13 +462,29 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
     {"help",          no_argument,       NULL,  'h'},
   };
 
-  while ((c = getopt_long(argc, argv, "c:k:d:b:r:hvpt", long_options, &idx)) != -1) {
+  while ((c = getopt_long(argc, argv, "c:k:d:b:r:e:0:1:2:hvpt", long_options, &idx)) != -1) {
     switch (c) {
     case -1:
       return 0;
 
+    case '0':
+      cfg->green_gpio = strtoul(optarg, NULL, 0);
+      break;
+
+    case '1':
+      cfg->yellow_gpio = strtoul(optarg, NULL, 0);
+      break;
+
+    case '2':
+      cfg->red_gpio = strtoul(optarg, NULL, 0);
+      break;
+
+    case 'e':
+      cfg->image = strdup(optarg);
+      break;
+
     case 'c':
-      cfg->openocd_config = optarg;
+      cfg->openocd_config = strdup(optarg);
       break;
 
     case 'p':
@@ -460,7 +504,7 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
       break;
 
     case 's':
-      cfg->serial_path = optarg;
+      cfg->serial_path = strdup(optarg);
       break;
 
     case 'b':
@@ -626,7 +670,11 @@ static int validate_cpu(struct factory *f) {
   ret = openocd_readmem(f, 0x40048024);
   if (ret != 0x16151502) {
     ferr(f, "CPU ID was 0x%08x, not 0x16151502\n", ret);
-    return -1;
+    ret = openocd_readmem(f, 0x40048024);
+    if (ret != 0x16151502) {
+      ferr(f, "2nd try: CPU ID was 0x%08x, not 0x16151502\n", ret);
+      return -1;
+    }
   }
   fdbg(f, "Correct CPU ID found: 0x%08x\n", ret);
   return 0;
@@ -653,10 +701,12 @@ static int orchard_program(struct factory *f) {
   else
     finfo(f, "CPU is unlocked\n");
 
-  finfo(f, "Writing image build/orchard.elf...\n");
-  ret = openocd_write_image(f, "build/orchard.elf");
-  if (ret)
-    return -1;
+  if (f->cfg.image) {
+    finfo(f, "Writing image %s...\n", f->cfg.image);
+    ret = openocd_write_image(f, f->cfg.image);
+    if (ret)
+      return -1;
+  }
 
   return 0;
 }
@@ -927,6 +977,52 @@ cleanup:
   return ret;
 }
 
+static int open_leds(struct factory *f) {
+
+  int ret = -1;
+  char str[512];
+  int gpios[3];
+  int *fds[3];
+  int led;
+  
+  gpios[0] = f->cfg.green_gpio;
+  fds[0] = &f->green_fd;
+  gpios[1] = f->cfg.yellow_gpio;
+  fds[0] = &f->yellow_fd;
+  gpios[2] = f->cfg.red_gpio;
+  fds[0] = &f->red_fd;
+
+  for (led = 0; led < 3; led++) {
+    if (gpios[led] < 0)
+      continue;
+
+    snprintf(str, sizeof(str) - 1, "%d", gpios[led]);
+    ret = open_write_close("/sys/class/gpio/export", str);
+    if (ret && (errno != EBUSY))  {
+      ferr(f, "Unable to export GPIO: %s\n", strerror(errno));
+      return ret;
+    }
+
+    snprintf(str, sizeof(str) - 1, "/sys/class/gpio/gpio%d/direction",
+        gpios[led]);
+    ret = open_write_close(str, "low");
+    if (ret) {
+      ferr(f, "Unable to set GPIO as output: %s\n", strerror(errno));
+      return ret;
+    }
+
+    snprintf(str, sizeof(str), "/sys/class/gpio/gpio%d/value", gpios[led]);
+    ret = open(str, O_RDWR | O_NONBLOCK | O_SYNC);
+    if (ret < 0) {
+      ferr(f, "Unable to open GPIO: %s\n", strerror(errno));
+      return ret;
+    }
+
+    *fds[led] = ret;
+  }
+  return 0;
+}
+
 static int button_pressed(struct factory *f) {
 
   char bfr;
@@ -938,7 +1034,12 @@ static int button_pressed(struct factory *f) {
   lseek(f->button_fd, 0, SEEK_SET);
   ret = read(f->button_fd, &bfr, sizeof(bfr));
 
-  if (ret < 0) {
+  if (ret != 1) {
+    if ((ret == -1) && (errno == EAGAIN)) {
+      if (f->button_fd == -1)
+        return -1;
+      return button_pressed(f);
+    }
     ferr(f, "Unable to read GPIO value: %s\n", strerror(errno));
     return -1;
   }
@@ -948,12 +1049,37 @@ static int button_pressed(struct factory *f) {
 
 static int wait_for_button_press(struct factory *f) {
 
+  int ret;
   if (f->button_fd < 0)
     return 0;
 
   finfo(f, "Waiting for button press...\n");
-  while (!button_pressed(f));
+  while (1) {
+    ret = button_pressed(f);
+    if (ret == -1) {
+      ferr(f, "Unable to press button\n");
+      return -1;
+    }
+    if (ret == 1)
+      break;
+  }
   fdbg(f, "Button press detected\n");
+  return 0;
+}
+
+static int test_setstate(struct factory *f, enum test_state state) {
+
+  const char zero[] = "0";
+  const char one[] = "1";
+
+  f->test_state = state;
+
+  if (f->red_fd != -1)
+    write(f->red_fd, (state == TEST_FAIL) ? one : zero, 1);
+  if (f->yellow_fd != -1)
+    write(f->yellow_fd, (state == TEST_INPROGRESS) ? one : zero, 1);
+  if (f->green_fd != -1)
+    write(f->green_fd, (state == TEST_PASS) ? one : zero, 1);
   return 0;
 }
 
@@ -967,9 +1093,15 @@ int main(int argc, char **argv) {
   f.openocd_sock = -1;
   f.button_fd = -1;
   f.serial_fd = -1;
+  f.green_fd = -1;
+  f.yellow_fd = -1;
+  f.red_fd = -1;
   f.cfg.swclk_gpio = -1;
   f.cfg.swdio_gpio = -1;
   f.cfg.button_gpio = -1;
+  f.cfg.green_gpio = -1;
+  f.cfg.yellow_gpio = -1;
+  f.cfg.red_gpio = -1;
   f.cfg.do_program = 1;
   f.cfg.do_tests = 1;
 
@@ -988,9 +1120,17 @@ int main(int argc, char **argv) {
   if (open_button(&f))
     return 1;
 
+  if (open_leds(&f))
+    return 1;
+
+  test_setstate(&f, TEST_PASS);
   do {
     wait_for_button_press(&f);
-    run_tests(&f);
+    test_setstate(&f, TEST_INPROGRESS);
+    if (run_tests(&f))
+      test_setstate(&f, TEST_FAIL);
+    else
+      test_setstate(&f, TEST_PASS);
   } while (f.cfg.daemon);
 
   openocd_stop(&f);

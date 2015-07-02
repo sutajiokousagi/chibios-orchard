@@ -986,11 +986,11 @@ static int open_leds(struct factory *f) {
   int led;
   
   gpios[0] = f->cfg.green_gpio;
-  fds[0] = &f->green_fd;
+  fds[0] = &(f->green_fd);
   gpios[1] = f->cfg.yellow_gpio;
-  fds[0] = &f->yellow_fd;
+  fds[1] = &(f->yellow_fd);
   gpios[2] = f->cfg.red_gpio;
-  fds[0] = &f->red_fd;
+  fds[2] = &(f->red_fd);
 
   for (led = 0; led < 3; led++) {
     if (gpios[led] < 0)

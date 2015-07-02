@@ -81,6 +81,8 @@ struct factory {
 struct factory *g_factory;
 static int validate_cpu(struct factory *f);
 static int button_pressed(struct factory *f);
+static int openocd_stop(struct factory *f);
+static int serial_close(struct factory *f);
 
 /*
  * In UNIX, when a child process dies we must call wait()/waitpid() to
@@ -94,6 +96,11 @@ static void handle_sigchld(int signal) {
 
   while (-1 != (pid = waitpid(-1, &status, WNOHANG)))
     g_factory->openocd_pid = -1;
+}
+
+static void handle_sigterm(int signal) {
+  openocd_stop(g_factory);
+  serial_close(g_factory);
 }
 
 static void handle_sigpipe(int signal) {
@@ -546,9 +553,42 @@ static int openocd_stop(struct factory *f) {
 
   if (f->openocd_pid != -1) {
     int status;
+    int tries;
+    fprintf(stderr, "Sending SIGTERM to child %d\n", f->openocd_pid);
     kill(f->openocd_pid, SIGTERM);
-    wait(&status);
-    f->openocd_pid = -1;
+
+    for (tries = 0; tries < 200; tries++) {
+      pid_t pid = waitpid(-1, &status, WNOHANG);
+      if (pid == 0) {
+        usleep(1000);
+        continue;
+      }
+      f->openocd_pid = -1;
+      break;
+    }
+    if (f->openocd_pid == -1) {
+      fdbg(f, "OpenOCD quit after %d tries\n", tries);
+    }
+    else {
+      fdbg(f, "OpenOCD would not quit, sending SIGKILL\n");
+      kill(f->openocd_pid, SIGKILL);
+      for (tries = 0; tries < 200; tries++) {
+        pid_t pid = waitpid(-1, &status, WNOHANG);
+        if (pid == 0) {
+          usleep(1000);
+          continue;
+        }
+        f->openocd_pid = -1;
+        break;
+      }
+      if (f->openocd_pid == -1) {
+        fdbg(f, "OpenOCD quit after SIGKILL, after %d tries\n", tries);
+      }
+      else {
+        fdbg(f, "OpenOCD wouldn't quit\n");
+        f->openocd_pid = -1;
+      }
+    }
   }
 
   if (f->openocd_sock != -1) {
@@ -684,7 +724,7 @@ static int run_tests(struct factory *f) {
 
     ret = check_swdid(f, 0x0bc11477);
     if (ret)
-      goto try_again;
+      goto cleanup;
     finfo(f, "SWD ID matches 0x0bc11477\n");
 
     ret = check_dapid(f, 0x04770031);
@@ -750,12 +790,6 @@ cleanup:
   serial_close(f);
 
   return ret;
-}
-
-/* Clean up child processes on exit */
-static void cleanup(void) {
-  openocd_stop(g_factory);
-  serial_close(g_factory);
 }
 
 static int open_write_close(const char *name, const char *valstr)
@@ -939,9 +973,10 @@ int main(int argc, char **argv) {
   f.cfg.do_program = 1;
   f.cfg.do_tests = 1;
 
-  atexit(cleanup);
   signal(SIGCHLD, handle_sigchld);
   signal(SIGPIPE, handle_sigpipe);
+  signal(SIGTERM, handle_sigterm);
+  signal(SIGINT, handle_sigterm);
 
   if (getuid() != 0) {
     fprintf(stderr, "%s must be run as root\n", argv[0]);
@@ -961,5 +996,7 @@ int main(int argc, char **argv) {
     run_tests(&f);
   } while (f.cfg.daemon);
 
+  openocd_stop(&f);
+  serial_close(&f);
   return 0;
 }

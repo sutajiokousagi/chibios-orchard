@@ -103,10 +103,6 @@ static void handle_sigterm(int signal) {
   serial_close(g_factory);
 }
 
-static void handle_sigpipe(int signal) {
-  fprintf(stderr, "Got SIGPIPE\n");
-}
-
 static void fdbg(struct factory *f, const char *format, ...) {
 
   va_list ap;
@@ -554,7 +550,6 @@ static int openocd_stop(struct factory *f) {
   if (f->openocd_pid != -1) {
     int status;
     int tries;
-    fprintf(stderr, "Sending SIGTERM to child %d\n", f->openocd_pid);
     kill(f->openocd_pid, SIGTERM);
 
     for (tries = 0; tries < 200; tries++) {
@@ -980,7 +975,6 @@ int main(int argc, char **argv) {
   f.cfg.verbose = 1;
 
   signal(SIGCHLD, handle_sigchld);
-  signal(SIGPIPE, handle_sigpipe);
   signal(SIGTERM, handle_sigterm);
   signal(SIGINT, handle_sigterm);
 
@@ -992,10 +986,8 @@ int main(int argc, char **argv) {
   if (parse_args(&f.cfg, argc, argv))
     return 1;
 
-  if (open_button(&f)) {
-    fprintf(stderr, "Unable to export GPIO button\n");
+  if (open_button(&f))
     return 1;
-  }
 
   do {
     wait_for_button_press(&f);

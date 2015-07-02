@@ -16,7 +16,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 do_start() {
 	cd /home/pi/orchard-src/orchard/
-	(./factory-test --swclk 20 --swdio 21 --elf /home/pi/orchard-src/orchard/build/orchard.elf --serial /dev/ttyAMA0 --red 6 --yellow 13 --green 19 --button 26 -vvvv > /tmp/orchard.log 2>&1 &)
+	(./build/factory-test --swclk 20 --swdio 21 --elf /home/pi/orchard-src/orchard/build/orchard.elf --serial /dev/ttyAMA0 --red 6 --yellow 13 --green 19 --button 26 -vvvv > /tmp/orchard.log 2>&1 &)
 	return 0
 }
 

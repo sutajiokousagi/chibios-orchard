@@ -972,7 +972,6 @@ int main(int argc, char **argv) {
   f.cfg.button_gpio = -1;
   f.cfg.do_program = 1;
   f.cfg.do_tests = 1;
-  f.cfg.verbose = 1;
 
   signal(SIGCHLD, handle_sigchld);
   signal(SIGTERM, handle_sigterm);

@@ -648,20 +648,33 @@ static int openocd_reset_halt(struct factory *f) {
     openocd_send(f, "reset halt");
     openocd_recv(f, buf, sizeof(buf));
 
-    openocd_send(f, "klx.cpu curstate");
+    openocd_send(f, "ocd_klx.cpu curstate");
     ret = openocd_recv(f, buf, sizeof(buf));
     tries++;
   } while ((ret >= 0) && !strbegins(buf, "halted"));
 
-  finfo(f, "Halted after %d tries\n", tries);
+  fdbg(f, "Halted after %d tries\n", tries);
   return 0;
 }
 
 static int openocd_reset(struct factory *f) {
   char buf[256];
+  int ret;
+  int tries = 0;
 
-  openocd_send(f, "reset");
-  return (openocd_recv(f, buf, sizeof(buf)) < 0);
+  openocd_send(f, "reset run");
+  ret = openocd_recv(f, buf, sizeof(buf));
+  if (ret < 0)
+    return -1;
+
+  /* Wait for the board to exit reset */
+  do {
+    openocd_send(f, "ocd_klx.cpu curstate");
+    memset(buf, 0, sizeof(buf));
+    ret = openocd_recv(f, buf, sizeof(buf));
+    tries++;
+  } while ((ret >= 0) && (strbegins(buf, "reset") || (buf[0] == '\0')));
+  return 0;
 }
 
 static int validate_cpu(struct factory *f) {
@@ -677,7 +690,23 @@ static int validate_cpu(struct factory *f) {
     }
   }
   fdbg(f, "Correct CPU ID found: 0x%08x\n", ret);
+
   return 0;
+}
+
+static int cpu_running(struct factory *f) {
+  int ret;
+  char buf[256];
+
+  memset(buf, 0, sizeof(buf));
+  openocd_send(f, "ocd_klx.cpu curstate");
+  ret = openocd_recv(f, buf, sizeof(buf));
+  if (ret < 0)
+    return -1;
+
+  if (!strbegins(buf, "running"))
+    return 0;
+  return 1;
 }
 
 static int orchard_program(struct factory *f) {
@@ -766,7 +795,6 @@ static int run_tests(struct factory *f) {
       ret = -1;
       goto cleanup;
     }
-
     ret = check_swdid(f, 0x0bc11477);
     if (ret)
       goto cleanup;
@@ -777,8 +805,10 @@ static int run_tests(struct factory *f) {
       goto try_again;
     finfo(f, "DAP ID matches 0x04770031\n");
 
-    if (!validate_cpu(f))
-      break;
+    if (validate_cpu(f))
+      goto try_again;
+
+    break;
 
 try_again:
     openocd_stop(f);
@@ -806,6 +836,17 @@ try_again:
   ret = openocd_reset(f);
   if (ret)
     goto cleanup;
+
+  ret = cpu_running(f);
+  if (ret == 0) {
+    ferr(f, "CPU doesn't appear to be running, trying a complete reset\n");
+    kinetis_mass_erase(f);
+    ret = -EAGAIN;
+    goto cleanup;
+  }
+  else {
+    ferr(f, "Unable to determine if CPU is running\n");
+  }
 
   if (f->serial_fd == -1) {
     finfo(f, "No serial port specified, skipping tests\n");
@@ -1086,6 +1127,7 @@ static int test_setstate(struct factory *f, enum test_state state) {
 int main(int argc, char **argv) {
 
   struct factory f;
+  int ret;
   g_factory = &f;
 
   memset(&f, 0, sizeof(f));
@@ -1127,7 +1169,11 @@ int main(int argc, char **argv) {
   do {
     wait_for_button_press(&f);
     test_setstate(&f, TEST_INPROGRESS);
-    if (run_tests(&f))
+    do {
+      ret = run_tests(&f);
+    } while (ret == -EAGAIN);
+
+    if (ret)
       test_setstate(&f, TEST_FAIL);
     else
       test_setstate(&f, TEST_PASS);

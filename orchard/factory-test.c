@@ -58,12 +58,14 @@ const char *openocd_default_args[] = {
 struct factory_config {
   const char *openocd_config;
   const char *serial_path;
+  const char **specific_test_names;
+  uint32_t    specific_tests;
   int         button_gpio;
   int         swclk_gpio;
   int         swdio_gpio;
   int         verbose;
   int         daemon;
-  int         do_reprogram;
+  int         do_program;
   int         do_tests;
 };
 
@@ -78,6 +80,7 @@ struct factory {
 
 struct factory *g_factory;
 static int validate_cpu(struct factory *f);
+static int button_pressed(struct factory *f);
 
 /*
  * In UNIX, when a child process dies we must call wait()/waitpid() to
@@ -167,6 +170,8 @@ static int stream_wait_banner(struct factory *f, int fd, const char *banner) {
 
     /* This can happen if we lose sync (e.g. board removed during test) */
     if (validate_cpu(f))
+      return -1;
+    if ((f->button_fd >= 0) && button_pressed(f))
       return -1;
   }
 }
@@ -405,9 +410,10 @@ void print_help(const char *name) {
   printf(" -k --swclk      GPIO pin to use for SWD clock\n");
   printf(" -d --swdio      GPIO pin to use for SWD data\n");
   printf(" -b --button     GPIO pin to use for Start button\n");
-  printf(" -r --no-program Skip the programming step\n");
+  printf(" -p --no-program Skip the programming step\n");
   printf(" -t --no-tests   Skip the testing step\n");
-  printf(" -v --verbose    Print more information\n");
+  printf(" -l --run-test   Runs a specific test.  May be specified multiple times.\n");
+  printf(" -v --verbose    Increase verbosity.  May be specified multiple times.\n");
 }
 
 int parse_args(struct factory_config *cfg, int argc, char **argv) {
@@ -420,14 +426,14 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
     {"button",        required_argument, NULL,  'b'},
     {"swclk",         required_argument, NULL,  'k'},
     {"swdio",         required_argument, NULL,  'd'},
-    {"reset",         required_argument, NULL,  'r'},
+    {"run-test",      required_argument, NULL,  'r'},
     {"verbose",       no_argument,       NULL,  'v'},
-    {"no-reprogram",  no_argument,       NULL,  'r'},
+    {"no-program",    no_argument,       NULL,  'p'},
     {"no-tests",      no_argument,       NULL,  't'},
     {"help",          no_argument,       NULL,  'h'},
   };
 
-  while ((c = getopt_long(argc, argv, "c:k:d:b:hvrt", long_options, &idx)) != -1) {
+  while ((c = getopt_long(argc, argv, "c:k:d:b:r:hvpt", long_options, &idx)) != -1) {
     switch (c) {
     case -1:
       return 0;
@@ -436,12 +442,20 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
       cfg->openocd_config = optarg;
       break;
 
-    case 'r':
-      cfg->do_reprogram = 0;
+    case 'p':
+      cfg->do_program = 0;
       break;
 
     case 't':
       cfg->do_tests = 0;
+      break;
+
+    case 'r':
+      /* Allocate space for the new test name */
+      cfg->specific_test_names = realloc(cfg->specific_test_names,
+                                  sizeof(char *) * (cfg->specific_tests + 1));
+      cfg->specific_test_names[cfg->specific_tests] = strdup(optarg);
+      cfg->specific_tests++;
       break;
 
     case 's':
@@ -585,7 +599,7 @@ static int validate_cpu(struct factory *f) {
   return 0;
 }
 
-static int orchard_reprogram(struct factory *f) {
+static int orchard_program(struct factory *f) {
 
   int ret;
 
@@ -618,13 +632,22 @@ static int writestr(int fd, char *str) {
   return write(fd, str, strlen(str));
 }
 
+static int orchard_run_test(struct factory *f, const char *testname) {
+
+  int ret;
+  char buf[256];
+
+  snprintf(buf, sizeof(buf) - 1, "test %s 3\r\n", testname);
+  ret = writestr(f->serial_fd, buf);
+  if (ret <= 0)
+    return ret;
+
+  return stream_wait_banner(f, f->serial_fd, "ch> ");
+}
+
 static int orchard_run_tests(struct factory *f) {
 
   int ret;
-
-  ret = stream_wait_banner(f, f->serial_fd, "ch> ");
-  if (ret)
-    return ret;
 
   ret = writestr(f->serial_fd, "testall 3\r\n");
   if (ret <= 0)
@@ -676,19 +699,33 @@ static int run_tests(struct factory *f) {
   finfo(f, "UIDML: 0x%08x\n", openocd_readmem(f, 0x4004805C));
   finfo(f, "UIDL: 0x%08x\n", openocd_readmem(f, 0x40048060));
 
-  if (f->cfg.do_reprogram) {
+  if (f->cfg.do_program) {
     finfo(f, "Reprogramming board\n");
-    ret = orchard_reprogram(f);
+    ret = orchard_program(f);
     if (ret)
       goto cleanup;
   }
   else
-    finfo(f, "Skipping board reprogramming step\n");
+    finfo(f, "Skipping board programming step\n");
 
   finfo(f, "Resetting board\n");
   ret = openocd_reset(f);
   if (ret)
     goto cleanup;
+
+  ret = stream_wait_banner(f, f->serial_fd, "ch> ");
+  if (ret)
+    goto cleanup;
+
+  if (f->cfg.specific_tests) {
+    int i;
+    for (i = 0; i < f->cfg.specific_tests; i++) {
+      finfo(f, "Running specific test '%s'\n", f->cfg.specific_test_names[i]);
+      ret = orchard_run_test(f, f->cfg.specific_test_names[i]);
+      if (ret)
+        goto cleanup;
+    }
+  }
 
   if (f->cfg.do_tests) {
     finfo(f, "Running tests\n");
@@ -868,6 +905,9 @@ static int button_pressed(struct factory *f) {
 
 static int wait_for_button_press(struct factory *f) {
 
+  if (f->button_fd < 0)
+    return 0;
+
   finfo(f, "Waiting for button press...\n");
   while (!button_pressed(f));
   fdbg(f, "Button press detected\n");
@@ -887,7 +927,7 @@ int main(int argc, char **argv) {
   f.cfg.swclk_gpio = -1;
   f.cfg.swdio_gpio = -1;
   f.cfg.button_gpio = -1;
-  f.cfg.do_reprogram = 1;
+  f.cfg.do_program = 1;
   f.cfg.do_tests = 1;
 
   atexit(cleanup);

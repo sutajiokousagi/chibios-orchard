@@ -213,7 +213,7 @@ static void redraw_ui(void) {
 
   // generate the title bar
   gdispFillArea(0, 0, width, header_height - 1, White);
-  if( strncmp(effectsCurName(), "lg", 2) != 0 )
+  if( strncmp(effectsCurName(), "Lg", 2) != 0 )
     chsnprintf(tmp, sizeof(tmp), "%s", effectsCurName());
   else {
     chsnprintf(tmp, sizeof(tmp), "%s", lightgeneName());

@@ -238,9 +238,7 @@ static void do_lightgene(struct effects_config *config) {
     overrideHSV = 0;
     // compute one pixel's color
     // count is the current pixel index
-    // loop is the current point in effect cycle, e.g. all effects loop on a 0-255 basis
-
-    //// TODO: fix hue cycling -- it moves way too fast to be interesting
+    // loop is the current point in effect cycle, e.g. all effects loop on a 0-511 basis
     // hue chromosome
     hue_rate = (uint32_t) diploid.hue_ratedir & 0xF;
     hue_dir = (((diploid.hue_ratedir >> 4) & 0xF) > 10) ? 1 : 0;
@@ -335,62 +333,28 @@ static void do_lightgene(struct effects_config *config) {
 static void lg0FB(struct effects_config *config) {
   do_lightgene(config);
 }
-orchard_effects("lg0", lg0FB);
+orchard_effects("Lg0", lg0FB);
 
 static void lg1FB(struct effects_config *config) {
   do_lightgene(config);
 }
-orchard_effects("lg1", lg1FB);
+orchard_effects("Lg1", lg1FB);
 
 static void lg2FB(struct effects_config *config) {
   do_lightgene(config);
 }
-orchard_effects("lg2", lg2FB);
+orchard_effects("Lg2", lg2FB);
 
 static void lg3FB(struct effects_config *config) {
   do_lightgene(config);
 }
-orchard_effects("lg3", lg3FB);
+orchard_effects("Lg3", lg3FB);
 
 static void lg4FB(struct effects_config *config) {
   do_lightgene(config);
 }
-orchard_effects("lg4", lg4FB);
+orchard_effects("Lg4", lg4FB);
 
-#if 0
-static void lightGeneFB(struct effects_config *config) {
-  uint8_t *fb = config->hwconfig->fb;
-  int count = config->count;
-  uint8_t loop = config->loop & 0xFF;
-  HsvColor hsvC;
-  RgbColor rgbC;
-  
-  int i;
-
-  for (i = 0; i < count; i++) {
-    fix16_t omega = fix16_div( fix16_from_int(loop), fix16_from_int(255) );
-    fix16_t phi = fix16_div( fix16_from_int(i), fix16_from_int(count) );
-
-    fix16_t satval = fix16_mul( fix16_from_int(44), fix16_sin( fix16_sub( fix16_mul( omega, fix16_mul( fix16_pi, fix16_from_int(8)) ), fix16_mul( phi, fix16_mul( fix16_pi, fix16_from_int(4)))) ) );
-  
-    fix16_t valval = fix16_mul( fix16_from_int(127), fix16_sin( fix16_add( fix16_mul( omega, fix16_mul( fix16_pi, fix16_from_int(4)) ), fix16_mul( phi, fix16_mul( fix16_pi, fix16_from_int(8)))) ) );
-
-    hsvC.h = loop + (i * (512 / count));
- #if 0
-    hsvC.s = 192 + (uint8_t) (63.0 * sin(4.0 * 3.14159 * ((float)loop / 255.0) -
-					  (6.0 * 3.14159 * (float) i / 16.0) ) );
-    hsvC.v = 128 + (uint8_t) (127.0 * sin(2.0 * 3.14159 * ((float)loop / 255.0) -
-					  (2.0 * 3.14159 * (float) i / 16.0) ) );
-#endif
-    hsvC.s = 210 + fix16_to_int(satval);
-    hsvC.v = 128 + fix16_to_int(valval);
-    
-    rgbC = HsvToRgb(hsvC);
-    ledSetRGB(fb, i, rgbC.r, rgbC.g, rgbC.b, shift);
-  }
-}
-orchard_effects("lightgene", lightGeneFB);
-#endif
 
 static void strobePatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -428,6 +392,7 @@ static void strobePatternFB(struct effects_config *config) {
 }
 orchard_effects("strobe", strobePatternFB);
 
+#if 0
 static void calmPatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   int count = config->count;
@@ -445,6 +410,7 @@ static void calmPatternFB(struct effects_config *config) {
   }
 }
 orchard_effects("calm", calmPatternFB);
+#endif
 
 static void testPatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -497,12 +463,12 @@ static void testPatternFB(struct effects_config *config) {
       /* Black */
       ledSetRGB(fb, (i++ + loop) % count, 0, 0, 0, shift);
 
-      /* White */
-      ledSetRGB(fb, (i++ + loop) % count, 32, 32, 32, shift);
+      /* Red */
+      ledSetRGB(fb, (i++ + loop) % count, 128, 0, 0, shift);
     }
     else {
-      /* White */
-      ledSetRGB(fb, (i++ + loop) % count, 32, 32, 32, shift);
+      /* Red */
+      ledSetRGB(fb, (i++ + loop) % count, 128, 0, 0, shift);
 
       /* Black */
       ledSetRGB(fb, (i++ + loop) % count, 0, 0, 0, shift);
@@ -524,7 +490,7 @@ static void testPatternFB(struct effects_config *config) {
 #endif
  
 }
-orchard_effects("testPattern", testPatternFB);
+orchard_effects("safetyPattern", testPatternFB);
 
 static void shootPatternFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -542,12 +508,13 @@ static void shootPatternFB(struct effects_config *config) {
       ledSetRGB(fb, i, 0, 0, 0, shift);
   }
 }
-orchard_effects("shootingstar", shootPatternFB);
+orchard_effects("circlestar", shootPatternFB);
 
 #define VU_X_PERIOD 3   // number of waves across the entire band
 #define VU_T_PERIOD 2500  // time to complete 2pi rotation, in integer milliseconds
 #define TAU 1000
 
+#if 0
 static void waveRainbowFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   int count = config->count;
@@ -620,6 +587,7 @@ static void waveRainbowFB(struct effects_config *config) {
   }  
 }
 orchard_effects("WaveRainbow", waveRainbowFB);
+#endif
 
 static void directedRainbowFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
@@ -692,6 +660,7 @@ orchard_effects("directedRainbow", directedRainbowFB);
 
 #define DROP_INT 600
 #define BUMP_TIMEOUT 2300
+#if 0
 static void raindropFB(struct effects_config *config) {
   uint8_t *fb = config->hwconfig->fb;
   int count = config->count;
@@ -836,6 +805,7 @@ static void larsonScannerFB(struct effects_config *config) {
 
 }
 orchard_effects("larsonScanner", larsonScannerFB);
+#endif
 
 #define BUMP_DEBOUNCE 300 // 300ms debounce to next bump
 
@@ -897,7 +867,7 @@ void check_lightgene_hack(void) {
   const struct genes *family;
   uint8_t family_member = 0;
   
-  if( strncmp(effectsCurName(), "lg", 2) == 0 ) {
+  if( strncmp(effectsCurName(), "Lg", 2) == 0 ) {
     family = (const struct genes *) storageGetData(GENE_BLOCK);
     // handle lightgene special case
     family_member = effectsCurName()[2] - '0';
@@ -1021,6 +991,7 @@ void effectsStart(void) {
     fx_max++;
     curfx++;
   }
+  check_lightgene_hack();
 
   draw_pattern();
   ledExitRequest = 0;

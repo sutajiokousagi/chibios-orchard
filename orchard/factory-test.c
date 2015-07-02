@@ -23,6 +23,7 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -32,6 +33,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -40,8 +42,9 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 enum log_levels {
   LOGF_NONE = 0,
-  LOGF_INFO = 1,
-  LOGF_DEBUG = 2,
+  LOGF_ERROR = 1,
+  LOGF_INFO = 2,
+  LOGF_DEBUG = 3,
 };
 
 const char *openocd_default_args[] = {
@@ -63,6 +66,7 @@ struct factory_config {
 };
 
 struct factory {
+  int                   button_fd;    /* Physical button GPIO handle */
   int                   openocd_sock; /* TCL socket */
   int                   openocd_pid;  /* Process PID */
   int                   serial_fd;    /* TTL UART file */
@@ -103,6 +107,18 @@ static void finfo(struct factory *f, const char *format, ...) {
   va_list ap;
 
   if (f->cfg.verbose < LOGF_INFO)
+    return;
+
+  va_start(ap, format);
+  vprintf(format, ap);
+  va_end(ap);
+}
+
+static void ferr(struct factory *f, const char *format, ...) {
+
+  va_list ap;
+
+  if (f->cfg.verbose < LOGF_ERROR)
     return;
 
   va_start(ap, format);
@@ -319,6 +335,7 @@ int parse_args(struct factory_config *cfg, int argc, char **argv) {
 
     case 'b':
       cfg->button_gpio = strtoul(optarg, NULL, 0);
+      cfg->daemon = 1;
       break;
 
     case 'k':
@@ -398,10 +415,12 @@ static int serial_close(struct factory *f) {
 
 static int openocd_stop(struct factory *f) {
 
-  if (f->openocd_pid != -1)
+  if (f->openocd_pid != -1) {
+    int status;
     kill(f->openocd_pid, SIGTERM);
-  /* Don't reset openocd_pid, since it will be caught by the handler. */
-#warning "Make sure this doesn't need a waitpid here, too"
+    wait(&status);
+    f->openocd_pid = -1;
+  }
 
   if (f->openocd_sock != -1) {
     (void) shutdown(f->openocd_sock, SHUT_RDWR);
@@ -461,6 +480,157 @@ static void cleanup(void) {
   serial_close(g_factory);
 }
 
+static int open_write_close(const char *name, const char *valstr)
+{
+  int ret;
+  int fd = open(name, O_WRONLY);
+  if (fd < 0)
+    return fd;
+
+  ret = write(fd, valstr, strlen(valstr));
+  close(fd);
+
+  if (ret < 0)
+    return ret;
+  return 0;
+}
+
+/* RPi-specific config stuff, mostly setting GPIOs.  This will become
+ * unnecessary when Device Tree lets us set pullups at boot.
+ */
+static int config_button_rpi(struct factory *f) {
+  /* Couldn't get this code to work, using library instead */
+#if 1
+  return system("python -c \""
+                "import RPi.GPIO as GPIO; "
+                "GPIO.setmode(GPIO.BCM); "
+                "GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_UP)\"");
+#else
+static void delay_clocks(int cycles) {
+  int i;
+  for (i = 0; i < cycles; i++)
+    asm("nop");
+}
+
+#define BCM2708_PERI_BASE   0x20000000
+#define GPIO_BASE           (BCM2708_PERI_BASE + 0x200000)
+#define GPIO_PULL_MODE 37
+#define GPIO_PULL_MODE_OFF 0
+#define GPIO_PULL_MODE_DOWN 1
+#define GPIO_PULL_MODE_UP 2
+#define GPIO_PULL_CLK0 38
+#define GPIO_PULL_CLK1 39
+  int m_fd;
+  volatile uint32_t *gpio;
+  uint32_t shift = f->cfg.button_gpio % 32;
+
+  m_fd = open("/dev/mem", O_RDWR);
+  if (m_fd < 0) {
+    ferr(f, "Can't open /dev/mem: %s\n", strerror(errno));
+    return -1;
+  }
+
+  gpio = mmap(NULL, 0xffff, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd, GPIO_BASE);
+
+  if (gpio == MAP_FAILED) {
+    ferr(f, "Unable to mmap: %s\n", strerror(errno));
+    close(m_fd);
+    return -1;
+  }
+
+  /* Sequence (from BCM2835 manual):
+   *  1) Write desired mode to GPIO_PULL_MODE
+   *  2) Wait 150 cycles
+   *  3) Write control signal to CLK0/1
+   *  4) Wait 150 cycles
+   *  5) Clear signal from GPIO_PULL_MODE
+   *  6) Clear signal from CLK0/1
+   */
+  gpio[GPIO_PULL_MODE] = (gpio[GPIO_PULL_MODE] & ~3) | GPIO_PULL_MODE_UP;
+  delay_clocks(150);
+
+  if (f->cfg.button_gpio < 32)
+    gpio[GPIO_PULL_CLK0] = (1 << shift);
+  else
+    gpio[GPIO_PULL_CLK1] = (1 << shift);
+  delay_clocks(150);
+
+  gpio[GPIO_PULL_MODE] &= ~3;
+  if (f->cfg.button_gpio < 32)
+    gpio[GPIO_PULL_CLK0] = 0;
+  else
+    gpio[GPIO_PULL_CLK1] = 0;
+
+  munmap((void *)gpio, 4096);
+  close(m_fd);
+
+  return 0;
+#endif
+}
+
+static int open_button(struct factory *f) {
+
+  int ret = -1;
+  char str[512];
+  int gpio = f->cfg.button_gpio;
+
+  if (gpio < 0)
+    return 0;
+
+  snprintf(str, sizeof(str) - 1, "%d", gpio);
+  ret = open_write_close("/sys/class/gpio/export", str);
+  if (ret && (errno != EBUSY))  {
+    ferr(f, "Unable to export GPIO: %s\n", strerror(errno));
+    goto cleanup;
+  }
+
+  snprintf(str, sizeof(str) - 1, "/sys/class/gpio/gpio%d/direction", gpio);
+  ret = open_write_close(str, "in");
+  if (ret) {
+    ferr(f, "Unable to set GPIO as input: %s\n", strerror(errno));
+    goto cleanup;
+  }
+
+  ret = config_button_rpi(f);
+  if (ret)
+    return ret;
+
+  snprintf(str, sizeof(str), "/sys/class/gpio/gpio%d/value", gpio);
+  ret = open(str, O_RDWR | O_NONBLOCK | O_SYNC);
+  if (ret < 0) {
+    ferr(f, "Unable to open GPIO: %s\n", strerror(errno));
+    goto cleanup;
+  }
+
+  f->button_fd = ret;
+
+  return 0;
+
+cleanup:
+  return ret;
+}
+
+static int wait_for_button_press(struct factory *f) {
+  char bfr;
+  int ret;
+
+  if (f->button_fd == -1)
+    return 0;
+
+  fdbg(f, "Waiting for button press...\n");
+  do {
+    lseek(f->button_fd, 0, SEEK_SET);
+    ret = read(f->button_fd, &bfr, sizeof(bfr));
+
+    if (ret < 0) {
+      ferr(f, "Unable to read GPIO value: %s\n", strerror(errno));
+      return -1;
+    }
+  } while (bfr == '1');
+  fdbg(f, "Button press detected\n");
+  return 0;
+}
+
 int main(int argc, char **argv) {
 
   struct factory f;
@@ -469,9 +639,11 @@ int main(int argc, char **argv) {
   memset(&f, 0, sizeof(f));
   f.openocd_pid = -1;
   f.openocd_sock = -1;
+  f.button_fd = -1;
   f.serial_fd = -1;
   f.cfg.swclk_gpio = -1;
   f.cfg.swdio_gpio = -1;
+  f.cfg.button_gpio = -1;
 
   atexit(cleanup);
   signal(SIGCHLD, handle_sigchld);
@@ -484,7 +656,13 @@ int main(int argc, char **argv) {
   if (parse_args(&f.cfg, argc, argv))
     return 1;
 
+  if (open_button(&f)) {
+    fprintf(stderr, "Unable to export GPIO button\n");
+    return 1;
+  }
+
   do {
+    wait_for_button_press(&f);
     run_tests(&f);
   } while (f.cfg.daemon);
 

@@ -16,6 +16,8 @@ event_source_t radio_page;
 event_source_t radio_sex;
 event_source_t radio_app;
 
+event_source_t accel_bump;
+
 static void ble_rdyn_cb(EXTDriver *extp, expchannel_t channel) {
 
   (void)extp;
@@ -63,6 +65,9 @@ void orchardEventsStart(void) {
   chEvtObjectInit(&radio_page);
   chEvtObjectInit(&radio_sex);
   chEvtObjectInit(&radio_app);
+
+  // accel events
+  chEvtObjectInit(&accel_bump);
 
   extStart(&EXTD1, &ext_config);
 }

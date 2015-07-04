@@ -617,6 +617,15 @@ static void adc_mic_event(eventid_t id) {
   instance.app->event(instance.context, &evt);
 }
 
+static void accel_bump_event(eventid_t id) {
+  (void) id;
+  OrchardAppEvent evt;
+  
+  evt.type = accelEvent;
+  evt.accel.code = accelCodeBump;
+  instance.app->event(instance.context, &evt);
+}
+
 static void adc_usb_event(eventid_t id) {
   (void) id;
   OrchardAppEvent evt;
@@ -837,6 +846,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   evtTableHook(orchard_app_events, celcius_rdy, adc_temp_event);
   evtTableHook(orchard_app_events, mic_rdy, adc_mic_event);
   evtTableHook(orchard_app_events, usbdet_rdy, adc_usb_event);
+  evtTableHook(orchard_app_events, accel_bump, accel_bump_event);
 
   if (instance->app->init)
     app_context.priv_size = instance->app->init(&app_context);
@@ -883,6 +893,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   chVTReset(&run_launcher_timer);
   run_launcher_timer_engaged = false;
 
+  evtTableUnhook(orchard_app_events, accel_bump, accel_bump_event);
   evtTableUnhook(orchard_app_events, usbdet_rdy, adc_usb_event);
   evtTableUnhook(orchard_app_events, mic_rdy, adc_mic_event);
   evtTableUnhook(orchard_app_events, celcius_rdy, adc_temp_event);

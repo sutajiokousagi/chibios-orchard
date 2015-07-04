@@ -168,6 +168,7 @@ static void freefall(eventid_t id) {
   (void)id;
   chprintf(stream, "A");
   bump(5);
+  chEvtBroadcast(&accel_bump);
 }
 
 extern int print_hex(BaseSequentialStream *chp,

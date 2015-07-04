@@ -369,7 +369,6 @@ void accelStop(void) {
   i2cReleaseBus(driver);
 }
 
-
 void accelStart(I2CDriver *i2cp) {
 
   driver = i2cp;
@@ -396,7 +395,7 @@ void accelStart(I2CDriver *i2cp) {
   gpioxSetPadMode(GPIOX, 3, GPIOX_IN | GPIOX_IRQ_FALLING);
 
   // enable freefall by default
-  accelEnableFreefall(20, 40); // first arg somewhere between 20-24, lower is more sensitive
+  accelEnableFreefall(21, 40); // first arg somewhere between 20-24, lower is more sensitive
   
 }
 

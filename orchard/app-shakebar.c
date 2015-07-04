@@ -2,7 +2,7 @@
 #include "orchard-ui.h"
 #include "accel.h"
 
-#define BUMP_LIMIT 20  // 20 shakes to get to the limit
+#define BUMP_LIMIT 32  // 32 shakes to get to the limit
 #define RETIRE_RATE 100 // retire one bump per "100ms"
 static uint8_t bump_level = 0;
 
@@ -47,6 +47,7 @@ static void shakebar_start(OrchardAppContext *context) {
 
   (void)context;
 
+  bump_level = 0;
   orchardAppTimer(context, RETIRE_RATE * 1000 * 1000, true);  // fire every 500ms to retire bumps
   redraw_ui();
   

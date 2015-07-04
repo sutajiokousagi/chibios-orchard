@@ -4,6 +4,8 @@
 #include "orchard-app.h"
 #include "led.h"
 #include "genes.h"
+#include "radio.h"
+#include "storage.h"
 
 #include "gasgauge.h"
 #include "analog.h"
@@ -16,6 +18,10 @@
 static uint8_t friend_index = 0;
 static uint8_t numlines = 1;
 static uint8_t friend_total = 0;
+
+#define BUMP_LIMIT 32  // 32 shakes to get to the limit
+#define RETIRE_RATE 100 // retire one bump per "100ms"
+static uint8_t bump_level = 0;
 
 #define LED_UI_FONT  "fixed_5x8"
 #define REFRACTORY_PERIOD 5000  // timeout for having sex
@@ -35,18 +41,26 @@ static uint8_t mode = 0;  // used by the oscope routine
 static uint8_t oscope_running = 0;
 static uint8_t *samples;
 
-static void initiate_sex(void) {
+static uint8_t shaker_running = 0;
 
+static void initiate_sex(void) {
+  const struct genes *family;
+  family = (const struct genes *) storageGetData(GENE_BLOCK);
+  
+  shaker_running = 1;
   // put up message indicate sex initiation
   // add completion bar for mutation rate + accelerometer hook
 
   // send radio message to request sex
+  radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
+	    strlen(family->name) + 1, family->name);
 
   // wait until timeout for sex protocol to return
 
   // if protocol returns, create children
 
   // if protocol fails, indicate failure in UI
+  shaker_running = 0;
 }
 
 static void agc(uint8_t  *sample) {
@@ -163,6 +177,43 @@ static void do_oscope(void) {
   orchardGfxEnd();
 }
 
+static void do_shaker(void) {
+  font_t font;
+  coord_t width;
+  coord_t fontheight, header_height;
+  uint8_t fillwidth, intwidth;
+  char tmp[24];
+
+  orchardGfxStart();
+  font = gdispOpenFont("fixed_5x8");
+  width = gdispGetWidth();
+  intwidth = width / BUMP_LIMIT;
+  intwidth = intwidth * BUMP_LIMIT;
+  fontheight = gdispGetFontMetric(font, fontHeight);
+  header_height = fontheight;
+
+  gdispClear(Black);
+  
+  gdispDrawStringBox(0, 0, width, fontheight,
+		     "sex! sex! sex!", font, White, justifyCenter);
+  gdispDrawStringBox(0, header_height + 1 * fontheight, width, fontheight,
+		     "shake it up!", font, White, justifyCenter);
+  chsnprintf(tmp, sizeof(tmp), "Mutation rate: %d%%", (bump_level * 100) / BUMP_LIMIT);
+  gdispDrawStringBox(0, header_height + 2 * fontheight, width, fontheight,
+		     tmp, font, White, justifyCenter);
+  
+  gdispDrawBox((width - intwidth) / 2, header_height + 4 * fontheight,
+	       intwidth, fontheight, White);
+
+  fillwidth = (bump_level * intwidth) / BUMP_LIMIT;
+  gdispFillArea((width - intwidth) / 2, header_height + 4 * fontheight,
+		fillwidth, fontheight, White);
+  
+  gdispCloseFont(font);
+  gdispFlush();
+  orchardGfxEnd();
+}
+
 static void redraw_ui(void) {
   font_t font;
   coord_t width;
@@ -187,6 +238,11 @@ static void redraw_ui(void) {
   // sex with someone at the edge of reception, which would be unreliable
   // anyways and some difficulty in selecting the friend due to fading
   // names would give you a clue of the problem
+  if( shaker_running ) {
+    do_shaker();
+    return;
+  }
+  
   if( oscope_running ) {
     // do oscope stuff
     do_oscope();
@@ -328,6 +384,7 @@ static void led_start(OrchardAppContext *context) {
   last_ui_time = chVTGetSystemTime();
   last_oscope_time = chVTGetSystemTime();
   oscope_running = 0;
+  shaker_running = 0;
   orchardGfxStart();
   // determine # of lines total displayble on the screen based on the font
   font = gdispOpenFont(LED_UI_FONT);
@@ -339,6 +396,8 @@ static void led_start(OrchardAppContext *context) {
   
   listEffects();
 
+  bump_level = 0;
+  orchardAppTimer(context, RETIRE_RATE * 1000 * 1000, true);  // fire every 500ms to retire bumps
   redraw_ui();
 }
 
@@ -413,6 +472,15 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       }
       analogUpdateMic();
     }
+  } else if (event->type == timerEvent) {
+    if( bump_level > 0 )
+      bump_level--;
+    redraw_ui();
+  } else if( event->type == accelEvent ) {
+    if( bump_level < BUMP_LIMIT )
+      bump_level++;
+    
+    redraw_ui();
   }
   
   // redraw UI on any event

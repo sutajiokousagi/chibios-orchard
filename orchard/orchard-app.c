@@ -272,7 +272,12 @@ static void radio_ping_received(uint8_t prot, uint8_t src, uint8_t dst,
 }
 
 
-static void handle_radio_sex(eventid_t id) {
+static void handle_radio_sex_req(eventid_t id) {
+  (void) id;
+  // TODO
+}
+
+static void handle_radio_sex_ack(eventid_t id) {
   (void) id;
   // TODO
 }
@@ -949,9 +954,10 @@ void orchardAppInit(void) {
   evtTableHook(orchard_events, chargecheck_timeout, handle_chargecheck_timeout);
 
   evtTableHook(orchard_events, radio_page, handle_radio_page);
-  evtTableHook(orchard_events, radio_sex, handle_radio_sex);
   evtTableHook(orchard_events, ping_timeout, handle_ping_timeout);
   radioSetHandler(radioDriver, radio_prot_ping, radio_ping_received);
+  radioSetHandler(radioDriver, radio_prot_sex_req, handle_radio_sex_req );
+  radioSetHandler(radioDriver, radio_prot_sex_ack, handle_radio_sex_ack );
 
   chVTReset(&chargecheck_timer);
   chVTSet(&chargecheck_timer, MS2ST(CHARGECHECK_INTERVAL), run_chargecheck, NULL);

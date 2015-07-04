@@ -12,7 +12,7 @@ static void list_redraw(OrchardAppContext *context) {
   color_t text_color = White;
   color_t bg_color = Black;
   
-  char **itemhandles;
+  const char **itemhandles;
   
   orchardGfxStart();
   font = gdispOpenFont("fixed_5x8");

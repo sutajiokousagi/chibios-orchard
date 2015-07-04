@@ -77,7 +77,8 @@ extern event_source_t usbdet_rdy;
 
 // BM radio protocol events
 extern event_source_t radio_page;
-extern event_source_t radio_sex;
+extern event_source_t radio_sex_req;
+extern event_source_t radio_sex_ack;
 extern event_source_t radio_app;
 
 // accelerometer events

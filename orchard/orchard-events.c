@@ -13,7 +13,8 @@ event_source_t mic_rdy;
 event_source_t usbdet_rdy;
 
 event_source_t radio_page;
-event_source_t radio_sex;
+event_source_t radio_sex_req;
+event_source_t radio_sex_ack;
 event_source_t radio_app;
 
 event_source_t accel_bump;
@@ -63,7 +64,8 @@ void orchardEventsStart(void) {
 
   // radio protocol events
   chEvtObjectInit(&radio_page);
-  chEvtObjectInit(&radio_sex);
+  chEvtObjectInit(&radio_sex_req);
+  chEvtObjectInit(&radio_sex_ack);
   chEvtObjectInit(&radio_app);
 
   // accel events

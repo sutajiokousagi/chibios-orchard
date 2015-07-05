@@ -15,6 +15,8 @@
 #include "fixmath.h"
 #include "fix16_fft.h"
 
+#define SEXTEST 0
+
 static uint8_t friend_index = 0;
 static uint8_t numlines = 1;
 static uint8_t friend_total = 0;
@@ -27,7 +29,7 @@ static uint8_t bump_level = 0;
 #define REFRACTORY_PERIOD 5000  // timeout for having sex
 #define UI_LOCKOUT_TIME 6000  // timeout on friend list sorting/deletion after UI interaction
 
-#define OSCOPE_IDLE_TIME 30000  // 30 seconds of idle, and we switch to an oscilloscope mode UI...because it's pretty
+#define OSCOPE_IDLE_TIME 35000  // 35 seconds of idle, and we switch to an oscilloscope mode UI...because it's pretty
 
 static uint32_t last_ui_time = 0;
 static uint32_t last_oscope_time = 0;
@@ -44,34 +46,9 @@ static uint8_t *samples;
 
 uint8_t sex_running = 0;
 uint8_t sex_done = 0;
+uint32_t sex_timer; 
 
 #define SEX_TIMEOUT (30 * 1000)  // 30 seconds for partner to respond before giving up
-
-static void initiate_sex(void) {
-  uint32_t start = chVTGetSystemTime();
-  
-  sex_done = 0;
-  sex_running = 1;
-  // put up message indicate sex initiation
-  // add completion bar for mutation rate + accelerometer hook
-
-  // send radio message to request sex
-  radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
-	    strlen(&(partner[1])) + 1, &(partner[1]));
-
-  // wait until timeout for sex protocol to return
-  while( ((chVTGetSystemTime() - start) < SEX_TIMEOUT) && !sex_done ) {
-    chThdYield();
-    chThdSleepMilliseconds(50); // don't busy wait too much
-  }
-  
-  if( !sex_done ) {
-    // TODO: if protocol fails, indicate failure in UI
-  }
-  
-  sex_done = 0;
-  sex_running = 0;
-}
 
 static void agc(uint8_t  *sample) {
   uint8_t min, max;
@@ -409,6 +386,7 @@ static void led_start(OrchardAppContext *context) {
   
   listEffects();
 
+  sex_timer = chVTGetSystemTime();
   bump_level = 0;
   orchardAppTimer(context, RETIRE_RATE * 1000 * 1000, true);  // fire every 500ms to retire bumps
   redraw_ui();
@@ -458,10 +436,13 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 	// oscope timer does not reset on select as it should swap between FFT and time domain mode
 	if( oscope_running ) {
 	  mode = !mode;
-	}
-	if( friend_total != 0 ) {
-	  // trigger sex protocol
-	  confirm_sex(context);
+	} else {
+	  if( friend_total != 0 ) { // we have friends
+	    if( strncmp(effectsCurName(), "Lg", 2) == 0 ) { // and we're sporting a genetic light
+	      // trigger sex protocol
+	      confirm_sex(context);
+	    }
+	  }
 	}
       }
     }
@@ -475,13 +456,29 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     context->instance->ui = NULL;
     context->instance->uicontext = NULL;
 
-    if(selected == 0) // 0 means we said yes based on list item order in the UI
-      initiate_sex();
+    chprintf(stream, "selected: %d\n\r", selected );
+    if(selected == 0) { // 0 means we said yes based on list item order in the UI
+      sex_done = 0;
+      sex_running = 1;
+      sex_timer = chVTGetSystemTime();
+#if SEXTEST
+      {
+	const struct genes *family;
+	family = (const struct genes *) storageGetData(GENE_BLOCK);
+	handle_radio_sex_req(radio_prot_sex_req, 255, 255, 
+			     strlen(family->name), family->name);
+      }
+#else
+      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
+		strlen(&(partner[1])) + 1, &(partner[1]));
+#endif
+    }
   } else if( event->type == adcEvent) {
     if( oscope_running ) {
       if( event->adc.code == adcCodeMic ) {
 	samples = analogReadMic();
-	redraw_ui();
+	if( context->instance->ui == NULL )
+	  redraw_ui();
       }
       analogUpdateMic();
     }
@@ -490,12 +487,28 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       bump_level = 0;
     if( bump_level > 0 )
       bump_level--;
-    redraw_ui();
+    if( context->instance->ui == NULL )
+      redraw_ui();
   } else if( event->type == accelEvent ) {
     if( (bump_level < BUMP_LIMIT) && (sex_running) )
       bump_level++;
     
-    redraw_ui();
+    if( context->instance->ui == NULL )
+      redraw_ui();
+  }
+
+  if( sex_running ) {
+    if( ((chVTGetSystemTime() - sex_timer) > SEX_TIMEOUT) ) {
+      sex_running = 0;
+      sex_done = 0;
+      // indicate that sex has timed out
+    }
+    if( sex_done ) {
+      sex_running = 0;
+      sex_done = 0;
+      check_lightgene_hack();
+      // indicate that sex is done
+    }
   }
   
   // redraw UI on any event

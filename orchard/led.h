@@ -51,6 +51,8 @@ void listEffects(void);
 const char *effectsCurName(void);
 const char *lightgeneName(void);
 
+void check_lightgene_hack(void);
+
 #define EFFECTS_REDRAW_MS 35
 
 #endif /* __LED_H__ */

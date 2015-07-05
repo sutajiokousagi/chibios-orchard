@@ -25,6 +25,8 @@
 #include "shell.h" // for friend testing function
 #include "orchard-shell.h" // for friend testing function
 
+#define SEXTEST 0
+
 extern uint8_t sex_running;  // from app-default.c
 extern uint8_t sex_done;
 
@@ -336,35 +338,6 @@ static void meiosis(genome *gamete, const genome *haploidM, const genome *haploi
     strncpy( gamete->name, haploidP->name, GENE_NAMELENGTH );
 }
 
-static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
-                                   uint8_t length, const void *data) {
-  (void) prot;
-  (void) src;
-  (void) dst;
-  (void) length;
-  const struct genes *family;
-  uint8_t family_member = 0;
-  genome  gamete;
-  
-  family = (const struct genes *) storageGetData(GENE_BLOCK);
-
-  if( strncmp((char *)data, family->name, GENE_NAMELENGTH) == 0 ) {
-    // sex with me!
-    if( strncmp(effectsCurName(), "Lg", 2) == 0 ) {
-      // and it's a generated light pattern!
-      
-      family_member = effectsCurName()[2] - '0';
-
-      // silly biologists, they should have called it create_gamete
-      meiosis(&gamete, &(family->haploidM[family_member]),
-		    &(family->haploidP[family_member]));
-      
-      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_ack,
-		sizeof(genome), &gamete);
-    }
-  }
-}
-
 static uint8_t mfunc(uint8_t gene, uint8_t bits, uint32_t r) {
   return gray_decode(gray_encode(gene) ^ (bits << ((r >> 8) & 0x7)) );
 }
@@ -452,11 +425,12 @@ static void handle_radio_sex_ack(uint8_t prot, uint8_t src, uint8_t dst,
   (void) length;
   
   genome *sperm;
-  genome *egg;
+  genome egg;
   uint8_t mutation_rate;
   struct genes *newfam;
   const struct genes *oldfam;
   int i;
+  uint8_t curfam = 0;
   
   oldfam = (const struct genes *) storageGetData(GENE_BLOCK);
 
@@ -472,19 +446,78 @@ static void handle_radio_sex_ack(uint8_t prot, uint8_t src, uint8_t dst,
   newfam->signature = GENE_SIGNATURE;
   newfam->version = GENE_VERSION;
   strncpy(newfam->name, oldfam->name, GENE_NAMELENGTH);
+#ifdef WHOLE_FAMILY
+  (void) curfam;
   for( i = 0; i < GENE_FAMILYSIZE; i++ ) {
     meiosis(&egg, &(oldfam->haploidM[i]), &(oldfam->haploidP[i]));
 
-    mutate(egg, mutation_rate);
+    mutate(&egg, mutation_rate);
     mutate(sperm, mutation_rate);
-    memcpy(&(newfam->haploidM[i]), egg, sizeof(genome));
+    memcpy(&(newfam->haploidM[i]), &egg, sizeof(genome));
     memcpy(&(newfam->haploidP[i]), sperm, sizeof(genome));
   }
+#else
+  // ASSUME: current effect is in fact an Lg-series effect...
+  curfam = effectsCurName()[2] - '0';
+  meiosis(&egg, &(oldfam->haploidM[curfam]), &(oldfam->haploidP[curfam]));
+  for( i = 0; i < GENE_FAMILYSIZE; i++ ) {
+    if( i != curfam ) {
+      // preserve other family members
+      memcpy(&(newfam->haploidM[i]), &(oldfam->haploidM[i]), sizeof(genome));
+      memcpy(&(newfam->haploidP[i]), &(oldfam->haploidP[i]), sizeof(genome));
+    } else {
+      // just make one new baby
+      mutate(&egg, mutation_rate);
+      mutate(sperm, mutation_rate);
+      memcpy(&(newfam->haploidM[i]), &egg, sizeof(genome));
+      memcpy(&(newfam->haploidP[i]), sperm, sizeof(genome));
+    }
+  }
+#endif
   
   storagePatchData(GENE_BLOCK, (uint32_t *) newfam, GENE_OFFSET, sizeof(struct genes));
   chHeapFree(newfam);
   sex_done = 1;
 }
+
+#if SEXTEST
+void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
+                                   uint8_t length, const void *data) {
+#else
+static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
+                                   uint8_t length, const void *data) {
+#endif
+  (void) prot;
+  (void) src;
+  (void) dst;
+  (void) length;
+  const struct genes *family;
+  uint8_t family_member = 0;
+  genome  gamete;
+  
+  family = (const struct genes *) storageGetData(GENE_BLOCK);
+
+  if( strncmp((char *)data, family->name, GENE_NAMELENGTH) == 0 ) {
+    // sex with me!
+    if( strncmp(effectsCurName(), "Lg", 2) == 0 ) {
+      // and it's a generated light pattern!
+      
+      family_member = effectsCurName()[2] - '0';
+
+      // silly biologists, they should have called it create_gamete
+      meiosis(&gamete, &(family->haploidM[family_member]),
+		    &(family->haploidP[family_member]));
+
+#if SEXTEST
+      handle_radio_sex_ack(radio_prot_sex_ack, 255, 255, sizeof(genome), &gamete);
+#else
+      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_ack,
+		sizeof(genome), &gamete);
+#endif
+    }
+  }
+}
+
 
 static void handle_charge_state(eventid_t id) {
   (void)id;

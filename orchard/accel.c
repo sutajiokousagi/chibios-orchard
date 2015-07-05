@@ -308,11 +308,11 @@ void accelEnableFreefall(int sensitivity, int debounce) {
     accel_set(REG_CTRL1, 0);
   
   /* Enable motion detect on all axes, freefall with no event latch */
-  accel_set(REG_FF_MT_CFG, REG_FF_MT_CFG_OAE
-                         | REG_FF_MT_CFG_ELE
-                         | REG_FF_MT_CFG_XEFE
-                         | REG_FF_MT_CFG_YEFE
-                         | REG_FF_MT_CFG_ZEFE);
+  accel_set(REG_FF_MT_CFG, REG_FF_MT_CFG_OAE |
+                          REG_FF_MT_CFG_ELE |
+                          REG_FF_MT_CFG_XEFE |
+                          REG_FF_MT_CFG_YEFE |
+                          REG_FF_MT_CFG_ZEFE);
 
   /* Disable autosleep */
   accel_set(REG_CTRL2, 0);
@@ -324,10 +324,10 @@ void accelEnableFreefall(int sensitivity, int debounce) {
   accel_set(REG_XYZ_DATA_CFG, REG_XYZ_DATA_CFG_FS_2G);
 
   /* Set motion to be really, really sensitive */
-  accel_set(REG_FF_MT_THS, sensitivity);
+  accel_set(REG_FF_MT_THS, sensitivity); // 0.063g/LSB, inc/dec based on debounce
 
   /* Set a debounce count for freefall */
-  accel_set(REG_FF_MT_COUNT, debounce);
+  accel_set(REG_FF_MT_COUNT, debounce);  // 1.25ms per unit
 
   /* Pick INT2 for the IRQs we want to enable */
   //  accel_set(REG_CTRL5, REG_CTRL5_INT_CFG_FF_MT | REG_CTRL5_INT_CFG_LNDPRT);
@@ -395,8 +395,8 @@ void accelStart(I2CDriver *i2cp) {
   gpioxSetPadMode(GPIOX, 3, GPIOX_IN | GPIOX_IRQ_FALLING);
 
   // enable freefall by default
-  accelEnableFreefall(21, 40); // first arg somewhere between 20-24, lower is more sensitive
-  
+  accelEnableFreefall(24, 40); // first arg somewhere between 20-24, lower is more sensitive
+  // 22 = 1.5g, 40 = 50ms
 }
 
 msg_t accelPoll(struct accel_data *data) {

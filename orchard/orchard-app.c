@@ -25,6 +25,9 @@
 #include "shell.h" // for friend testing function
 #include "orchard-shell.h" // for friend testing function
 
+extern uint8_t sex_running;  // from app-default.c
+extern uint8_t sex_done;
+
 orchard_app_end();
 
 static const OrchardApp *orchard_app_list;
@@ -271,15 +274,216 @@ static void radio_ping_received(uint8_t prot, uint8_t src, uint8_t dst,
   chEvtBroadcast(&radio_app);
 }
 
+static void meiosis(genome *gamete, const genome *haploidM, const genome *haploidP) {
+  uint32_t xover = rand();
+  
+  // create a gamete by picking chromosomes randomly from one parent or the other
+  if( xover & 1 ) {
+    gamete->cd_period = haploidM->cd_period;
+    gamete->cd_rate = haploidM->cd_rate;
+    gamete->cd_dir = haploidM->cd_dir;
+  } else {
+    gamete->cd_period = haploidP->cd_period;
+    gamete->cd_rate = haploidP->cd_rate;
+    gamete->cd_dir = haploidP->cd_dir;
+  }
+  xover >>= 1;
+      
+  if( xover & 1 )
+    gamete->sat = haploidM->sat;
+  else
+    gamete->sat = haploidP->sat;
+  xover >>= 1;
+      
+  if( xover & 1 ) {
+    gamete->hue_ratedir = haploidM->hue_ratedir;
+    gamete->hue_base = haploidM->hue_base;
+    gamete->hue_bound = haploidM->hue_bound;
+  }	else {
+    gamete->hue_ratedir = haploidP->hue_ratedir;
+    gamete->hue_base = haploidP->hue_base;
+    gamete->hue_bound = haploidP->hue_bound;
+  }
+  xover >>= 1;
 
-static void handle_radio_sex_req(eventid_t id) {
-  (void) id;
-  // TODO
+  if( xover & 1 )
+    gamete->lin = haploidM->lin;
+  else
+    gamete->lin = haploidP->lin;
+  xover >>= 1;
+      
+  if( xover & 1 )
+    gamete->strobe = haploidM->strobe;
+  else
+    gamete->strobe = haploidP->strobe;
+  xover >>= 1;
+  
+  if( xover & 1 )
+    gamete->accel = haploidM->accel;
+  else
+    gamete->accel = haploidP->accel;
+  xover >>= 1;
+      
+  if( xover & 1 )
+    gamete->nonlin = haploidM->nonlin;
+  else
+    gamete->nonlin = haploidP->nonlin;
+  xover >>= 1;
+      
+  if( xover & 1 )
+    strncpy( gamete->name, haploidM->name, GENE_NAMELENGTH );
+  else
+    strncpy( gamete->name, haploidP->name, GENE_NAMELENGTH );
 }
 
-static void handle_radio_sex_ack(eventid_t id) {
-  (void) id;
-  // TODO
+static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
+                                   uint8_t length, const void *data) {
+  (void) prot;
+  (void) src;
+  (void) dst;
+  (void) length;
+  const struct genes *family;
+  uint8_t family_member = 0;
+  genome  gamete;
+  
+  family = (const struct genes *) storageGetData(GENE_BLOCK);
+
+  if( strncmp((char *)data, family->name, GENE_NAMELENGTH) == 0 ) {
+    // sex with me!
+    if( strncmp(effectsCurName(), "Lg", 2) == 0 ) {
+      // and it's a generated light pattern!
+      
+      family_member = effectsCurName()[2] - '0';
+
+      // silly biologists, they should have called it create_gamete
+      meiosis(&gamete, &(family->haploidM[family_member]),
+		    &(family->haploidP[family_member]));
+      
+      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_ack,
+		sizeof(genome), &gamete);
+    }
+  }
+}
+
+static uint8_t mfunc(uint8_t gene, uint8_t bits, uint32_t r) {
+  return gray_decode(gray_encode(gene) ^ (bits << ((r >> 8) & 0x7)) );
+}
+
+static void mutate(genome *gamete, uint8_t mutation_rate) {
+  uint32_t r;
+  uint8_t bits;
+  char genName[GENE_NAMELENGTH];
+
+  // amplify mutation rate
+  if( mutation_rate < 128 )
+    bits = 1;
+  else if( mutation_rate < 245 )
+    bits = 3;
+  else
+    bits = 7;  // radioactive levels of mutation
+  
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->cd_period = mfunc(gamete->cd_period, bits, r);
+  }
+  
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->cd_rate = mfunc(gamete->cd_rate, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->cd_dir = mfunc(gamete->cd_dir, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->sat = mfunc(gamete->sat, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->hue_ratedir = mfunc(gamete->hue_ratedir, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->hue_base = mfunc(gamete->hue_base, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->hue_bound = mfunc(gamete->hue_bound, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->lin = mfunc(gamete->lin, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->strobe = mfunc(gamete->strobe, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->accel = mfunc(gamete->accel, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    gamete->nonlin = mfunc(gamete->nonlin, bits, r);
+  }
+
+  r = rand();
+  if( (r & 0xFF) < mutation_rate ) {
+    generateName(genName);
+    strncpy(gamete->name, genName, GENE_NAMELENGTH);
+  }
+}
+
+static void handle_radio_sex_ack(uint8_t prot, uint8_t src, uint8_t dst,
+                                   uint8_t length, const void *data) {
+  (void) prot;
+  (void) src;
+  (void) dst;
+  (void) length;
+  
+  genome *sperm;
+  genome *egg;
+  uint8_t mutation_rate;
+  struct genes *newfam;
+  const struct genes *oldfam;
+  int i;
+  
+  oldfam = (const struct genes *) storageGetData(GENE_BLOCK);
+
+  if( !sex_running )  // check to avoid people from sending acks without reqs
+    return;
+
+  newfam =  (struct genes *) chHeapAlloc(NULL, sizeof(struct genes));
+  osalDbgAssert( newfam != NULL, "couldn't allocate space for the new family\n\r" );
+  
+  sperm = (genome *)data;
+  mutation_rate = getMutationRate();
+  
+  newfam->signature = GENE_SIGNATURE;
+  newfam->version = GENE_VERSION;
+  strncpy(newfam->name, oldfam->name, GENE_NAMELENGTH);
+  for( i = 0; i < GENE_FAMILYSIZE; i++ ) {
+    meiosis(&egg, &(oldfam->haploidM[i]), &(oldfam->haploidP[i]));
+
+    mutate(egg, mutation_rate);
+    mutate(sperm, mutation_rate);
+    memcpy(&(newfam->haploidM[i]), egg, sizeof(genome));
+    memcpy(&(newfam->haploidP[i]), sperm, sizeof(genome));
+  }
+  
+  storagePatchData(GENE_BLOCK, (uint32_t *) newfam, GENE_OFFSET, sizeof(struct genes));
+  chHeapFree(newfam);
+  sex_done = 1;
 }
 
 static void handle_charge_state(eventid_t id) {

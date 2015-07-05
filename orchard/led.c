@@ -68,7 +68,7 @@ static int wavesign = -1;
 static uint8_t ledExitRequest = 0;
 static uint8_t ledsOff = 1;
 
-genome diploid;   // not static so we can debug in other files
+genome diploid;   // not static so we can access/debug from other files
 
 uint8_t effectsStop(void) {
   ledExitRequest = 1;

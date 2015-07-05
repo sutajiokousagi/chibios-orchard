@@ -26,7 +26,7 @@ typedef struct genome {
   uint8_t  accel;
   uint8_t  nonlin;  // nonlinearity selector
   char     name[GENE_NAMELENGTH];
-} genome;
+} genome; // 11 + 20 = 31 bytes for a haploid gamete
 
 typedef struct genes {
   uint32_t  signature;

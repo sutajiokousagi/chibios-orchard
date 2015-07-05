@@ -36,31 +36,41 @@ static char title[32];
 static  const char item1[] = "Yes";
 static  const char item2[] = "No";
 static struct OrchardUiContext listUiContext;
+static char partner[GENE_NAMELENGTH];  // name of current sex partner
 
 static uint8_t mode = 0;  // used by the oscope routine
 static uint8_t oscope_running = 0;
 static uint8_t *samples;
 
-static uint8_t shaker_running = 0;
+uint8_t sex_running = 0;
+uint8_t sex_done = 0;
+
+#define SEX_TIMEOUT (30 * 1000)  // 30 seconds for partner to respond before giving up
 
 static void initiate_sex(void) {
-  const struct genes *family;
-  family = (const struct genes *) storageGetData(GENE_BLOCK);
+  uint32_t start = chVTGetSystemTime();
   
-  shaker_running = 1;
+  sex_done = 0;
+  sex_running = 1;
   // put up message indicate sex initiation
   // add completion bar for mutation rate + accelerometer hook
 
   // send radio message to request sex
   radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
-	    strlen(family->name) + 1, family->name);
+	    strlen(&(partner[1])) + 1, &(partner[1]));
 
   // wait until timeout for sex protocol to return
-
-  // if protocol returns, create children
-
-  // if protocol fails, indicate failure in UI
-  shaker_running = 0;
+  while( ((chVTGetSystemTime() - start) < SEX_TIMEOUT) && !sex_done ) {
+    chThdYield();
+    chThdSleepMilliseconds(50); // don't busy wait too much
+  }
+  
+  if( !sex_done ) {
+    // TODO: if protocol fails, indicate failure in UI
+  }
+  
+  sex_done = 0;
+  sex_running = 0;
 }
 
 static void agc(uint8_t  *sample) {
@@ -177,6 +187,10 @@ static void do_oscope(void) {
   orchardGfxEnd();
 }
 
+uint8_t getMutationRate(void) {
+  return ((256 / BUMP_LIMIT) * bump_level) + 2;
+}
+
 static void do_shaker(void) {
   font_t font;
   coord_t width;
@@ -238,7 +252,7 @@ static void redraw_ui(void) {
   // sex with someone at the edge of reception, which would be unreliable
   // anyways and some difficulty in selecting the friend due to fading
   // names would give you a clue of the problem
-  if( shaker_running ) {
+  if( sex_running ) {
     do_shaker();
     return;
   }
@@ -332,7 +346,6 @@ static void redraw_ui(void) {
 
 static void confirm_sex(OrchardAppContext *context) {
   const char **friends;
-  char partner[GENE_NAMELENGTH];
   const OrchardUi *listUi;
 
   if( friend_total == 0 )
@@ -384,7 +397,7 @@ static void led_start(OrchardAppContext *context) {
   last_ui_time = chVTGetSystemTime();
   last_oscope_time = chVTGetSystemTime();
   oscope_running = 0;
-  shaker_running = 0;
+  sex_running = 0;
   orchardGfxStart();
   // determine # of lines total displayble on the screen based on the font
   font = gdispOpenFont(LED_UI_FONT);
@@ -473,11 +486,13 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       analogUpdateMic();
     }
   } else if (event->type == timerEvent) {
+    if( sex_running == 0 )
+      bump_level = 0;
     if( bump_level > 0 )
       bump_level--;
     redraw_ui();
   } else if( event->type == accelEvent ) {
-    if( bump_level < BUMP_LIMIT )
+    if( (bump_level < BUMP_LIMIT) && (sex_running) )
       bump_level++;
     
     redraw_ui();

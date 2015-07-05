@@ -989,6 +989,8 @@ void effectsStart(void) {
   fx_config.hwconfig = &led_config;
   fx_config.count = led_config.pixel_count;
   fx_config.loop = 0;
+  
+  strncpy( diploid.name, "err!", GENE_NAMELENGTH ); // in case someone references before init
 
   curfx = orchard_effects_start();
   fx_max = 0;
@@ -1003,8 +1005,6 @@ void effectsStart(void) {
   ledExitRequest = 0;
   ledsOff = 0;
 
-  strncpy( diploid.name, "err!", GENE_NAMELENGTH ); // in case someone references before init
-  
   chThdCreateStatic(waEffectsThread, sizeof(waEffectsThread),
       NORMALPRIO - 6, effects_thread, &led_config);
 }

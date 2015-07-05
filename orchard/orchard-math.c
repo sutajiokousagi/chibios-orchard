@@ -169,8 +169,9 @@ int16_t map_16(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16
   out_min16 = fix16_from_int(out_min);
   out_max16 = fix16_from_int(out_max);
 
-  result16 = fix16_add(fix16_div(fix16_mul(fix16_sub(x16, in_min16), fix16_sub(out_max16, out_min16)),
-				 fix16_sub(in_max16, in_min16)), out_min16);
+  result16 = fix16_div( fix16_sub(out_max16, out_min16), fix16_sub(in_max16, in_min16) );
+  result16 = fix16_mul( result16, fix16_sub( x16, in_min16 ));
+  result16 = fix16_add( result16, out_min16 );
   return fix16_to_int(result16);
   
   //return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

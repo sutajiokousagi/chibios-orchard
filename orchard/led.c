@@ -256,7 +256,7 @@ static void do_lightgene(struct effects_config *config) {
      */
     // 254L cheesily avoids rounding errors.
     if( !hue_dir ) {
-      hue_temp = ((256L / (count / 2)) * i + (loop * hue_rate)) - 0L;
+      hue_temp = ((128L / (count / 2)) * i + (loop * hue_rate)) - 0L;
       hue_temp &= 0x1FF;
       if( hue_temp <= 0xFF )
 	hsvC.h = (uint8_t) hue_temp;
@@ -264,7 +264,7 @@ static void do_lightgene(struct effects_config *config) {
 	hsvC.h = (uint8_t) (511-hue_temp);
       }
     } else {
-      hue_temp = ((256L / (count / 2)) * i - (loop * hue_rate)) - 0L;
+      hue_temp = ((128L / (count / 2)) * i - (loop * hue_rate)) - 0L;
       hue_temp &= 0x1FF;
       if( hue_temp <= 0xFF )
 	hsvC.h = (uint8_t) hue_temp;
@@ -272,8 +272,10 @@ static void do_lightgene(struct effects_config *config) {
 	hsvC.h = (uint8_t) (511-hue_temp);
       }
     }
+    hsvC.h = map_16( (int16_t) hsvC.h, 0, 255,
+		     (int16_t) diploid.hue_base, (int16_t) diploid.hue_bound );
     
-    hsvC.h = map_16( hsvC.h, 0, 255, diploid.hue_base, diploid.hue_bound );
+    // chprintf( stream, "%d ", hsvC.h );
 
     // saturation chromosome
     hsvC.s = satadd_8(diploid.sat, sat_offset);

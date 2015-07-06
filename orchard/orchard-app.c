@@ -438,6 +438,7 @@ static void handle_radio_sex_ack(uint8_t prot, uint8_t src, uint8_t dst,
   if( !sex_running )  // check to avoid people from sending acks without reqs
     return;
 
+  configIncSexResponses(); // record # times we've had sex
   newfam =  (struct genes *) chHeapAlloc(NULL, sizeof(struct genes));
   osalDbgAssert( newfam != NULL, "couldn't allocate space for the new family\n\r" );
   
@@ -503,7 +504,7 @@ static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
     
   }
     
-  configIncSexResponses(); // record # times we've had people ask to have sex with us
+  configIncSexResponses(); // record # times we've had sex
   family = (const struct genes *) storageGetData(GENE_BLOCK);
 
   if( strncmp((char *)data, family->name, GENE_NAMELENGTH) == 0 ) {

@@ -24,7 +24,7 @@ static void redraw_ui(void) {
                      tmp, font, Black, justifyCenter);
 
   // 1st line: configure autosex
-  chsnprintf(uiStr, sizeof(uiStr), "DTF?");
+  chsnprintf(uiStr, sizeof(uiStr), "Down To Fuck?");
   gdispDrawStringBox(0, height, width, height,
 		     uiStr, font, White, justifyCenter);
 

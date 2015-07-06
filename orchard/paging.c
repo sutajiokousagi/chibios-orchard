@@ -63,6 +63,7 @@ static void redraw_ui(void) {
   gdispDrawStringBox(0, height * 4, width, height,
 		     seqstr, font, White, justifyCenter);
   
+  gdispCloseFont(font);
   gdispFlush();
   orchardGfxEnd();
 }

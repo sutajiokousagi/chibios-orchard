@@ -21,6 +21,7 @@
 #include "radio.h"
 #include "TransceiverReg.h"
 #include "gasgauge.h"
+#include "userconfig.h"
 
 #include "shell.h" // for friend testing function
 #include "orchard-shell.h" // for friend testing function
@@ -494,7 +495,15 @@ static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
   const struct genes *family;
   uint8_t family_member = 0;
   genome  gamete;
-  
+  const userconfig *config;
+
+  config = getConfig();
+  if( config->cfg_autosex == 0 ) {
+    // UI prompt and escape with return if denied
+    
+  }
+    
+  configIncSexResponses(); // record # times we've had people ask to have sex with us
   family = (const struct genes *) storageGetData(GENE_BLOCK);
 
   if( strncmp((char *)data, family->name, GENE_NAMELENGTH) == 0 ) {
@@ -503,10 +512,10 @@ static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
       // and it's a generated light pattern!
       
       family_member = effectsCurName()[2] - '0';
-
+	
       // silly biologists, they should have called it create_gamete
       meiosis(&gamete, &(family->haploidM[family_member]),
-		    &(family->haploidP[family_member]));
+	      &(family->haploidP[family_member]));
 
 #if SEXTEST
       handle_radio_sex_ack(radio_prot_sex_ack, 255, 255, sizeof(genome), &gamete);
@@ -559,6 +568,9 @@ static void handle_charge_state(eventid_t id) {
   accelPoll(&accel);
   addEntropy(accel.x ^ accel.y ^ accel.z);
 
+  // flush config data if it's changed
+  configLazyFlush();
+  
   // check if battery is too low, and shut down if it is
   if( ggVoltage() < 3250 ) {  // 3.3V (3300mV) is threshold for OLED failure; 50mV for margin
     chargerShipMode();  // requires plugging in to re-active battery

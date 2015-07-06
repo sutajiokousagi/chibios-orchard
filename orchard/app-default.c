@@ -6,6 +6,7 @@
 #include "genes.h"
 #include "radio.h"
 #include "storage.h"
+#include "userconfig.h"
 
 #include "gasgauge.h"
 #include "analog.h"
@@ -456,7 +457,6 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     context->instance->ui = NULL;
     context->instance->uicontext = NULL;
 
-    chprintf(stream, "selected: %d\n\r", selected );
     if(selected == 0) { // 0 means we said yes based on list item order in the UI
       sex_done = 0;
       sex_running = 1;
@@ -472,6 +472,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
 		strlen(&(partner[1])) + 1, &(partner[1]));
 #endif
+      configIncSexInitiations(); // track # times we tried to have sex
     }
   } else if( event->type == adcEvent) {
     if( oscope_running ) {

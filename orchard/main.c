@@ -43,6 +43,7 @@
 #include "gasgauge.h"
 #include "genes.h"
 #include "paging.h"
+#include "userconfig.h"
 
 #include "gfx.h"
 
@@ -297,7 +298,8 @@ int main(void)
   
   geneStart();  // this has to start after random pool is initied
   pagingStart();
-
+  configStart();
+  
   orchardTestRunAll(stream, orchardTestPoweron);
   
   // eventually get rid of this

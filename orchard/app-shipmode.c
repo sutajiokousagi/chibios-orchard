@@ -2,6 +2,7 @@
 #include "charger.h"
 #include "gasgauge.h"
 #include "orchard-test.h" // for cheezy UI prompts
+#include "userconfig.h"
 
 static uint8_t modeintent = 0;
 
@@ -56,11 +57,7 @@ static void shipmode_start(OrchardAppContext *context) {
 
   (void)context;
 
-#warning				      \
-  "Implement flush of volatile genome state " \
-  "(such as playtime and favorites) " \
-  "to FLASH before going into power off!"
-
+  configFlush();  // flush all volatile state before shutting down
   redraw_ui();
 }
 

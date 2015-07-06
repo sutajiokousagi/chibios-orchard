@@ -141,6 +141,7 @@ CSRC = main.c \
        storage.c \
        genes.c \
        paging.c \
+       userconfig.c \
        gitversion.c \
        $(STARTUPSRC) \
        $(PORTSRC) \

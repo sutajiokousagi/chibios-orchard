@@ -6,6 +6,8 @@
 #include "storage.h"
 #include "genes.h"
 #include "orchard-math.h"
+#include "orchard-ui.h"
+#include "captouch.h"
 
 #include "orchard-shell.h"
 
@@ -252,3 +254,65 @@ void geneStart() {
   }
 }
 
+uint8_t getConsent(char *who) {
+  font_t font;
+  coord_t width;
+  coord_t fontheight;
+  uint32_t starttime;
+  uint32_t curtime, updatetime;
+  int8_t interaction_delay = 10;
+  uint8_t result = 0;
+  uint8_t countdown;
+  uint32_t val;
+  char timer[16];
+
+  val = captouchRead();
+  
+  orchardGfxStart();
+  font = gdispOpenFont("fixed_5x8");
+  width = gdispGetWidth();
+  fontheight = gdispGetFontMetric(font, fontHeight);
+
+  gdispClear(Black);
+  gdispDrawStringBox(0, fontheight * 2, width, fontheight,
+                     "Press any button", font, White, justifyCenter);
+  gdispDrawStringBox(0, fontheight * 3, width, fontheight,
+                     "to have sex with", font, White, justifyCenter);
+  
+  gdispDrawStringBox(0, fontheight * 4, width, fontheight,
+                     who, font, White, justifyCenter);
+
+
+  countdown = (uint8_t) abs(interaction_delay);
+  result = 0;
+  starttime = chVTGetSystemTime();
+  updatetime = starttime + 1000;
+  while(1) {
+    curtime = chVTGetSystemTime();
+    if ((val != captouchRead())) {
+      result = 1;
+      break;
+    }
+    if ((curtime - starttime) > ((uint32_t) abs(interaction_delay) * 1000)) {
+      result = 0;
+      break;
+    }
+
+    if (curtime > updatetime) {
+      chsnprintf(timer, sizeof(timer), "%d", countdown);
+      gdispFillArea(0, fontheight * 5, width, fontheight, Black);
+      
+      gdispDrawStringBox(0, fontheight * 5, width, fontheight,
+			 timer, font, White, justifyCenter);
+      gdispFlush();
+      countdown--;
+      updatetime += 1000;
+    }
+  }
+
+  gdispFlush();
+  gdispCloseFont(font);
+  orchardGfxEnd();
+
+  return result;
+}

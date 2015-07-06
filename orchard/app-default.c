@@ -252,23 +252,22 @@ static void redraw_ui(uint8_t mode) {
     friend_index = 0;
 
   orchardGfxStart();
-  font = gdispOpenFont(LED_UI_FONT);
-  width = gdispGetWidth();
-  fontheight = gdispGetFontMetric(font, fontHeight);
-  header_height = fontheight;
-
-  gdispClear(Black);
 
   if( mode == 1 ) { // timeout
-    gdispDrawStringBox(0, header_height + 3 * fontheight, width, fontheight,
+    font = gdispOpenFont("ui2");
+    fontheight = gdispGetFontMetric(font, fontHeight);
+    gdispClear(Black);
+    gdispDrawStringBox(0, 32, width, fontheight,
 		       "DENIED!", font, text_color, justifyCenter);
-    gdispCloseFont(font);
     gdispFlush();
     orchardGfxEnd();
     chThdSleepMilliseconds(1000);
     return;
   } else if ( mode == 2 ) { // done
-    gdispDrawStringBox(0, header_height + 3 * fontheight, width, fontheight,
+    font = gdispOpenFont("ui2");
+    fontheight = gdispGetFontMetric(font, fontHeight);
+    gdispClear(Black);
+    gdispDrawStringBox(0, 32, width, fontheight,
 		       "SUCCESS!", font, text_color, justifyCenter);
     gdispCloseFont(font);
     gdispFlush();
@@ -276,6 +275,13 @@ static void redraw_ui(uint8_t mode) {
     chThdSleepMilliseconds(1000);
     return;
   }
+  
+  font = gdispOpenFont(LED_UI_FONT);
+  width = gdispGetWidth();
+  fontheight = gdispGetFontMetric(font, fontHeight);
+  header_height = fontheight;
+
+  gdispClear(Black);
 
   // generate the title bar
   gdispFillArea(0, 0, width, header_height - 1, White);
@@ -416,6 +422,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   (void)context;
   uint8_t shift;
   uint8_t selected = 0;
+  char sexpacket[GENE_NAMELENGTH * 2 + 2];
   
   if (event->type == keyEvent) {
     if (event->key.flags == keyDown) {
@@ -487,8 +494,14 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
 			     strlen(family->name), family->name);
       }
 #else
-      radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
-		strlen(&(partner[1])) + 1, &(partner[1]));
+      {
+	const struct genes *family;
+	family = (const struct genes *) storageGetData(GENE_BLOCK);
+	strncpy(sexpacket, &(partner[1]), GENE_NAMELENGTH);
+	strncpy(&(sexpacket[strlen(&(partner[1]))+1]), family->name, GENE_NAMELENGTH);
+	radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_req,
+		  GENE_NAMELENGTH * 2 + 2, sexpacket);
+      }
 #endif
       configIncSexInitiations(); // track # times we tried to have sex
     }

@@ -436,11 +436,15 @@ static void handle_radio_sex_ack(uint8_t prot, uint8_t src, uint8_t dst,
   const struct genes *oldfam;
   int i;
   uint8_t curfam = 0;
+  char *target;
   
-  oldfam = (const struct genes *) storageGetData(GENE_BLOCK);
-
   if( !sex_running )  // check to avoid people from sending acks without reqs
     return;
+  
+  oldfam = (const struct genes *) storageGetData(GENE_BLOCK);
+  target = (char *)(data + sizeof(genome));
+  if(strncmp(target, oldfam->name, GENE_NAMELENGTH) != 0)
+    return; // I was expecting sex, someone acked, but actually I was hearing my neighbors doing it
 
   configIncSexResponses(); // record # times we've had sex
   newfam =  (struct genes *) chHeapAlloc(NULL, sizeof(struct genes));
@@ -501,17 +505,24 @@ static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
   uint8_t family_member = 0;
   genome  gamete;
   const userconfig *config;
+  uint8_t consent = 0;
+  char *who;
+  char  response[sizeof(genome) + GENE_NAMELENGTH + 1];
 
-  config = getConfig();
-  if( config->cfg_autosex == 0 ) {
-    // UI prompt and escape with return if denied
-    
-  }
-    
-  configIncSexResponses(); // record # times we've had sex
   family = (const struct genes *) storageGetData(GENE_BLOCK);
 
   if( strncmp((char *)data, family->name, GENE_NAMELENGTH) == 0 ) {
+    who = &(((char *)data)[strlen(family->name)+1]);
+    config = getConfig();
+    if( config->cfg_autosex == 0 ) {
+      // UI prompt and escape with return if denied
+      ui_override = 1;
+      consent = getConsent(who); 
+      ui_override = 0;
+      if( !consent )
+	return;
+    }
+    configIncSexResponses(); // record # times we've had sex
     // sex with me!
     if( strncmp(effectsCurName(), "Lg", 2) == 0 ) {
       // and it's a generated light pattern!
@@ -525,8 +536,10 @@ static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
 #if SEXTEST
       handle_radio_sex_ack(radio_prot_sex_ack, 255, 255, sizeof(genome), &gamete);
 #else
+      memcpy(response, &gamete, sizeof(genome));
+      strncpy(&(response[sizeof(genome)]), who, GENE_NAMELENGTH);
       radioSend(radioDriver, RADIO_BROADCAST_ADDRESS, radio_prot_sex_ack,
-		sizeof(genome), &gamete);
+		sizeof(response), response);
 #endif
     }
   }

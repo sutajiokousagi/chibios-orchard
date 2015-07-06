@@ -266,7 +266,7 @@ uint8_t getConsent(char *who) {
   uint32_t val;
   char timer[16];
 
-  val = captouchRead();
+  val = captouchDirectRead();
   
   orchardGfxStart();
   font = gdispOpenFont("fixed_5x8");
@@ -289,7 +289,7 @@ uint8_t getConsent(char *who) {
   updatetime = starttime + 1000;
   while(1) {
     curtime = chVTGetSystemTime();
-    if ((val != captouchRead())) {
+    if ((val != captouchDirectRead())) {
       result = 1;
       break;
     }
@@ -308,6 +308,8 @@ uint8_t getConsent(char *who) {
       countdown--;
       updatetime += 1000;
     }
+    chThdYield();
+    chThdSleepMilliseconds(30);
   }
 
   gdispFlush();

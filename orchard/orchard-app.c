@@ -27,6 +27,7 @@
 #include "orchard-shell.h" // for friend testing function
 
 #define SEXTEST 0
+#define SEX_TURNAROUND_TIME 6000 // 6 seconds for sex -- mostly to give sender time to "shake it"
 
 extern uint8_t sex_running;  // from app-default.c
 extern uint8_t sex_done;
@@ -517,10 +518,13 @@ static void handle_radio_sex_req(uint8_t prot, uint8_t src, uint8_t dst,
     if( config->cfg_autosex == 0 ) {
       // UI prompt and escape with return if denied
       ui_override = 1;
-      consent = getConsent(who); 
+      consent = getConsent(who);
+      chThdSleepMilliseconds(300); // clear event queues
       ui_override = 0;
       if( !consent )
 	return;
+    } else {
+      chThdSleepMilliseconds(SEX_TURNAROUND_TIME); // wait a little bit before responding to sex query
     }
     configIncSexResponses(); // record # times we've had sex
     // sex with me!

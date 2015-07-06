@@ -30,7 +30,7 @@ static uint8_t bump_level = 0;
 #define REFRACTORY_PERIOD 5000  // timeout for having sex
 #define UI_LOCKOUT_TIME 6000  // timeout on friend list sorting/deletion after UI interaction
 
-#define OSCOPE_IDLE_TIME 35000  // 35 seconds of idle, and we switch to an oscilloscope mode UI...because it's pretty
+#define OSCOPE_IDLE_TIME 40000  // 40 seconds of idle, and we switch to an oscilloscope mode UI...because it's pretty
 
 static uint32_t last_ui_time = 0;
 static uint32_t last_oscope_time = 0;
@@ -49,7 +49,7 @@ uint8_t sex_running = 0;
 uint8_t sex_done = 0;
 uint32_t sex_timer; 
 
-#define SEX_TIMEOUT (30 * 1000)  // 30 seconds for partner to respond before giving up
+#define SEX_TIMEOUT (15 * 1000)  // 15 seconds for partner to respond before giving up
 
 static void agc(uint8_t  *sample) {
   uint8_t min, max;
@@ -256,23 +256,26 @@ static void redraw_ui(uint8_t mode) {
   if( mode == 1 ) { // timeout
     font = gdispOpenFont("ui2");
     fontheight = gdispGetFontMetric(font, fontHeight);
+    width = gdispGetWidth();
     gdispClear(Black);
     gdispDrawStringBox(0, 32, width, fontheight,
-		       "DENIED!", font, text_color, justifyCenter);
+		       "DENIED!", font, White, justifyCenter);
     gdispFlush();
+    gdispCloseFont(font);
     orchardGfxEnd();
-    chThdSleepMilliseconds(1000);
+    chThdSleepMilliseconds(1500);
     return;
   } else if ( mode == 2 ) { // done
     font = gdispOpenFont("ui2");
     fontheight = gdispGetFontMetric(font, fontHeight);
+    width = gdispGetWidth();
     gdispClear(Black);
     gdispDrawStringBox(0, 32, width, fontheight,
-		       "SUCCESS!", font, text_color, justifyCenter);
-    gdispCloseFont(font);
+		       "SUCCESS!", font, White, justifyCenter);
     gdispFlush();
+    gdispCloseFont(font);
     orchardGfxEnd();
-    chThdSleepMilliseconds(1000);
+    chThdSleepMilliseconds(1500);
     return;
   }
   
@@ -476,6 +479,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     // placeholder
   } else if( event->type == uiEvent ) {
     last_ui_time = chVTGetSystemTime();
+    last_oscope_time = chVTGetSystemTime();
     
     chHeapFree(listUiContext.itemlist); // free the itemlist passed to the UI
     selected = (uint8_t) context->instance->ui_result;
@@ -530,6 +534,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
   }
 
   if( sex_running ) {
+    last_oscope_time = chVTGetSystemTime();  // don't allow oscope to start while having sex
     if( ((chVTGetSystemTime() - sex_timer) > SEX_TIMEOUT) ) {
       sex_running = 0;
       sex_done = 0;

@@ -79,6 +79,7 @@
 void captouchStart(I2CDriver *i2cp);
 void captouchStop(void);
 uint16_t captouchRead(void);
+uint16_t captouchDirectRead(void);
 
 void captouchDebug(void);
 void captouchPrint(uint8_t reg);

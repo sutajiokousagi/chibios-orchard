@@ -206,7 +206,7 @@ static void do_shaker(void) {
   orchardGfxEnd();
 }
 
-static void redraw_ui(void) {
+static void redraw_ui(uint8_t mode) {
   font_t font;
   coord_t width;
   coord_t fontheight, header_height;
@@ -240,7 +240,7 @@ static void redraw_ui(void) {
     do_oscope();
     return;
   }
-  
+
   if( (chVTGetSystemTime() - last_ui_time) > UI_LOCKOUT_TIME )
     friendsSort();
 
@@ -258,6 +258,24 @@ static void redraw_ui(void) {
   header_height = fontheight;
 
   gdispClear(Black);
+
+  if( mode == 1 ) { // timeout
+    gdispDrawStringBox(0, header_height + 3 * fontheight, width, fontheight,
+		       "DENIED!", font, text_color, justifyCenter);
+    gdispCloseFont(font);
+    gdispFlush();
+    orchardGfxEnd();
+    chThdSleepMilliseconds(1000);
+    return;
+  } else if ( mode == 2 ) { // done
+    gdispDrawStringBox(0, header_height + 3 * fontheight, width, fontheight,
+		       "SUCCESS!", font, text_color, justifyCenter);
+    gdispCloseFont(font);
+    gdispFlush();
+    orchardGfxEnd();
+    chThdSleepMilliseconds(1000);
+    return;
+  }
 
   // generate the title bar
   gdispFillArea(0, 0, width, header_height - 1, White);
@@ -390,7 +408,7 @@ static void led_start(OrchardAppContext *context) {
   sex_timer = chVTGetSystemTime();
   bump_level = 0;
   orchardAppTimer(context, RETIRE_RATE * 1000 * 1000, true);  // fire every 500ms to retire bumps
-  redraw_ui();
+  redraw_ui(0);
 }
 
 void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
@@ -479,7 +497,7 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
       if( event->adc.code == adcCodeMic ) {
 	samples = analogReadMic();
 	if( context->instance->ui == NULL )
-	  redraw_ui();
+	  redraw_ui(0);
       }
       analogUpdateMic();
     }
@@ -489,32 +507,32 @@ void led_event(OrchardAppContext *context, const OrchardAppEvent *event) {
     if( bump_level > 0 )
       bump_level--;
     if( context->instance->ui == NULL )
-      redraw_ui();
+      redraw_ui(0);
   } else if( event->type == accelEvent ) {
     if( (bump_level < BUMP_LIMIT) && (sex_running) )
       bump_level++;
     
     if( context->instance->ui == NULL )
-      redraw_ui();
+      redraw_ui(0);
   }
 
   if( sex_running ) {
     if( ((chVTGetSystemTime() - sex_timer) > SEX_TIMEOUT) ) {
       sex_running = 0;
       sex_done = 0;
-      // indicate that sex has timed out
+      redraw_ui(1);  // indicate that sex has timed out
     }
     if( sex_done ) {
       sex_running = 0;
       sex_done = 0;
       check_lightgene_hack();
-      // indicate that sex is done
+      redraw_ui(2);  // indicate that sex is done
     }
   }
   
   // redraw UI on any event
   if( context->instance->ui == NULL ) {
-    redraw_ui();
+    redraw_ui(0);
 
     // only kick off oscope if we're not in a UI mode...
     if( ((chVTGetSystemTime() - last_oscope_time) > OSCOPE_IDLE_TIME) && !oscope_running ) {

@@ -70,6 +70,7 @@ static void redraw_ui(void) {
 
 void radioPagePopup(void) {
   
+  chThdSleepMilliseconds(100);  // wait 100ms before doing a redraw to flush event queues
   redraw_ui();
   chThdSleepMilliseconds(PAGE_DISPLAY_MS);
 }

@@ -85,6 +85,8 @@ static char *friends[MAX_FRIENDS]; // array of pointers to friends' names; first
 static uint8_t cleanup_state = 0;
 mutex_t friend_mutex;
 
+static uint8_t ui_override = 0;
+
 void friend_cleanup(void);
 
 #define MAIN_MENU_MASK  ((1 << 11) | (1 << 0))
@@ -96,10 +98,12 @@ static void handle_radio_page(eventid_t id) {
   (void) id;
   uint8_t oldfx;
 
+  ui_override = 1;
   oldfx = effectsGetPattern();
   effectsSetPattern(effectsNameLookup("strobe"));
   radioPagePopup();
   effectsSetPattern(oldfx);
+  ui_override = 0;
 }
 
 static void handle_ping_timeout(eventid_t id) {
@@ -816,7 +820,8 @@ static void ui_complete_cleanup(eventid_t id) {
   evt.type = uiEvent;
   evt.ui.code = uiComplete;
   evt.ui.flags = uiOK;
-  instance.app->event(instance.context, &evt);  
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);  
 }
 
 static void run_keycollect_timer(void *arg) {
@@ -860,7 +865,8 @@ static void adc_temp_event(eventid_t id) {
 
   evt.type = adcEvent;
   evt.adc.code = adcCodeTemp;
-  instance.app->event(instance.context, &evt);
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);
 }
 
 static void adc_mic_event(eventid_t id) {
@@ -869,7 +875,8 @@ static void adc_mic_event(eventid_t id) {
 
   evt.type = adcEvent;
   evt.adc.code = adcCodeMic;
-  instance.app->event(instance.context, &evt);
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);
 }
 
 static void accel_bump_event(eventid_t id) {
@@ -878,7 +885,8 @@ static void accel_bump_event(eventid_t id) {
   
   evt.type = accelEvent;
   evt.accel.code = accelCodeBump;
-  instance.app->event(instance.context, &evt);
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);
 }
 
 static void adc_usb_event(eventid_t id) {
@@ -887,7 +895,8 @@ static void adc_usb_event(eventid_t id) {
 
   evt.type = adcEvent;
   evt.adc.code = adcCodeUsbdet;
-  instance.app->event(instance.context, &evt);
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);
 }
 
 static void radio_app_event(eventid_t id) {
@@ -895,7 +904,8 @@ static void radio_app_event(eventid_t id) {
   OrchardAppEvent evt;
 
   evt.type = radioEvent;
-  instance.app->event(instance.context, &evt);
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);
 }
 
 static void key_event(eventid_t id) {
@@ -904,6 +914,9 @@ static void key_event(eventid_t id) {
   uint32_t i;
   OrchardAppEvent evt;
 
+  if( ui_override )
+    return;
+  
   if (!instance.app->event) {
     captouch_collected_state = 0;
     return;
@@ -961,6 +974,9 @@ static void dial_event(eventid_t id) {
   unsigned int curtime;
   OrchardAppEvent evt;
 
+  if( ui_override )
+    return;
+  
   if (!instance.app->event)
     return;
 
@@ -1015,7 +1031,8 @@ static void timer_event(eventid_t id) {
 
   evt.type = timerEvent;
   evt.timer.usecs = instance.timer_usecs;
-  instance.app->event(instance.context, &evt);
+  if( !ui_override )
+    instance.app->event(instance.context, &evt);
 
   if (instance.timer_repeating)
     orchardAppTimer(instance.context, instance.timer_usecs, true);
@@ -1077,6 +1094,7 @@ static THD_FUNCTION(orchard_app_thread, arg) {
   struct evt_table orchard_app_events;
   OrchardAppContext app_context;
 
+  ui_override = 0;
   memset(&app_context, 0, sizeof(app_context));
   instance->context = &app_context;
   app_context.instance = instance;

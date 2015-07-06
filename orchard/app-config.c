@@ -38,7 +38,7 @@ static void redraw_ui(void) {
     draw_color = White;
   }
   gdispDrawStringBox(0, height*2, width/2, height,
-		     uiStr, font, draw_color, justifyLeft);
+		     uiStr, font, draw_color, justifyCenter);
 
   // 2nd line: autosex prompt (right)
   chsnprintf(uiStr, sizeof(uiStr), "Ask");
@@ -49,7 +49,7 @@ static void redraw_ui(void) {
     draw_color = White;
   }
   gdispDrawStringBox(width/2, height*2, width/2, height,
-		     uiStr, font, draw_color, justifyLeft);
+		     uiStr, font, draw_color, justifyCenter);
   
   gdispFlush();
   orchardGfxEnd();
@@ -74,6 +74,8 @@ static void config_event(OrchardAppContext *context, const OrchardAppEvent *even
   if (event->type == keyEvent) {
     if ( (event->key.flags == keyDown) && ((event->key.code == keyCW) || (event->key.code == keyCCW)) ) {
       configToggleAutosex();
+    } else if( (event->key.flags == keyDown) && (event->key.code == keySelect) ) {
+      orchardAppExit();
     }
   }
 

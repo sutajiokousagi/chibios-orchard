@@ -38,7 +38,7 @@ pinout is documented in the board-specific file.
 
     sudo openocd -f sysfsgpio-rpi.cfg
 
-If you're flahsing boards for the first time, add '-c noinit' before the
+If you're flashing boards for the first time, add '-c noinit' before the
 board-specific config file.  E.g.:
 
     sudo openocd -c noinit -f sysfsgpio-rpi.cfg
